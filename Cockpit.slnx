@@ -1,0 +1,18 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Cockpit.Application/Cockpit.Application.csproj" />
+    <Project Path="src/Cockpit.Domain/Cockpit.Domain.csproj" />
+    <Project Path="src/Cockpit.Infrastructure/Cockpit.Infrastructure.csproj" />
+    <Project Path="src/Cockpit.Web/Cockpit.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/" />
+  <Folder Name="/tests/Integration/">
+    <Project Path="tests/Integration/Cockpit.Integration.csproj" />
+  </Folder>
+  <Folder Name="/tests/Unit/">
+    <Project Path="tests/Unit/Cockpit.Unit.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/Cockpit.Simulator/Cockpit.Simulator.csproj" />
+  </Folder>
+</Solution>

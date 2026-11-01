@@ -1,0 +1,350 @@
+[
+  {
+    "runtime": "win-x64",
+    "target": ".NETCoreApp,Version=v10.0/win-x64",
+    "packages": [
+      {
+        "id": "runtimepack.Microsoft.NETCore.App.Runtime.win-x64/10.0.11",
+        "noticeFiles": [
+          "nuget/microsoft.netcore.app.runtime.win-x64-10.0.11/LICENSE.TXT",
+          "nuget/microsoft.netcore.app.runtime.win-x64-10.0.11/microsoft.netcore.app.runtime.win-x64.nuspec",
+          "nuget/microsoft.netcore.app.runtime.win-x64-10.0.11/THIRD-PARTY-NOTICES.TXT"
+        ]
+      },
+      {
+        "id": "runtimepack.Microsoft.AspNetCore.App.Runtime.win-x64/10.0.11",
+        "noticeFiles": [
+          "nuget/microsoft.aspnetcore.app.runtime.win-x64-10.0.11/LICENSE.txt",
+          "nuget/microsoft.aspnetcore.app.runtime.win-x64-10.0.11/microsoft.aspnetcore.app.runtime.win-x64.nuspec",
+          "nuget/microsoft.aspnetcore.app.runtime.win-x64-10.0.11/THIRD-PARTY-NOTICES.TXT"
+        ]
+      },
+      {
+        "id": "Microsoft.Data.Sqlite.Core/10.0.12",
+        "noticeFiles": [
+          "nuget/microsoft.data.sqlite.core-10.0.12/microsoft.data.sqlite.core.nuspec",
+          "nuget/microsoft.data.sqlite.core-10.0.12/efcore-LICENSE.txt"
+        ]
+      },
+      {
+        "id": "Microsoft.EntityFrameworkCore/10.0.12",
+        "noticeFiles": [
+          "nuget/microsoft.entityframeworkcore-10.0.12/microsoft.entityframeworkcore.nuspec",
+          "nuget/microsoft.entityframeworkcore-10.0.12/efcore-LICENSE.txt"
+        ]
+      },
+      {
+        "id": "Microsoft.EntityFrameworkCore.Abstractions/10.0.12",
+        "noticeFiles": [
+          "nuget/microsoft.entityframeworkcore.abstractions-10.0.12/microsoft.entityframeworkcore.abstractions.nuspec",
+          "nuget/microsoft.entityframeworkcore.abstractions-10.0.12/efcore-LICENSE.txt"
+        ]
+      },
+      {
+        "id": "Microsoft.EntityFrameworkCore.Relational/10.0.12",
+        "noticeFiles": [
+          "nuget/microsoft.entityframeworkcore.relational-10.0.12/microsoft.entityframeworkcore.relational.nuspec",
+          "nuget/microsoft.entityframeworkcore.relational-10.0.12/efcore-LICENSE.txt"
+        ]
+      },
+      {
+        "id": "Microsoft.EntityFrameworkCore.Sqlite/10.0.12",
+        "noticeFiles": [
+          "nuget/microsoft.entityframeworkcore.sqlite-10.0.12/microsoft.entityframeworkcore.sqlite.nuspec",
+          "nuget/microsoft.entityframeworkcore.sqlite-10.0.12/efcore-LICENSE.txt"
+        ]
+      },
+      {
+        "id": "Microsoft.EntityFrameworkCore.Sqlite.Core/10.0.12",
+        "noticeFiles": [
+          "nuget/microsoft.entityframeworkcore.sqlite.core-10.0.12/microsoft.entityframeworkcore.sqlite.core.nuspec",
+          "nuget/microsoft.entityframeworkcore.sqlite.core-10.0.12/efcore-LICENSE.txt"
+        ]
+      },
+      {
+        "id": "Microsoft.Extensions.DependencyModel/10.0.12",
+        "noticeFiles": [
+          "nuget/microsoft.extensions.dependencymodel-10.0.12/microsoft.extensions.dependencymodel.nuspec",
+          "nuget/microsoft.extensions.dependencymodel-10.0.12/THIRD-PARTY-NOTICES.TXT"
+        ]
+      },
+      {
+        "id": "MQTTnet/5.2.0.1603",
+        "noticeFiles": [
+          "nuget/mqttnet-5.2.0.1603/LICENSE",
+          "nuget/mqttnet-5.2.0.1603/mqttnet.nuspec"
+        ]
+      },
+      {
+        "id": "SQLitePCLRaw.bundle_e_sqlite3/2.1.12",
+        "noticeFiles": [
+          "nuget/sqlitepclraw.bundle_e_sqlite3-2.1.12/sqlitepclraw.bundle_e_sqlite3.nuspec",
+          "nuget/sqlitepclraw.bundle_e_sqlite3-2.1.12/sqlitepclraw-LICENSE.txt"
+        ]
+      },
+      {
+        "id": "SQLitePCLRaw.core/2.1.12",
+        "noticeFiles": [
+          "nuget/sqlitepclraw.core-2.1.12/sqlitepclraw.core.nuspec",
+          "nuget/sqlitepclraw.core-2.1.12/sqlitepclraw-LICENSE.txt"
+        ]
+      },
+      {
+        "id": "SQLitePCLRaw.lib.e_sqlite3/2.1.12",
+        "noticeFiles": [
+          "nuget/sqlitepclraw.lib.e_sqlite3-2.1.12/sqlitepclraw.lib.e_sqlite3.nuspec",
+          "nuget/sqlitepclraw.lib.e_sqlite3-2.1.12/sqlitepclraw-LICENSE.txt"
+        ]
+      },
+      {
+        "id": "SQLitePCLRaw.provider.e_sqlite3/2.1.12",
+        "noticeFiles": [
+          "nuget/sqlitepclraw.provider.e_sqlite3-2.1.12/sqlitepclraw.provider.e_sqlite3.nuspec",
+          "nuget/sqlitepclraw.provider.e_sqlite3-2.1.12/sqlitepclraw-LICENSE.txt"
+        ]
+      }
+    ],
+    "nativeSqlite": [
+      {
+        "file": "e_sqlite3.dll",
+        "sha256": "b7385d722c83fb52142a00477a726723745916d22a555711ee89834c1111fb2e"
+      },
+      {
+        "file": "SQLitePCLRaw.provider.e_sqlite3.dll",
+        "sha256": "df996bcae63c2cabcfe8d4b9c5110eb39a2a4706178b07d875665391c6eb3995"
+      }
+    ]
+  },
+  {
+    "runtime": "linux-x64",
+    "target": ".NETCoreApp,Version=v10.0/linux-x64",
+    "packages": [
+      {
+        "id": "runtimepack.Microsoft.NETCore.App.Runtime.linux-x64/10.0.11",
+        "noticeFiles": [
+          "nuget/microsoft.netcore.app.runtime.linux-x64-10.0.11/LICENSE.TXT",
+          "nuget/microsoft.netcore.app.runtime.linux-x64-10.0.11/microsoft.netcore.app.runtime.linux-x64.nuspec",
+          "nuget/microsoft.netcore.app.runtime.linux-x64-10.0.11/THIRD-PARTY-NOTICES.TXT"
+        ]
+      },
+      {
+        "id": "runtimepack.Microsoft.AspNetCore.App.Runtime.linux-x64/10.0.11",
+        "noticeFiles": [
+          "nuget/microsoft.aspnetcore.app.runtime.linux-x64-10.0.11/LICENSE.txt",
+          "nuget/microsoft.aspnetcore.app.runtime.linux-x64-10.0.11/microsoft.aspnetcore.app.runtime.linux-x64.nuspec",
+          "nuget/microsoft.aspnetcore.app.runtime.linux-x64-10.0.11/THIRD-PARTY-NOTICES.TXT"
+        ]
+      },
+      {
+        "id": "Microsoft.Data.Sqlite.Core/10.0.12",
+        "noticeFiles": [
+          "nuget/microsoft.data.sqlite.core-10.0.12/microsoft.data.sqlite.core.nuspec",
+          "nuget/microsoft.data.sqlite.core-10.0.12/efcore-LICENSE.txt"
+        ]
+      },
+      {
+        "id": "Microsoft.EntityFrameworkCore/10.0.12",
+        "noticeFiles": [
+          "nuget/microsoft.entityframeworkcore-10.0.12/microsoft.entityframeworkcore.nuspec",
+          "nuget/microsoft.entityframeworkcore-10.0.12/efcore-LICENSE.txt"
+        ]
+      },
+      {
+        "id": "Microsoft.EntityFrameworkCore.Abstractions/10.0.12",
+        "noticeFiles": [
+          "nuget/microsoft.entityframeworkcore.abstractions-10.0.12/microsoft.entityframeworkcore.abstractions.nuspec",
+          "nuget/microsoft.entityframeworkcore.abstractions-10.0.12/efcore-LICENSE.txt"
+        ]
+      },
+      {
+        "id": "Microsoft.EntityFrameworkCore.Relational/10.0.12",
+        "noticeFiles": [
+          "nuget/microsoft.entityframeworkcore.relational-10.0.12/microsoft.entityframeworkcore.relational.nuspec",
+          "nuget/microsoft.entityframeworkcore.relational-10.0.12/efcore-LICENSE.txt"
+        ]
+      },
+      {
+        "id": "Microsoft.EntityFrameworkCore.Sqlite/10.0.12",
+        "noticeFiles": [
+          "nuget/microsoft.entityframeworkcore.sqlite-10.0.12/microsoft.entityframeworkcore.sqlite.nuspec",
+          "nuget/microsoft.entityframeworkcore.sqlite-10.0.12/efcore-LICENSE.txt"
+        ]
+      },
+      {
+        "id": "Microsoft.EntityFrameworkCore.Sqlite.Core/10.0.12",
+        "noticeFiles": [
+          "nuget/microsoft.entityframeworkcore.sqlite.core-10.0.12/microsoft.entityframeworkcore.sqlite.core.nuspec",
+          "nuget/microsoft.entityframeworkcore.sqlite.core-10.0.12/efcore-LICENSE.txt"
+        ]
+      },
+      {
+        "id": "Microsoft.Extensions.DependencyModel/10.0.12",
+        "noticeFiles": [
+          "nuget/microsoft.extensions.dependencymodel-10.0.12/microsoft.extensions.dependencymodel.nuspec",
+          "nuget/microsoft.extensions.dependencymodel-10.0.12/THIRD-PARTY-NOTICES.TXT"
+        ]
+      },
+      {
+        "id": "MQTTnet/5.2.0.1603",
+        "noticeFiles": [
+          "nuget/mqttnet-5.2.0.1603/LICENSE",
+          "nuget/mqttnet-5.2.0.1603/mqttnet.nuspec"
+        ]
+      },
+      {
+        "id": "SQLitePCLRaw.bundle_e_sqlite3/2.1.12",
+        "noticeFiles": [
+          "nuget/sqlitepclraw.bundle_e_sqlite3-2.1.12/sqlitepclraw.bundle_e_sqlite3.nuspec",
+          "nuget/sqlitepclraw.bundle_e_sqlite3-2.1.12/sqlitepclraw-LICENSE.txt"
+        ]
+      },
+      {
+        "id": "SQLitePCLRaw.core/2.1.12",
+        "noticeFiles": [
+          "nuget/sqlitepclraw.core-2.1.12/sqlitepclraw.core.nuspec",
+          "nuget/sqlitepclraw.core-2.1.12/sqlitepclraw-LICENSE.txt"
+        ]
+      },
+      {
+        "id": "SQLitePCLRaw.lib.e_sqlite3/2.1.12",
+        "noticeFiles": [
+          "nuget/sqlitepclraw.lib.e_sqlite3-2.1.12/sqlitepclraw.lib.e_sqlite3.nuspec",
+          "nuget/sqlitepclraw.lib.e_sqlite3-2.1.12/sqlitepclraw-LICENSE.txt"
+        ]
+      },
+      {
+        "id": "SQLitePCLRaw.provider.e_sqlite3/2.1.12",
+        "noticeFiles": [
+          "nuget/sqlitepclraw.provider.e_sqlite3-2.1.12/sqlitepclraw.provider.e_sqlite3.nuspec",
+          "nuget/sqlitepclraw.provider.e_sqlite3-2.1.12/sqlitepclraw-LICENSE.txt"
+        ]
+      }
+    ],
+    "nativeSqlite": [
+      {
+        "file": "libe_sqlite3.so",
+        "sha256": "b0f5c48026fedcf9f05cf31c6fadf9e1e001ca59cd85aa68b8b6814e52c18a07"
+      },
+      {
+        "file": "SQLitePCLRaw.provider.e_sqlite3.dll",
+        "sha256": "df996bcae63c2cabcfe8d4b9c5110eb39a2a4706178b07d875665391c6eb3995"
+      }
+    ]
+  },
+  {
+    "runtime": "linux-arm64",
+    "target": ".NETCoreApp,Version=v10.0/linux-arm64",
+    "packages": [
+      {
+        "id": "runtimepack.Microsoft.NETCore.App.Runtime.linux-arm64/10.0.11",
+        "noticeFiles": [
+          "nuget/microsoft.netcore.app.runtime.linux-arm64-10.0.11/LICENSE.TXT",
+          "nuget/microsoft.netcore.app.runtime.linux-arm64-10.0.11/microsoft.netcore.app.runtime.linux-arm64.nuspec",
+          "nuget/microsoft.netcore.app.runtime.linux-arm64-10.0.11/THIRD-PARTY-NOTICES.TXT"
+        ]
+      },
+      {
+        "id": "runtimepack.Microsoft.AspNetCore.App.Runtime.linux-arm64/10.0.11",
+        "noticeFiles": [
+          "nuget/microsoft.aspnetcore.app.runtime.linux-arm64-10.0.11/LICENSE.txt",
+          "nuget/microsoft.aspnetcore.app.runtime.linux-arm64-10.0.11/microsoft.aspnetcore.app.runtime.linux-arm64.nuspec",
+          "nuget/microsoft.aspnetcore.app.runtime.linux-arm64-10.0.11/THIRD-PARTY-NOTICES.TXT"
+        ]
+      },
+      {
+        "id": "Microsoft.Data.Sqlite.Core/10.0.12",
+        "noticeFiles": [
+          "nuget/microsoft.data.sqlite.core-10.0.12/microsoft.data.sqlite.core.nuspec",
+          "nuget/microsoft.data.sqlite.core-10.0.12/efcore-LICENSE.txt"
+        ]
+      },
+      {
+        "id": "Microsoft.EntityFrameworkCore/10.0.12",
+        "noticeFiles": [
+          "nuget/microsoft.entityframeworkcore-10.0.12/microsoft.entityframeworkcore.nuspec",
+          "nuget/microsoft.entityframeworkcore-10.0.12/efcore-LICENSE.txt"
+        ]
+      },
+      {
+        "id": "Microsoft.EntityFrameworkCore.Abstractions/10.0.12",
+        "noticeFiles": [
+          "nuget/microsoft.entityframeworkcore.abstractions-10.0.12/microsoft.entityframeworkcore.abstractions.nuspec",
+          "nuget/microsoft.entityframeworkcore.abstractions-10.0.12/efcore-LICENSE.txt"
+        ]
+      },
+      {
+        "id": "Microsoft.EntityFrameworkCore.Relational/10.0.12",
+        "noticeFiles": [
+          "nuget/microsoft.entityframeworkcore.relational-10.0.12/microsoft.entityframeworkcore.relational.nuspec",
+          "nuget/microsoft.entityframeworkcore.relational-10.0.12/efcore-LICENSE.txt"
+        ]
+      },
+      {
+        "id": "Microsoft.EntityFrameworkCore.Sqlite/10.0.12",
+        "noticeFiles": [
+          "nuget/microsoft.entityframeworkcore.sqlite-10.0.12/microsoft.entityframeworkcore.sqlite.nuspec",
+          "nuget/microsoft.entityframeworkcore.sqlite-10.0.12/efcore-LICENSE.txt"
+        ]
+      },
+      {
+        "id": "Microsoft.EntityFrameworkCore.Sqlite.Core/10.0.12",
+        "noticeFiles": [
+          "nuget/microsoft.entityframeworkcore.sqlite.core-10.0.12/microsoft.entityframeworkcore.sqlite.core.nuspec",
+          "nuget/microsoft.entityframeworkcore.sqlite.core-10.0.12/efcore-LICENSE.txt"
+        ]
+      },
+      {
+        "id": "Microsoft.Extensions.DependencyModel/10.0.12",
+        "noticeFiles": [
+          "nuget/microsoft.extensions.dependencymodel-10.0.12/microsoft.extensions.dependencymodel.nuspec",
+          "nuget/microsoft.extensions.dependencymodel-10.0.12/THIRD-PARTY-NOTICES.TXT"
+        ]
+      },
+      {
+        "id": "MQTTnet/5.2.0.1603",
+        "noticeFiles": [
+          "nuget/mqttnet-5.2.0.1603/LICENSE",
+          "nuget/mqttnet-5.2.0.1603/mqttnet.nuspec"
+        ]
+      },
+      {
+        "id": "SQLitePCLRaw.bundle_e_sqlite3/2.1.12",
+        "noticeFiles": [
+          "nuget/sqlitepclraw.bundle_e_sqlite3-2.1.12/sqlitepclraw.bundle_e_sqlite3.nuspec",
+          "nuget/sqlitepclraw.bundle_e_sqlite3-2.1.12/sqlitepclraw-LICENSE.txt"
+        ]
+      },
+      {
+        "id": "SQLitePCLRaw.core/2.1.12",
+        "noticeFiles": [
+          "nuget/sqlitepclraw.core-2.1.12/sqlitepclraw.core.nuspec",
+          "nuget/sqlitepclraw.core-2.1.12/sqlitepclraw-LICENSE.txt"
+        ]
+      },
+      {
+        "id": "SQLitePCLRaw.lib.e_sqlite3/2.1.12",
+        "noticeFiles": [
+          "nuget/sqlitepclraw.lib.e_sqlite3-2.1.12/sqlitepclraw.lib.e_sqlite3.nuspec",
+          "nuget/sqlitepclraw.lib.e_sqlite3-2.1.12/sqlitepclraw-LICENSE.txt"
+        ]
+      },
+      {
+        "id": "SQLitePCLRaw.provider.e_sqlite3/2.1.12",
+        "noticeFiles": [
+          "nuget/sqlitepclraw.provider.e_sqlite3-2.1.12/sqlitepclraw.provider.e_sqlite3.nuspec",
+          "nuget/sqlitepclraw.provider.e_sqlite3-2.1.12/sqlitepclraw-LICENSE.txt"
+        ]
+      }
+    ],
+    "nativeSqlite": [
+      {
+        "file": "libe_sqlite3.so",
+        "sha256": "707fff6b18c1f083158e7a543c8d2545d5485f547ffd96db29679a95f52878d5"
+      },
+      {
+        "file": "SQLitePCLRaw.provider.e_sqlite3.dll",
+        "sha256": "df996bcae63c2cabcfe8d4b9c5110eb39a2a4706178b07d875665391c6eb3995"
+      }
+    ]
+  }
+]

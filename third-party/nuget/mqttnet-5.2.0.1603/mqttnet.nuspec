@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>MQTTnet</id>
+    <version>5.2.0.1603</version>
+    <authors>The contributors of MQTTnet</authors>
+    <license type="file">LICENSE</license>
+    <licenseUrl>https://aka.ms/deprecateLicenseUrl</licenseUrl>
+    <icon>nuget.png</icon>
+    <projectUrl>https://github.com/dotnet/MQTTnet</projectUrl>
+    <description>MQTTnet is a high performance .NET library for MQTT based communication. It provides a MQTT client and a MQTT server (broker) and supports v3.1.0, v3.1.1 and v5.0.0 of the MQTT protocol.</description>
+    <releaseNotes>* Client: Late acknowledgement packets (PUBACK, PUBCOMP, SUBACK, UNSUBACK) for canceled or timed-out requests no longer trigger a protocol violation and tear down the connection (#2078, #2079)
+* Client: Add support for SOCKS5 proxies (#2251, thanks to @koepalex)
+* Client: Fixed keep alive ping send timeout disconnect handling (#2253, thanks to @suhashollakc)
+* Server: Fixed exposing Topic Alias to clients (#2250, thanks to @suhashollakc)</releaseNotes>
+    <copyright>Copyright (c) .NET Foundation and Contributors</copyright>
+    <tags>MQTT Message Queue Telemetry Transport MQTTClient MQTTServer Server MQTTBroker Broker NETStandard IoT InternetOfThings Messaging Hardware Arduino Sensor Actuator M2M ESP Smart Home Cities Automation Xamarin Blazor</tags>
+    <repository type="git" url="https://github.com/dotnet/MQTTnet.git" commit="14463d1ef9f1f119514185c1832905b91bff827d" />
+    <dependencies>
+      <group targetFramework="net10.0" />
+      <group targetFramework="net8.0" />
+    </dependencies>
+  </metadata>
+</package>

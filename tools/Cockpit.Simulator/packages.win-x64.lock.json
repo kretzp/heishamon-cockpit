@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "cockpit.application": {
+        "type": "Project",
+        "dependencies": {
+          "Cockpit.Domain": "[1.0.0, )"
+        }
+      },
+      "cockpit.domain": {
+        "type": "Project"
+      }
+    },
+    "net10.0/win-x64": {}
+  }
+}

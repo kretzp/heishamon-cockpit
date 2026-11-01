@@ -1,0 +1,61 @@
+[
+  {
+    "file": "humanizer-LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/Humanizr/Humanizer/3ebc38de585fc641a04b0e78ed69468453b0f8a1/LICENSE",
+    "packages": [
+      "humanizer.core@2.14.1"
+    ]
+  },
+  {
+    "file": "efcore-LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/dotnet/efcore/v10.0.12/LICENSE.txt",
+    "packages": [
+      "microsoft.data.sqlite.core@10.0.12",
+      "microsoft.entityframeworkcore@10.0.12",
+      "microsoft.entityframeworkcore.abstractions@10.0.12",
+      "microsoft.entityframeworkcore.analyzers@10.0.12",
+      "microsoft.entityframeworkcore.design@10.0.12",
+      "microsoft.entityframeworkcore.relational@10.0.12",
+      "microsoft.entityframeworkcore.sqlite@10.0.12",
+      "microsoft.entityframeworkcore.sqlite.core@10.0.12"
+    ]
+  },
+  {
+    "file": "mono-t4-LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/mono/t4/cb559e2032efd50b926c12927430c82b44d29b1d/LICENSE",
+    "packages": [
+      "mono.texttemplating@3.0.0"
+    ]
+  },
+  {
+    "file": "sqlitepclraw-LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/ericsink/SQLitePCL.raw/v2.1.12/LICENSE.TXT",
+    "packages": [
+      "sqlitepclraw.bundle_e_sqlite3@2.1.12",
+      "sqlitepclraw.core@2.1.12",
+      "sqlitepclraw.lib.e_sqlite3@2.1.12",
+      "sqlitepclraw.provider.e_sqlite3@2.1.12"
+    ]
+  },
+  {
+    "file": "signalr-LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/dotnet/aspnetcore/v10.0.11/LICENSE.txt",
+    "packages": [
+      "@microsoft/signalr@10.0.11"
+    ]
+  },
+  {
+    "file": "rolldown-LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/rolldown/rolldown/v1.2.16/LICENSE",
+    "packages": [
+      "@rolldown/binding-win32-x64-msvc@1.2.16"
+    ]
+  },
+  {
+    "file": "rolldown-thirdparty-LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/rolldown/rolldown/v1.2.16/THIRD-PARTY-LICENSE",
+    "packages": [
+      "@rolldown/binding-win32-x64-msvc@1.2.16"
+    ]
+  }
+]

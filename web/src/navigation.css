@@ -1,0 +1,18 @@
+.navigation {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100dvh;
+  overflow-y: auto;
+  z-index: 2;
+}
+.skip { z-index: 3; }
+@media (max-width: 650px) {
+  html { scroll-padding-top: calc(var(--navigation-height, 220px) + 12px); }
+  .navigation {
+    align-self: stretch;
+    height: auto;
+    max-height: 50dvh;
+    flex-shrink: 0;
+  }
+}

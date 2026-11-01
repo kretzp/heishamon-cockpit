@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="de">
+  <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>HeishaMon Cockpit</title><script>
+    try { const theme = localStorage.getItem('heishamon-cockpit.theme.v1');
+      document.documentElement.dataset.theme = ['light', 'dark', 'nordic'].includes(theme) ? theme : 'light';
+      document.documentElement.classList.toggle('dark', theme === 'dark');
+      document.documentElement.style.colorScheme = theme === 'dark' ? 'dark' : 'light';
+    } catch { document.documentElement.dataset.theme = 'light'; }
+    try { const language = localStorage.getItem('heishamon-cockpit.language.v1');
+      document.documentElement.lang = ['de', 'en', 'fr', 'es', 'it', 'pt'].includes(language) ? language : 'de';
+    } catch { document.documentElement.lang = 'de'; }
+    </script></head>
+  <body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body>
+</html>

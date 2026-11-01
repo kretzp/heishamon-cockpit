@@ -1,0 +1,16 @@
+HeishaMon Cockpit
+
+Copyright (c) 2026 Peter Kretz, for his original contributions to this project.
+
+Unless a file carries a different license notice, the original project source
+code is made available under the Mozilla Public License, version 2.0 (MPL-2.0).
+The full license text is provided in LICENSE.
+
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+Third-party components retain their respective copyrights and licenses.
+In particular, the shadcn components retain the MIT notice in
+web/src/components/ui/LICENSE.md. This project notice does not replace
+or relicense third-party notices or dependency license obligations.

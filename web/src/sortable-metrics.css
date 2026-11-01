@@ -1,0 +1,8 @@
+.sorting-enabled > .metric { position: relative; padding-top: 64px; }
+.sort-controls { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; }
+.sort-controls button { min-width: 44px; min-height: 44px; padding: 5px; font-size: 1.15rem; }
+.sort-handle { cursor: grab; touch-action: none; user-select: none; }
+.sort-handle:active { cursor: grabbing; }
+.sort-source { outline: 2px dashed var(--blue); outline-offset: -3px; }
+.sort-target { outline: 3px solid var(--blue); outline-offset: -3px; background: var(--blue-soft) !important; }
+.sort-announcement { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

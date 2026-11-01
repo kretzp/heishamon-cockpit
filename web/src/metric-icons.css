@@ -1,0 +1,36 @@
+/* Approved duotone tile icons. Color denotes the design, never device state. */
+:root { --metric-icon-color: #356c80; --metric-icon-accent: #b75c25; }
+:root[data-theme='dark'] { --metric-icon-color: #98c8d7; --metric-icon-accent: #ffb477; }
+:root[data-theme='nordic'] { --metric-icon-color: #386679; --metric-icon-accent: #97501f; }
+:root[data-theme] .metric .metric-icon-b {
+  color: var(--metric-icon-color);
+  stroke: currentColor;
+  stroke-width: 2.2;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+.temperature-grid > .metric { grid-template-columns: 40px minmax(0, 1fr); }
+:root[data-theme] .temperature-grid .metric-icon-b { width: 40px; height: 40px; }
+.metric.compact { display: grid; grid-template-columns: 40px minmax(0, 1fr); column-gap: 10px; align-items: start; }
+:root[data-theme] .metric.compact .metric-icon-b { display: block; grid-column: 1; grid-row: 1 / 4; width: 36px; height: 36px; margin: 0; }
+.metric.compact > .metric-top, .metric.compact > .value, .metric.compact > .age { grid-column: 2; }
+.metric.compact > .note { grid-column: 1 / -1; }
+.plant-panel .metric-top { flex-direction: column; }
+.control-status-grid .metric.compact { grid-template-columns: 36px minmax(0, 1fr) auto; column-gap: 8px; }
+.control-status-grid .metric.compact h3 { grid-column: 2; }
+.control-status-grid .metric.compact .value, .control-status-grid .metric.compact .quality { grid-column: 3; }
+.control-status-grid .metric.compact .age { grid-column: 2; }
+.control-status-grid .operatingMode.compact .value, .control-status-grid .quietMode.compact .value { grid-column: 2 / -1; }
+@media (min-width: 961px) {
+  .plant-details .metric.compact { grid-template-columns: 28px minmax(0, 1fr); column-gap: 6px; }
+  :root[data-theme] .plant-details .metric.compact .metric-icon-b { width: 28px; height: 28px; }
+  .plant-details .metric.compact > .age { grid-column: 1 / -1; }
+  .plant-details .age time, .plant-details .age-elapsed { white-space: normal; }
+}
+@media (max-width: 650px) {
+  .plant-panel .plant-metric .metric-top { align-items: flex-start; }
+  .temperature-grid > .metric { grid-template-columns: 42px minmax(0, 1fr); }
+  :root[data-theme] .temperature-grid .metric-icon-b { width: 42px; height: 42px; }
+}
