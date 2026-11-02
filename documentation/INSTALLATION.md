@@ -10,6 +10,10 @@ Use the platform guide for a complete source build and interactive installation:
 
 The first method in each platform guide downloads a standalone bootstrap script: `installation/bootstrap-windows.ps1`, `installation/bootstrap-linux.sh` or `installation/bootstrap-raspberry-pi.sh`. It clones the current GitHub `master` branch into a fresh directory, then uses the existing source installer to build the package and run interactive setup. Git is required before starting. No existing checkout or installation is overwritten, and the application is started separately unless service installation is explicitly selected. The guides also retain installation from an existing checkout as Method 2.
 
+## Update an existing installation
+
+Use `installation/update-windows.ps1`, `installation/update-linux.sh` or `installation/update-raspberry-pi.sh` after updating the source checkout with `git pull --ff-only`. Pass the existing installation directory. The updater builds the current source, preserves settings and data, retains a backup and preserves the service's startup state. See [platform commands, prerequisites and rollback](UPDATE.md).
+
 ## Package build
 
 The build restores locked dependencies, compiles the frontend, publishes a self-contained .NET application and produces a tar.gz archive. Supported runtime identifiers are win-x64, linux-x64 and linux-arm64.

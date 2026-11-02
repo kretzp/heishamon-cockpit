@@ -9,6 +9,7 @@ on:
       - 'tools/Cockpit.Simulator/**'
       - 'installation/**'
       - 'tools/test-systemd-unit.sh'
+      - 'tools/test_update_installation.py'
       - 'Cockpit.slnx'
       - 'global.json'
       - 'NuGet.Config'
@@ -25,6 +26,7 @@ on:
       - 'tools/Cockpit.Simulator/**'
       - 'installation/**'
       - 'tools/test-systemd-unit.sh'
+      - 'tools/test_update_installation.py'
       - 'Cockpit.slnx'
       - 'global.json'
       - 'NuGet.Config'
@@ -42,6 +44,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  updater:
+    name: Update scripts (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-24.04]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: python -m unittest discover -s tools -p test_update_installation.py -v
+
   runtime-lockfiles:
     name: Locked restore (${{ matrix.runtime }})
     runs-on: ubuntu-24.04

@@ -204,8 +204,8 @@ app.MapGet("/api/v1/system", () => new
 });
 app.MapGet("/api/v1/snapshot", () => store.Read());
 app.MapGet("/health/live", () => Results.Ok(new { status = "alive" }));
-// Configuration and DI are initialized at this point; device reachability is not readiness.
-app.MapGet("/health/ready", () => Results.Ok(new { status = "ready" }));
+// Storage must initialize successfully; device reachability is not readiness.
+app.MapGet("/health/ready", (HistoryWorker recorder) => HistoryEndpoints.Readiness(recorder.Status));
 app.MapHistory();
 var telemetryHub = app.MapHub<TelemetryHub>("/hubs/telemetry", options => options.CloseOnAuthenticationExpiration = true);
 if (loginRequired) telemetryHub.RequireAuthorization();

@@ -3,6 +3,10 @@ using Cockpit.Application;
 
 public static class HistoryEndpoints
 {
+    public static IResult Readiness(StorageStatus status) => status.State == "ready"
+        ? Results.Ok(new { status = "ready" })
+        : Results.Json(new { status = "not-ready" }, statusCode: 503);
+
     public static void MapHistory(this WebApplication app)
     {
         app.MapGet("/api/v1/storage", (HistoryWorker recorder) => recorder.Status);

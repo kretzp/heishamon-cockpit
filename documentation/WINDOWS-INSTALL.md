@@ -65,6 +65,17 @@ The final prompt asks whether to install a service with automatic startup; **Ent
 
 In elevated PowerShell: `Get-Service HeishaMonCockpit`, `Start-Service HeishaMonCockpit` or `Stop-Service HeishaMonCockpit`. Logs are in `<installation>\logs`; remove the service with `HeishaMonCockpitService.exe stop` followed by `HeishaMonCockpitService.exe uninstall` from the installation directory, in an elevated terminal. Application files and data are preserved.
 
+## Update an existing installation
+
+From the source checkout in 64-bit PowerShell:
+
+```powershell
+git pull --ff-only
+.\installation\update-windows.ps1 -InstallDirectory "$env:LOCALAPPDATA\HeishaMonCockpit"
+```
+
+Supply your actual installation path if different. Stop a manually started instance first. The updater builds the source, preserves configuration and data, retains a full backup and restarts only a previously running service. UAC is requested for existing service management. See [update prerequisites, recovery and prepared packages](UPDATE.md).
+
 ## Start and check
 
 If service installation was selected, the application is already running. Use the service commands below instead of starting a second instance. Otherwise start it manually:

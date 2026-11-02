@@ -114,6 +114,22 @@ Yes/no questions accept `yes`/`y` and `no`/`n` without regard to case. Enter def
 
 For package-only installation and custom destinations, see [installation details](documentation/INSTALLATION.md).
 
+## Update an existing installation
+
+From your source checkout, first run `git pull --ff-only`, then use the updater for your platform:
+
+```powershell
+.\installation\update-windows.ps1 -InstallDirectory "$env:LOCALAPPDATA\HeishaMonCockpit"
+```
+
+```sh
+sh installation/update-linux.sh "$HOME/.local/share/heishamon-cockpit"
+# Raspberry Pi ARM64:
+sh installation/update-raspberry-pi.sh "$HOME/.local/share/heishamon-cockpit"
+```
+
+Supply your actual installation directory if different. Stop a manually started application first. The updater builds the current checkout, preserves configuration and data, retains a complete backup and restarts an existing service only if it was running. If startup fails, it attempts to restore the previous installation and databases. See [update prerequisites, rollback and prepared packages](documentation/UPDATE.md).
+
 ## Start the application
 
 Since **0.9.1**, installation ends with an optional **automatic service startup** prompt (default **no**). Choosing yes requests administrator/sudo access, registers a Windows service or Linux/Pi systemd service and **starts the application immediately, connecting to MQTT**. For an existing service, choose Abort (`a/A`), Delete and reinstall (`d/D`), or Start (`s/S`); invalid input repeats the question. Enter defaults to Abort. See [service management, logs and removal](documentation/SERVICE.md).

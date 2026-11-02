@@ -67,6 +67,17 @@ At the final automatic-service prompt, **Enter means no**. Choosing yes uses `su
 
 Use `systemctl status heishamon-cockpit.service`, `sudo systemctl start heishamon-cockpit.service`, `sudo systemctl stop heishamon-cockpit.service` and `sudo journalctl -u heishamon-cockpit.service -f`. For removal, run `sudo systemctl disable --now heishamon-cockpit.service`, remove `/etc/systemd/system/heishamon-cockpit.service` with sudo, then run `sudo systemctl daemon-reload`. Application files/data remain. See [service setup and diagnostics](SERVICE.md) for details and limitations, including home-directory availability at boot.
 
+## Update an existing installation
+
+From the source checkout on the Pi, as the installation owner:
+
+```sh
+git pull --ff-only
+sh installation/update-raspberry-pi.sh "$HOME/.local/share/heishamon-cockpit"
+```
+
+Use your actual installation path, including `"$HOME/heishamon-cockpit"` if the installer selected that fallback. A 64-bit ARM Linux system is required. Stop a manually started instance first and run without sudo; service management requests sudo when needed. Settings and data are preserved, a full backup is retained and only a previously running service is restarted. See [update prerequisites, recovery and prepared packages](UPDATE.md).
+
 ## Start and check
 
 If service installation was selected, the application is already running. Use the service commands below instead of starting a second instance. Otherwise start it manually:
