@@ -17,6 +17,9 @@ Windows x64, Linux x64 and Raspberry Pi ARM64 installation targets are available
 - An authenticated MCP stdio bridge using the same application accounts and permissions.
 - Interface languages: English, German, French, Spanish, Italian and Portuguese.
 
+<img width="2525" height="1127" alt="image" src="https://github.com/user-attachments/assets/ec237616-5574-47b1-b962-bbb8e77d7ea5" />
+
+
 ## Requirements and supported targets
 
 An existing HeishaMon installation and reachable MQTT broker are required for real measurements. Available readings depend on the device and firmware; missing data remains unknown. The application starts with a fresh database and does not require a Shelly meter or import previous measurements.
