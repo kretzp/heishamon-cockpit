@@ -2,8 +2,30 @@ name: E2E
 
 on:
   pull_request:
+    paths:
+      - 'web/**'
+      - 'src/**'
+      - 'tests/**'
+      - 'tools/Cockpit.Simulator/**'
+      - 'Cockpit.slnx'
+      - 'global.json'
+      - 'NuGet.Config'
+      - 'Directory.Build.*'
+      - 'Directory.Packages.props'
+      - '.github/workflows/e2e.yml'
   push:
     branches: [master]
+    paths:
+      - 'web/**'
+      - 'src/**'
+      - 'tests/**'
+      - 'tools/Cockpit.Simulator/**'
+      - 'Cockpit.slnx'
+      - 'global.json'
+      - 'NuGet.Config'
+      - 'Directory.Build.*'
+      - 'Directory.Packages.props'
+      - '.github/workflows/e2e.yml'
   workflow_dispatch:
 
 permissions:
