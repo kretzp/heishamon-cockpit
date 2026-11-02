@@ -397,8 +397,24 @@ class UpdateEntryTests(unittest.TestCase):
     def test_windows_detects_service_path_including_spaces(self) -> None:
         result = self.invoke_windows(prepared=False, detect=True, service=True)
         self.assertEqual(0, result.returncode, result.stderr)
-        self.assertIn(str(self.target), result.stdout)
-        self.assertEqual(str(self.target), json.loads((self.root / 'trace.json').read_text())['install_dir'])
+        reported = [line.removeprefix('Installation directory: ') for line in result.stdout.splitlines()
+                    if line.startswith('Installation directory: ')]
+        self.assertEqual(1, len(reported), result.stdout)
+        self.assertTrue(self.target.samefile(reported[0]))
+        self.assertTrue(self.target.samefile(json.loads((self.root / 'trace.json').read_text())['install_dir']))
+
+    @unittest.skipUnless(os.name == "nt", "Native Windows entrypoint")
+    def test_windows_detects_service_path_with_short_directory_alias(self) -> None:
+        import ctypes
+        buffer = ctypes.create_unicode_buffer(32768)
+        short_path = ctypes.windll.kernel32.GetShortPathNameW
+        short_path.argtypes = [ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_uint]
+        short_path.restype = ctypes.c_uint
+        length = short_path(str(self.root), buffer, len(buffer))
+        if not length or length >= len(buffer) or buffer.value.casefold() == str(self.root).casefold():
+            self.skipTest('Windows short directory names are unavailable on this filesystem')
+        self.target = Path(buffer.value) / 'installed app'
+        self.test_windows_detects_service_path_including_spaces()
 
     @unittest.skipUnless(os.name == "nt", "Native Windows entrypoint")
     def test_windows_missing_service_requires_path_before_build(self) -> None:
