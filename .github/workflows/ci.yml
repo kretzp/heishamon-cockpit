@@ -2,8 +2,32 @@ name: CI
 
 on:
   pull_request:
+    paths:
+      - 'web/**'
+      - 'src/**'
+      - 'tests/**'
+      - 'tools/Cockpit.Simulator/**'
+      - 'Cockpit.slnx'
+      - 'global.json'
+      - 'NuGet.Config'
+      - 'Directory.Build.*'
+      - 'Directory.Packages.props'
+      - '.github/workflows/ci.yml'
+      - '!**/*.md'
   push:
     branches: [master]
+    paths:
+      - 'web/**'
+      - 'src/**'
+      - 'tests/**'
+      - 'tools/Cockpit.Simulator/**'
+      - 'Cockpit.slnx'
+      - 'global.json'
+      - 'NuGet.Config'
+      - 'Directory.Build.*'
+      - 'Directory.Packages.props'
+      - '.github/workflows/ci.yml'
+      - '!**/*.md'
   workflow_dispatch:
 
 permissions:
