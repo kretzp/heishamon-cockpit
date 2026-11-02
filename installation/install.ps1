@@ -11,4 +11,16 @@ Get-ChildItem -LiteralPath (Join-Path $packageDirectory 'app') -Force | Copy-Ite
 Push-Location $target
 try { & (Join-Path $target 'Cockpit.Web.exe') --setup-installation; if ($LASTEXITCODE -ne 0) { throw 'Setup failed; the installation folder was preserved for inspection.' } }
 finally { Pop-Location }
+Copy-Item -LiteralPath (Join-Path $packageDirectory 'install-service.ps1') -Destination $target
+Copy-Item -LiteralPath (Join-Path $packageDirectory 'WinSW-LICENSE.txt') -Destination $target
 Write-Host "To start later: Set-Location '$target'; .\Cockpit.Web.exe"
+Write-Host 'Choosing yes starts the service immediately and connects to the configured MQTT broker. Control settings remain unchanged.'
+$serviceAnswer = Read-Host 'Install as a service that starts automatically at boot? (yes/no) [no]'
+if ($serviceAnswer -and $serviceAnswer.Trim().ToLowerInvariant() -in @('y', 'yes', 'j', 'ja')) {
+    try {
+        & (Join-Path $target 'install-service.ps1') -InstallDirectory $target
+        Write-Host 'Elevated PowerShell: Get-Service HeishaMonCockpit; Start-Service HeishaMonCockpit; Stop-Service HeishaMonCockpit'
+        Write-Host "Logs: $target\logs (HeishaMonCockpitService.out.log / .err.log)"
+        Write-Host "Remove in elevated PowerShell: & '$target\HeishaMonCockpitService.exe' stop; & '$target\HeishaMonCockpitService.exe' uninstall"
+    } catch { Write-Warning $_.Exception.Message; Write-Warning 'Service setup was not completed. The installation remains available for manual startup.' }
+} else { Write-Host 'No service installed. Start the application manually when ready.' }

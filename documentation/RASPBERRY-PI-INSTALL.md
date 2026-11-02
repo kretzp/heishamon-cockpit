@@ -2,6 +2,41 @@
 
 This installer targets **64-bit Raspberry Pi OS on ARM64**. The 32-bit operating system is not supported. The tested hardware is a Raspberry Pi 5 with Debian 12 ARM64; Raspberry Pi OS specifically has not been independently verified. A working internet connection is required for build tools and npm and NuGet dependencies.
 
+## Method 1: Download, clone, build and install
+
+Open an interactive terminal on the Pi as the user who will run the application. Install the download and clone prerequisites:
+
+```sh
+sudo apt-get update
+sudo apt-get install -y git curl ca-certificates
+```
+
+Download the Raspberry Pi bootstrap script:
+
+```sh
+curl --fail --location --proto '=https' --tlsv1.2 \
+  https://raw.githubusercontent.com/kretzp/heishamon-cockpit/master/installation/bootstrap-raspberry-pi.sh \
+  -o "$HOME/heishamon-bootstrap-raspberry-pi.sh"
+```
+
+Review the file, then run it without `sudo`:
+
+```sh
+sh "$HOME/heishamon-bootstrap-raspberry-pi.sh"
+```
+
+The script checks ARM64 and a 64-bit userspace, clones the current GitHub `master` branch into a new `$HOME/heishamon-cockpit-source.<unique-id>` directory and runs `installation/install-raspberry-pi.sh` from the clone. That entry point builds the ARM64 package and starts interactive setup. Missing build prerequisites may require `sudo`. Source, build tools and package artifacts remain in the clone, including after a failure. Each invocation uses a fresh clone; existing checkouts and installations are not overwritten.
+
+To choose a new installation directory:
+
+```sh
+sh "$HOME/heishamon-bootstrap-raspberry-pi.sh" "$HOME/.local/share/heishamon-cockpit-manual"
+```
+
+The path must be absolute and must not already exist. Download the script to a file rather than piping it into `sh`, so the terminal remains available for setup answers. Continue with the prompts and application startup below. The application remains stopped unless you explicitly choose service installation at the final prompt; choosing yes starts it and connects to MQTT.
+
+## Method 2: Install from an existing source checkout
+
 Open a terminal on the Raspberry Pi in the source checkout. Clone the GitHub repository and change into its directory first. Run the installer as the user who will run the application:
 
 ```sh
@@ -22,9 +57,17 @@ The installer will not overwrite an existing directory. If setup fails after cre
 
 Enter a new administrator username and password of at least 12 characters. Enter the MQTT broker address, port (default `1883`), HeishaMon topic base (default `panasonic_heat_pump`), TLS choice (default `no`), and broker credentials if required. The topic base must not include `/main/`, `/extra/`, a trailing slash or wildcards. Passwords are entered without echo.
 
-Choose the web interface port (default `5080`) and whether to allow heat-pump control (default `no`, read-only). Enabling control requires broker credentials and explicit confirmation of the device profile, installation and other controllers. Setup creates an empty SQLite account database and a self-signed HTTPS certificate. It does not start the application or contact the broker.
+Choose the web interface port (default `5080`) and whether to allow heat-pump control (default `no`, read-only). Enabling control requires broker credentials and explicit confirmation of the device profile, installation and other controllers. Setup creates an empty SQLite account database and a self-signed HTTPS certificate. It starts the application and connects to the broker only if you choose service installation at the final prompt.
+
+## Optional service installation
+
+At the final automatic-service prompt, **Enter means no**. Choosing yes uses `sudo` to install **heishamon-cockpit.service**, enables it at boot and starts it immediately, opening the MQTT connection. A running systemd system manager is required. Run setup as the normal application user; the service keeps that user's UID/GID. Existing services are not overwritten. Failure preserves the application for manual startup.
+
+Use `systemctl status heishamon-cockpit.service`, `sudo systemctl start heishamon-cockpit.service`, `sudo systemctl stop heishamon-cockpit.service` and `sudo journalctl -u heishamon-cockpit.service -f`. For removal, run `sudo systemctl disable --now heishamon-cockpit.service`, remove `/etc/systemd/system/heishamon-cockpit.service` with sudo, then run `sudo systemctl daemon-reload`. Application files/data remain. See [service setup and diagnostics](SERVICE.md) for details and limitations, including home-directory availability at boot.
 
 ## Start and check
+
+If service installation was selected, the application is already running. Use the service commands below instead of starting a second instance. Otherwise start it manually:
 
 ```sh
 cd "$HOME/.local/share/heishamon-cockpit"
@@ -37,7 +80,7 @@ The installed application listens on all IPv4 interfaces and requires HTTPS and 
 
 To check the application without contacting the configured broker, use `Source=simulator ./Cockpit.Web`. Simulator values are not measurements from the installation. Before enabling physical control, review [CONTROL-SETUP.md](CONTROL-SETUP.md) and [SUPPORTED-DEVICES.md](SUPPORTED-DEVICES.md), and verify the device, firmware and other controllers.
 
-The installer does not configure a background service, automatic startup, firewall rules, certificate trust or backup jobs. To restrict future starts to the Pi itself, set `Access:ListenAddress` to `localhost` in the local configuration. Non-loopback access requires HTTPS and login.
+A systemd service with automatic startup is optional (default no). Firewall rules, certificate trust and backup jobs are not configured. To restrict future starts to the Pi itself, set `Access:ListenAddress` to `localhost` in the local configuration. Non-loopback access requires HTTPS and login.
 
 ## MCP Python prerequisite
 

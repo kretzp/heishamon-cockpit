@@ -2,6 +2,33 @@
 
 Use Windows x64 and a 64-bit PowerShell terminal. Windows ARM64 is not supported by this installer. Internet access, working HTTPS certificate trust and Windows `tar.exe` are required. Run as the account that will run the application.
 
+## Method 1: Download, clone, build and install
+
+Install **Git for Windows** first and open a new 64-bit PowerShell terminal. Download the bootstrap script into your home directory:
+
+```powershell
+$bootstrap = Join-Path $HOME 'heishamon-bootstrap-windows.ps1'
+Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/kretzp/heishamon-cockpit/master/installation/bootstrap-windows.ps1' -OutFile $bootstrap
+```
+
+Review the downloaded script, then run it as your normal user:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File $bootstrap
+```
+
+The execution policy applies only to this process; organizational policy may override it. The script clones the current GitHub `master` branch into a new `heishamon-cockpit-source-<unique-id>` directory under your user profile, then invokes `installation/install-windows.ps1` from that clone. That installer builds the package and starts interactive setup. Build tools, source and package artifacts are retained in the clone. No existing checkout or installation is overwritten. A failed clone or setup leaves its source directory available for inspection; another invocation uses a new source directory.
+
+To select new source and installation directories:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File $bootstrap -SourceDirectory "$HOME\cockpit-source" -InstallDirectory "$env:LOCALAPPDATA\HeishaMonCockpitManual"
+```
+
+Both paths must be absolute and must not already exist. Setup prompts and application startup are described below. This method requires Git, HTTPS access and the same build prerequisites as Method 2; it starts the server and connects to MQTT only if service installation is explicitly selected at the final prompt.
+
+## Method 2: Install from an existing source checkout
+
 Open the source checkout in PowerShell. Clone the GitHub repository and change into its directory first. Run:
 
 ```powershell
@@ -30,7 +57,15 @@ Enter a new administrator username and password of at least 12 characters. Enter
 
 Choose the web interface port (default `5080`) and whether to allow control (default `no`, read-only). Control requires MQTT credentials and the device, installation and other-controller confirmations. Setup creates an empty SQLite account database and a self-signed HTTPS certificate. It restricts the installation directory to the installing account. Failed setup preserves the directory for inspection; use a new destination for another attempt.
 
+## Optional service installation
+
+The final prompt asks whether to install a service with automatic startup; **Enter means no**. Choosing yes requests UAC elevation, downloads and verifies WinSW v2.12.0, installs **HeishaMonCockpit** as **LocalService** and starts it immediately, opening the MQTT connection. Existing services are not overwritten. Failure leaves the application available for manual startup. See [service setup and diagnostics](SERVICE.md) for the pinned checksum, permissions, rotated log files and removal steps.
+
+In elevated PowerShell: `Get-Service HeishaMonCockpit`, `Start-Service HeishaMonCockpit` or `Stop-Service HeishaMonCockpit`. Logs are in `<installation>\logs`; remove the service with `HeishaMonCockpitService.exe stop` followed by `HeishaMonCockpitService.exe uninstall` from the installation directory, in an elevated terminal. Application files and data are preserved.
+
 ## Start and check
+
+If service installation was selected, the application is already running. Use the service commands below instead of starting a second instance. Otherwise start it manually:
 
 ```powershell
 Set-Location "$env:LOCALAPPDATA\HeishaMonCockpit"
@@ -49,4 +84,4 @@ $env:Source = 'simulator'
 Remove-Item Env:Source
 ```
 
-Simulator values are synthetic. Review [CONTROL-SETUP.md](CONTROL-SETUP.md) and [SUPPORTED-DEVICES.md](SUPPORTED-DEVICES.md) before enabling physical control. The installer does not configure a Windows service, automatic startup, certificate trust, firewall rules or backup jobs. The source installer checks for Python 3.10+ with SSL and the required standard-library modules. If missing, it installs Python 3.14 for the current user using winget and verifies it. Windows App Installer (winget) is required for automatic installation. Existing compatible Python installations are reused. The detected interpreter path is printed for MCP client configuration. The MCP bridge is not started or registered automatically.
+Simulator values are synthetic. Review [CONTROL-SETUP.md](CONTROL-SETUP.md) and [SUPPORTED-DEVICES.md](SUPPORTED-DEVICES.md) before enabling physical control. Windows service installation and automatic startup are optional (default no). Certificate trust, firewall rules and backup jobs are not configured. The source installer checks for Python 3.10+ with SSL and the required standard-library modules. If missing, it installs Python 3.14 for the current user using winget and verifies it. Windows App Installer (winget) is required for automatic installation. Existing compatible Python installations are reused. The detected interpreter path is printed for MCP client configuration. The MCP bridge is not started or registered automatically.

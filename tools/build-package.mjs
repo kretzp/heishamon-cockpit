@@ -27,6 +27,8 @@ for (const notice of ['LICENSE', 'COPYRIGHT']) copyFileSync(join(root, notice), 
 copyFileSync(join(root, 'THIRD-PARTY-NOTICES.md'), join(stage, 'app', 'THIRD-PARTY-NOTICES.md'));
 cpSync(join(root, 'third-party'), join(stage, 'app', 'third-party'), { recursive: true });
 copyFileSync(join(root, 'installation', rid.startsWith('win-') ? 'install.ps1' : 'install.sh'), join(stage, rid.startsWith('win-') ? 'install.ps1' : 'install.sh'));
+const serviceFiles = rid.startsWith('win-') ? ['install-service.ps1', 'WinSW-LICENSE.txt'] : ['install-service.sh'];
+for (const file of serviceFiles) copyFileSync(join(root, 'installation', file), join(stage, file));
 writeFileSync(join(stage, 'PACKAGE-INFO.txt'), `HeishaMon Cockpit\nTarget: ${rid}\nLocal development package; not approved for public distribution.\n`);
 const output = process.env.HPC_PACKAGE_OUTPUT ? resolve(process.env.HPC_PACKAGE_OUTPUT) : join(root, 'artifacts');
 mkdirSync(output, { recursive: true });

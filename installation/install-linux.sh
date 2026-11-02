@@ -69,4 +69,4 @@ tar -xzf "$build_dir/heishamon-cockpit-$runtime.tar.gz" -C "$build_dir/extracted
 echo 'Configure the initial administrator and MQTT connection when prompted.'
 sh "$build_dir/extracted/install.sh" "$install_dir"
 printf '\nPackage retained at: %s\n' "$build_dir/heishamon-cockpit-$runtime.tar.gz"
-echo 'Setup does not start the application or connect to MQTT.'
+echo 'The application starts and connects to MQTT only if service startup was explicitly selected.'

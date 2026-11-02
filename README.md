@@ -26,17 +26,54 @@ Windows x64, Linux x64 and Raspberry Pi ARM64 installation targets are available
 
 An existing HeishaMon installation and reachable MQTT broker are required for real measurements. Available readings depend on the device and firmware; missing data remains unknown. The application starts with a fresh database and does not require a Shelly meter or import previous measurements.
 
-| Target | Source installer | Guide |
-| --- | --- | --- |
-| Windows x64, 64-bit PowerShell | `installation/install-windows.ps1` | [Windows](documentation/WINDOWS-INSTALL.md) |
-| Linux x64 | `installation/install-linux.sh` | [Linux](documentation/LINUX-INSTALL.md) |
-| Raspberry Pi with 64-bit ARM Linux | `installation/install-raspberry-pi.sh` | [Raspberry Pi](documentation/RASPBERRY-PI-INSTALL.md) |
+| Target | Download bootstrap | Existing checkout installer | Guide |
+| --- | --- | --- | --- |
+| Windows x64, 64-bit PowerShell | `installation/bootstrap-windows.ps1` | `installation/install-windows.ps1` | [Windows](documentation/WINDOWS-INSTALL.md) |
+| Linux x64 | `installation/bootstrap-linux.sh` | `installation/install-linux.sh` | [Linux](documentation/LINUX-INSTALL.md) |
+| Raspberry Pi with 64-bit ARM Linux | `installation/bootstrap-raspberry-pi.sh` | `installation/install-raspberry-pi.sh` | [Raspberry Pi](documentation/RASPBERRY-PI-INSTALL.md) |
 
 The observed Raspberry Pi target runs Debian 12 ARM64; Raspberry Pi OS specifically has not yet been independently verified. The Pi installer rejects 32-bit systems. Windows ARM64 and macOS are not supported by these installers.
 
 Source builds require internet access. The installers provide pinned Node.js and .NET build tools. Python 3.10+ with SSL is required for MCP: Windows installs it with WinGet when needed; Linux and Pi use apt when available. See each guide for prerequisite details and failure handling.
 
 ## Install from source
+
+### Method 1: Download, clone, build and install
+
+Use a terminal as the account that will run the application. Install Git first; Linux and Raspberry Pi also need curl and working HTTPS certificates (`sudo apt-get install git curl ca-certificates` on Debian/Ubuntu). No existing source checkout is needed. Download the appropriate script, review it, then run it:
+
+Windows x64, in 64-bit PowerShell:
+
+```powershell
+$bootstrap = Join-Path $HOME 'heishamon-bootstrap-windows.ps1'
+Invoke-WebRequest -UseBasicParsing 'https://raw.githubusercontent.com/kretzp/heishamon-cockpit/master/installation/bootstrap-windows.ps1' -OutFile $bootstrap
+# Review the downloaded file before running it.
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File $bootstrap
+```
+
+Linux x64/ARM64:
+
+```sh
+curl --fail --location --proto '=https' --tlsv1.2 \
+  https://raw.githubusercontent.com/kretzp/heishamon-cockpit/master/installation/bootstrap-linux.sh \
+  -o "$HOME/heishamon-bootstrap-linux.sh"
+# Review the downloaded file before running it.
+sh "$HOME/heishamon-bootstrap-linux.sh"
+```
+
+Raspberry Pi with a 64-bit ARM operating system:
+
+```sh
+curl --fail --location --proto '=https' --tlsv1.2 \
+  https://raw.githubusercontent.com/kretzp/heishamon-cockpit/master/installation/bootstrap-raspberry-pi.sh \
+  -o "$HOME/heishamon-bootstrap-raspberry-pi.sh"
+# Review the downloaded file before running it.
+sh "$HOME/heishamon-bootstrap-raspberry-pi.sh"
+```
+
+Each script clones the current `master` branch into a new source directory under your home, builds through the existing platform installer and starts interactive installation. It retains the clone and build artifacts and never overwrites an existing installation. Run it as your normal user; the Linux/Pi installer requests `sudo` for missing system prerequisites and, if selected, service registration. Windows uses a process-only execution policy; organizational restrictions still apply. The application remains stopped unless you explicitly choose service installation at the final prompt; choosing yes starts it and connects to MQTT. See the platform guides above for custom directories, setup prompts and startup.
+
+### Method 2: Install from an existing source checkout
 
 Open a source checkout or a supplied source snapshot. Use a terminal as the account that will run the application.
 
@@ -71,11 +108,15 @@ Each entry point builds a self-contained application package and runs its intera
 | Web interface port | `5080` |
 | Heat-pump control | Disabled; read-only |
 
-Use the actual topic base configured in HeishaMon, without `/main/`, `/extra/`, wildcards or a trailing slash. Choose MQTT TLS and credentials to match the broker. Password entry is hidden. Setup does not start the application or contact the broker.
+Use the actual topic base configured in HeishaMon, without `/main/`, `/extra/`, wildcards or a trailing slash. Choose MQTT TLS and credentials to match the broker. Password entry is hidden. The application remains stopped unless you explicitly choose service installation at the final prompt; choosing yes starts it and connects to the broker.
 
 For package-only installation and custom destinations, see [installation details](documentation/INSTALLATION.md).
 
 ## Start the application
+
+Since **0.9.1**, installation ends with an optional **automatic service startup** prompt (default **no**). Choosing yes requests administrator/sudo access, registers a Windows service or Linux/Pi systemd service and **starts the application immediately, connecting to MQTT**. Existing services are never overwritten. See [service management, logs and removal](documentation/SERVICE.md).
+
+If the service was installed, it is already running; use the service commands instead of starting another instance. Otherwise start manually:
 
 On Windows, from the default installation directory:
 
@@ -141,7 +182,7 @@ npm --prefix web run build
 
 Use simulator or isolated loopback brokers for development tests. Do not issue test commands to a real heat pump. Tested systems and limitations are documented in [COMPATIBILITY.md](documentation/COMPATIBILITY.md).
 
-The current installers do not register a background service, automatic startup, certificate trust, firewall rules or backup jobs. Updates must preserve configuration and databases; rerunning the fresh-install script does not upgrade an existing destination. Backups are the operator's responsibility.
+The installers optionally register a service with automatic startup (default no). Certificate trust, firewall rules and backup jobs are not configured. Updates must preserve configuration and databases; rerunning the fresh-install script does not upgrade an existing destination. Backups are the operator's responsibility.
 
 ## License
 

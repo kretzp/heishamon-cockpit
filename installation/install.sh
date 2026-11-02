@@ -15,4 +15,15 @@ cp -R "$package_dir/app/." "$install_dir/"
 chmod u+x "$install_dir/Cockpit.Web"
 cd -- "$install_dir"
 ./Cockpit.Web --setup-installation
+cp "$package_dir/install-service.sh" "$install_dir/install-service.sh"
 printf '\nTo start later: cd "%s" && ./Cockpit.Web\n' "$install_dir"
+echo 'Choosing yes starts the service immediately and connects to the configured MQTT broker. Control settings remain unchanged.'
+printf 'Install as a service that starts automatically at boot? (yes/no) [no]: '
+IFS= read -r service_answer || service_answer=''
+case "$service_answer" in
+  y|Y|yes|Yes|YES|j|J|ja|Ja|JA)
+    if ! sh "$install_dir/install-service.sh" "$install_dir"; then
+      echo 'Service setup was not completed. The installation remains available for manual startup.' >&2
+    fi ;;
+  *) echo 'No service installed. Start the application manually when ready.' ;;
+esac

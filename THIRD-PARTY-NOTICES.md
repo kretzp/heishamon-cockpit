@@ -2,6 +2,8 @@
 
 HeishaMon Cockpit includes third-party software. Those components retain their respective copyrights, license terms and notices; the project's MPL-2.0 notice does not replace them.
 
+Optional Windows service installation downloads [WinSW v2.12.0](https://github.com/winsw/winsw/releases/tag/v2.12.0) (MIT). Its original license is supplied as `WinSW-LICENSE.txt` with the Windows package and copied into the installation. The x64 executable is downloaded only after service opt-in and verified against the SHA256 pinned in `installation/install-service.ps1`.
+
 Supplied license texts, notices, package metadata and source references are collected in `third-party/`. `third-party/inventory.json` identifies the package versions and hashes of collected files. The collection includes development dependencies for source-build transparency; listing a package does not mean it is linked into every application artifact. `third-party/REVIEW.md` identifies packages that still require explicit notice review.
 
 The shadcn components retain their MIT notice, preserved both alongside their source and in the collection. npm package metadata and NuGet nuspec files preserve authorship, declared license and upstream project references. Some packages omit a standalone license text; metadata alone must not be treated as the missing permission notice.

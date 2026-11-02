@@ -1,5 +1,40 @@
 # Linux installation from source
 
+## Method 1: Download, clone, build and install
+
+On Linux x86-64 or ARM64, use an interactive terminal as the account that will run the application. Install Git, curl and HTTPS certificates first. On Debian/Ubuntu:
+
+```sh
+sudo apt-get update
+sudo apt-get install -y git curl ca-certificates
+```
+
+On other distributions use their package manager. Download the script to a file:
+
+```sh
+curl --fail --location --proto '=https' --tlsv1.2 \
+  https://raw.githubusercontent.com/kretzp/heishamon-cockpit/master/installation/bootstrap-linux.sh \
+  -o "$HOME/heishamon-bootstrap-linux.sh"
+```
+
+Review the file, then run it without `sudo`:
+
+```sh
+sh "$HOME/heishamon-bootstrap-linux.sh"
+```
+
+The script clones the current GitHub `master` branch into a new `$HOME/heishamon-cockpit-source.<unique-id>` directory and runs `installation/install-linux.sh` from that clone. The existing installer builds the package and starts interactive setup; missing build prerequisites may require `sudo`. Source, downloaded tools and artifacts remain in the clone, including after a failure. Each invocation uses a new source directory and does not update an existing checkout or installation.
+
+To choose a new installation destination:
+
+```sh
+sh "$HOME/heishamon-bootstrap-linux.sh" "$HOME/.local/share/heishamon-cockpit-manual"
+```
+
+The installation path must be absolute and must not already exist. Download to a file rather than piping into `sh`, so setup can read your answers from the terminal. Continue with the setup prompts and startup instructions below. The application remains stopped unless you explicitly choose service installation at the final prompt; choosing yes starts it and connects to MQTT.
+
+## Method 2: Install from an existing source checkout
+
 On Linux x86-64 or 64-bit Raspberry Pi OS, open a terminal in the source checkout. Clone the GitHub repository and change into its directory.
 
 ```sh
@@ -18,11 +53,19 @@ An existing destination is never overwritten. If setup fails after it has create
 
 ## Setup prompts
 
-Enter a new administrator name and password (at least 12 characters). Then enter the real MQTT broker host, port (default `1883`), HeishaMon topic base (default `panasonic_heat_pump`), TLS choice (default `no`), and, if applicable, broker username and password. Enter the topic base without `/main/`, `/extra/`, a trailing slash or wildcards. Passwords are entered without echo. Select the web interface port (default `5080`) and whether to allow heat-pump control (default `no`). The installer does not start the application or connect to MQTT.
+Enter a new administrator name and password (at least 12 characters). Then enter the real MQTT broker host, port (default `1883`), HeishaMon topic base (default `panasonic_heat_pump`), TLS choice (default `no`), and, if applicable, broker username and password. Enter the topic base without `/main/`, `/extra/`, a trailing slash or wildcards. Passwords are entered without echo. Select the web interface port (default `5080`) and whether to allow heat-pump control (default `no`). The application remains stopped unless service installation is explicitly selected at the final prompt; choosing yes starts it and connects to MQTT.
 
 The installer creates an empty SQLite account database, broker configuration and a self-signed local HTTPS certificate. No previous measurements or accounts are imported. The initial MQTT mode is read-only unless control is explicitly enabled and the required confirmations are supplied during setup. Control requires configured MQTT credentials.
 
+## Optional service installation
+
+At the final automatic-service prompt, **Enter means no**. Choosing yes uses `sudo` to install **heishamon-cockpit.service**, enables it at boot and starts it immediately, opening the MQTT connection. A running systemd system manager is required. Run setup as the normal application user; the service keeps that user's UID/GID. An existing service is never overwritten. Failure preserves the application for manual startup.
+
+Use `systemctl status heishamon-cockpit.service`, `sudo systemctl start heishamon-cockpit.service`, `sudo systemctl stop heishamon-cockpit.service` and `sudo journalctl -u heishamon-cockpit.service -f`. For removal, run `sudo systemctl disable --now heishamon-cockpit.service`, remove `/etc/systemd/system/heishamon-cockpit.service` with sudo, then run `sudo systemctl daemon-reload`. Application files/data remain. See [service setup and diagnostics](SERVICE.md) for details and limitations.
+
 ## Start and check
+
+If service installation was selected, the application is already running. Use the service commands below instead of starting a second instance. Otherwise start it manually:
 
 From the installation directory, run (use `~/heishamon-cockpit` if the installer selected the fallback):
 
@@ -37,7 +80,7 @@ The installed application listens on all IPv4 interfaces and requires HTTPS and 
 
 To start without contacting the real broker, use `Source=simulator ./Cockpit.Web`. Simulated values are not measurements from the real installation.
 
-The installer does not set up a service, firewall rules, certificate trust or backup jobs. To restrict a future start to this machine, set `Access:ListenAddress` to `localhost` in the local configuration. Non-loopback access requires HTTPS and login. Before enabling any physical control, review [CONTROL-SETUP.md](CONTROL-SETUP.md) and [SUPPORTED-DEVICES.md](SUPPORTED-DEVICES.md), verify the actual device and firmware, and decide on each real-world test separately.
+A systemd service with automatic startup is optional (default no). Firewall rules, certificate trust and backup jobs are not configured. To restrict a future start to this machine, set `Access:ListenAddress` to `localhost` in the local configuration. Non-loopback access requires HTTPS and login. Before enabling any physical control, review [CONTROL-SETUP.md](CONTROL-SETUP.md) and [SUPPORTED-DEVICES.md](SUPPORTED-DEVICES.md), verify the actual device and firmware, and decide on each real-world test separately.
 
 ## MCP Python prerequisite
 

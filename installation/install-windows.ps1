@@ -23,6 +23,6 @@ try {
     & (Join-Path $extracted 'install.ps1') -InstallDirectory $target
     Write-Host "MCP command: `"$mcpPython`" `"$(Join-Path $target 'cockpit_mcp.py')`""
     Write-Host "Package retained in: $output"
-    Write-Host 'Setup does not start the application or connect to MQTT.'
+    Write-Host 'The application starts and connects to MQTT only if service startup was explicitly selected.'
 }
 finally { $env:HPC_PACKAGE_OUTPUT = $previousOutput }

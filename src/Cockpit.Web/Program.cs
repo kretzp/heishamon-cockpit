@@ -199,7 +199,7 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 app.MapGet("/api/v1/system", () => new
 {
-    appVersion = "0.9.0", plantName = settings.Read().PlantName, settingsEnabled, source, capabilities = new[] { "snapshot", "liveTelemetry", "history", "events", "csv" }.Concat(liveControl || dynamicControl?.Active == true ? new[] { source == "mqtt" ? "liveCommands" : "simulatorCommands", "heatingCurveCommands", "sterilizationCommands", "extendedCommands" } : controlEnabled ? new[] { "simulatorCommands" } : liveTest.Enabled ? new[] { "boundedLiveTest" } : curveOptions.Enabled ? new[] { "heatingCurveCommands" } : Array.Empty<string>()),
+    appVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version!.ToString(3), plantName = settings.Read().PlantName, settingsEnabled, source, capabilities = new[] { "snapshot", "liveTelemetry", "history", "events", "csv" }.Concat(liveControl || dynamicControl?.Active == true ? new[] { source == "mqtt" ? "liveCommands" : "simulatorCommands", "heatingCurveCommands", "sterilizationCommands", "extendedCommands" } : controlEnabled ? new[] { "simulatorCommands" } : liveTest.Enabled ? new[] { "boundedLiveTest" } : curveOptions.Enabled ? new[] { "heatingCurveCommands" } : Array.Empty<string>()),
     liveControlArmed = dynamicControl?.Active ?? (liveControl && (source == "simulator" || curveOptions.ConnectionEnabled)), readOnly = !(commandsEnabled || dynamicControl?.Active == true), instanceId = store.InstanceId
 });
 app.MapGet("/api/v1/snapshot", () => store.Read());
