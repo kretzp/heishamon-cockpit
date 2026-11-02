@@ -110,11 +110,13 @@ Each entry point builds a self-contained application package and runs its intera
 
 Use the actual topic base configured in HeishaMon, without `/main/`, `/extra/`, wildcards or a trailing slash. Choose MQTT TLS and credentials to match the broker. Password entry is hidden. The application remains stopped unless you explicitly choose service installation at the final prompt; choosing yes starts it and connects to the broker.
 
+Yes/no questions accept `yes`/`y` and `no`/`n` without regard to case. Enter defaults to no; invalid answers show a message and repeat the question.
+
 For package-only installation and custom destinations, see [installation details](documentation/INSTALLATION.md).
 
 ## Start the application
 
-Since **0.9.1**, installation ends with an optional **automatic service startup** prompt (default **no**). Choosing yes requests administrator/sudo access, registers a Windows service or Linux/Pi systemd service and **starts the application immediately, connecting to MQTT**. Existing services are never overwritten. See [service management, logs and removal](documentation/SERVICE.md).
+Since **0.9.1**, installation ends with an optional **automatic service startup** prompt (default **no**). Choosing yes requests administrator/sudo access, registers a Windows service or Linux/Pi systemd service and **starts the application immediately, connecting to MQTT**. For an existing service, choose Abort (`a/A`), Delete and reinstall (`d/D`), or Start (`s/S`); invalid input repeats the question. Enter defaults to Abort. See [service management, logs and removal](documentation/SERVICE.md).
 
 If the service was installed, it is already running; use the service commands instead of starting another instance. Otherwise start manually:
 

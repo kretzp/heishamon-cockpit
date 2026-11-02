@@ -3,14 +3,36 @@
 After account, MQTT and HTTPS setup has succeeded, every Windows, Linux and Raspberry Pi installer asks:
 
 ```text
-Install as a service that starts automatically at boot? (yes/no) [no]
+Install as a service that starts automatically at boot? (yes/y/no/n) [no]
 ```
 
-Enter `yes` (also `y`, `j` or `ja`), or press Enter for **no**. With no, nothing is registered or started. With yes, the installer requests administrator/UAC or sudo access, registers automatic startup and starts the application immediately. **This opens the configured MQTT connection.** The existing control opt-in is unchanged. The same prompt is available when installing a built package directly or using either source installation method.
+Enter `yes`/`y` (also `j` or `ja`), `no`/`n` (also `nein`), or press Enter for **no**. Answers are case-insensitive and surrounding whitespace is ignored. Invalid answers display a message and repeat the question. With no, nothing is registered or started. With yes, the installer requests administrator/UAC or sudo access, registers automatic startup and starts the application immediately. **This opens the configured MQTT connection.** The existing control opt-in is unchanged. The same prompt is available when installing a built package directly or using either source installation method.
 
-An existing service with the same name is never replaced. A cancelled elevation, missing service manager, download/checksum error or failed service setup preserves the installed application for manual startup. Inspect the reported diagnostics. If registration succeeds but initial startup fails, the installer attempts to disable autostart and preserves the service definition for inspection. Do not run a manual instance alongside the service: they would compete for the web port and database writer lock.
+For an existing service, choose Abort (`a/A`), Delete and reinstall (`d/D`), or Start (`s/S`); invalid input repeats the question. Enter defaults to Abort. A cancelled elevation, missing service manager, download/checksum error or failed service setup preserves the installed application for manual startup. Inspect the reported diagnostics. If registration succeeds but initial startup fails, the installer attempts to disable autostart and preserves the service definition for inspection. Do not run a manual instance alongside the service: they would compete for the web port and database writer lock.
 
 The installer checks the service-manager state again after a short startup interval. This is not an application or MQTT health check; open the web interface and inspect the connection status and logs after installation. Later failures are handled by the service manager and remain visible in its status/logs.
+
+## Existing service: Abort, Delete or Start
+
+Both Windows and the shared Linux/Raspberry Pi helper offer the same menu when their service name is already registered:
+
+```text
+Choose [A]bort, [D]elete and reinstall, or [S]tart existing service [A]:
+```
+
+- **a/A — Abort:** return without changing the existing service. Enter or end of input also aborts.
+- **d/D — Delete:** stop/remove the existing service registration, then install the new service using the supplied installation directory, enable automatic startup and start it. Application files, accounts, certificates, MQTT settings and databases are preserved. Windows may replace the WinSW wrapper and its service XML. Removal is not rolled back if subsequent registration fails.
+- **s/S — Start:** start only the existing service and show its status. It is not recreated, and its current startup mode is unchanged.
+
+Other input displays an error and repeats the menu. Windows requests UAC only for Delete/Start and carries the selected action into the elevated helper. Linux uses sudo for these actions. On Linux, deleting a service removes its named unit from `/etc/systemd/system` and, if applicable, the same named fragment in `/run/systemd/system`, `/usr/lib/systemd/system` or `/lib/systemd/system`. Definitions at unexpected paths are preserved and reported rather than deleting an arbitrary file. If systemd reports drop-in overrides, Delete stops before changing anything and lists those overrides for explicit cleanup or migration; otherwise old overrides could silently change the replacement service's command or user.
+
+Start and Delete both start the application and open its configured MQTT connection. Abort performs neither action. To invoke the menu for an already installed application without rerunning account setup:
+
+```sh
+sh /path/to/source/installation/install-service.sh /absolute/installation/directory
+```
+
+On Windows, use `& 'C:\path\to\source\installation\install-service.ps1' -InstallDirectory 'C:\path\to\installation'` in PowerShell.
 
 ## Windows x64
 

@@ -53,13 +53,15 @@ The default destination is `%LOCALAPPDATA%\HeishaMonCockpit`. An existing instal
 
 ## Setup prompts
 
+Yes/no questions accept `yes`/`y` and `no`/`n` regardless of case; Enter defaults to no. Invalid answers display a message and repeat the same question.
+
 Enter a new administrator username and password of at least 12 characters. Enter the MQTT broker address, port (default `1883`), HeishaMon topic base (default `panasonic_heat_pump`), TLS choice (default `no`) and optional broker credentials. The topic base must not include `/main/`, `/extra/`, wildcards or a trailing slash. Password input is hidden.
 
 Choose the web interface port (default `5080`) and whether to allow control (default `no`, read-only). Control requires MQTT credentials and the device, installation and other-controller confirmations. Setup creates an empty SQLite account database and a self-signed HTTPS certificate. It restricts the installation directory to the installing account. Failed setup preserves the directory for inspection; use a new destination for another attempt.
 
 ## Optional service installation
 
-The final prompt asks whether to install a service with automatic startup; **Enter means no**. Choosing yes requests UAC elevation, downloads and verifies WinSW v2.12.0, installs **HeishaMonCockpit** as **LocalService** and starts it immediately, opening the MQTT connection. Existing services are not overwritten. Failure leaves the application available for manual startup. See [service setup and diagnostics](SERVICE.md) for the pinned checksum, permissions, rotated log files and removal steps.
+The final prompt asks whether to install a service with automatic startup; **Enter means no**. Choosing yes requests UAC elevation, downloads and verifies WinSW v2.12.0, installs **HeishaMonCockpit** as **LocalService** and starts it immediately, opening the MQTT connection. For an existing service, choose Abort (`a/A`), Delete and reinstall (`d/D`), or Start (`s/S`); invalid input repeats the question. Enter defaults to Abort. Failure leaves the application available for manual startup. See [service setup and diagnostics](SERVICE.md) for the pinned checksum, permissions, rotated log files and removal steps.
 
 In elevated PowerShell: `Get-Service HeishaMonCockpit`, `Start-Service HeishaMonCockpit` or `Stop-Service HeishaMonCockpit`. Logs are in `<installation>\logs`; remove the service with `HeishaMonCockpitService.exe stop` followed by `HeishaMonCockpitService.exe uninstall` from the installation directory, in an elevated terminal. Application files and data are preserved.
 

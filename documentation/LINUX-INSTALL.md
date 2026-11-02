@@ -53,13 +53,15 @@ An existing destination is never overwritten. If setup fails after it has create
 
 ## Setup prompts
 
+Yes/no questions accept `yes`/`y` and `no`/`n` regardless of case; Enter defaults to no. Invalid answers display a message and repeat the same question.
+
 Enter a new administrator name and password (at least 12 characters). Then enter the real MQTT broker host, port (default `1883`), HeishaMon topic base (default `panasonic_heat_pump`), TLS choice (default `no`), and, if applicable, broker username and password. Enter the topic base without `/main/`, `/extra/`, a trailing slash or wildcards. Passwords are entered without echo. Select the web interface port (default `5080`) and whether to allow heat-pump control (default `no`). The application remains stopped unless service installation is explicitly selected at the final prompt; choosing yes starts it and connects to MQTT.
 
 The installer creates an empty SQLite account database, broker configuration and a self-signed local HTTPS certificate. No previous measurements or accounts are imported. The initial MQTT mode is read-only unless control is explicitly enabled and the required confirmations are supplied during setup. Control requires configured MQTT credentials.
 
 ## Optional service installation
 
-At the final automatic-service prompt, **Enter means no**. Choosing yes uses `sudo` to install **heishamon-cockpit.service**, enables it at boot and starts it immediately, opening the MQTT connection. A running systemd system manager is required. Run setup as the normal application user; the service keeps that user's UID/GID. An existing service is never overwritten. Failure preserves the application for manual startup.
+At the final automatic-service prompt, **Enter means no**. Choosing yes uses `sudo` to install **heishamon-cockpit.service**, enables it at boot and starts it immediately, opening the MQTT connection. A running systemd system manager is required. Run setup as the normal application user; the service keeps that user's UID/GID. For an existing service, choose Abort (`a/A`), Delete and reinstall (`d/D`), or Start (`s/S`); invalid input repeats the question. Enter defaults to Abort. Failure preserves the application for manual startup.
 
 Use `systemctl status heishamon-cockpit.service`, `sudo systemctl start heishamon-cockpit.service`, `sudo systemctl stop heishamon-cockpit.service` and `sudo journalctl -u heishamon-cockpit.service -f`. For removal, run `sudo systemctl disable --now heishamon-cockpit.service`, remove `/etc/systemd/system/heishamon-cockpit.service` with sudo, then run `sudo systemctl daemon-reload`. Application files/data remain. See [service setup and diagnostics](SERVICE.md) for details and limitations.
 

@@ -15,7 +15,12 @@ Copy-Item -LiteralPath (Join-Path $packageDirectory 'install-service.ps1') -Dest
 Copy-Item -LiteralPath (Join-Path $packageDirectory 'WinSW-LICENSE.txt') -Destination $target
 Write-Host "To start later: Set-Location '$target'; .\Cockpit.Web.exe"
 Write-Host 'Choosing yes starts the service immediately and connects to the configured MQTT broker. Control settings remain unchanged.'
-$serviceAnswer = Read-Host 'Install as a service that starts automatically at boot? (yes/no) [no]'
+do {
+    $serviceAnswer = [string](Read-Host 'Install as a service that starts automatically at boot? (yes/y/no/n) [no]')
+    $serviceAnswer = $serviceAnswer.Trim().ToLowerInvariant()
+    $validAnswer = $serviceAnswer -in @('', 'n', 'no', 'nein', 'y', 'yes', 'j', 'ja')
+    if (-not $validAnswer) { Write-Host 'Invalid value. Enter yes/y or no/n, or press Enter for no.' }
+} until ($validAnswer)
 if ($serviceAnswer -and $serviceAnswer.Trim().ToLowerInvariant() -in @('y', 'yes', 'j', 'ja')) {
     try {
         & (Join-Path $target 'install-service.ps1') -InstallDirectory $target

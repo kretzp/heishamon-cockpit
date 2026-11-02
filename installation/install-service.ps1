@@ -1,4 +1,4 @@
-param([string]$InstallDirectory)
+param([string]$InstallDirectory, [ValidateSet('Abort','Delete','Start','Fail')][string]$ExistingAction)
 
 function Test-CockpitAdministrator {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -12,19 +12,57 @@ function Invoke-CockpitServiceWrapper([string]$Wrapper, [string]$Action) {
 }
 
 function Install-CockpitWindowsService {
-    param([Parameter(Mandatory=$true)][string]$InstallDirectory)
+    param([Parameter(Mandatory=$true)][string]$InstallDirectory, [ValidateSet('Abort','Delete','Start','Fail')][string]$ExistingAction)
     $ErrorActionPreference = 'Stop'
     $target = [System.IO.Path]::GetFullPath($InstallDirectory)
     if (-not (Test-Path -LiteralPath (Join-Path $target 'Cockpit.Web.exe') -PathType Leaf)) { throw 'Installed application not found.' }
     $serviceName = 'HeishaMonCockpit'
-    if (Get-Service -Name $serviceName -ErrorAction SilentlyContinue) { throw 'HeishaMonCockpit service already exists; it will not be overwritten.' }
+    $existing = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+    if (-not $existing -and $ExistingAction -eq 'Start') { throw 'Existing service disappeared; no replacement was installed.' }
+    if ($existing) {
+        while (-not $ExistingAction) {
+            $answer = [string](Read-Host 'Service exists. Choose [A]bort, [D]elete and reinstall, or [S]tart existing service [A]')
+            switch -CaseSensitive ($answer) {
+                { $_ -in @('', 'a', 'A') } { $ExistingAction = 'Abort' }
+                { $_ -in @('d', 'D') } { $ExistingAction = 'Delete' }
+                { $_ -in @('s', 'S') } { $ExistingAction = 'Start' }
+                default { Write-Host 'Invalid value. Enter A, D or S.' }
+            }
+        }
+        if ($ExistingAction -eq 'Abort') { Write-Host 'Aborted. Existing service was not changed.'; return }
+        if ($ExistingAction -eq 'Fail') { throw 'A service appeared during elevation. Rerun setup to choose an action.' }
+    }
     if (-not (Test-CockpitAdministrator)) {
         $helper = Join-Path $target 'install-service.ps1'
+        $action = if ($ExistingAction) { $ExistingAction } else { 'Fail' }
         $process = Start-Process -FilePath (Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe') -Verb RunAs -WindowStyle Hidden -Wait -PassThru -ArgumentList @(
-            '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"' + $helper + '"'), '-InstallDirectory', ('"' + $target + '"'))
+            '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"' + $helper + '"'), '-InstallDirectory', ('"' + $target + '"'), '-ExistingAction', $action)
         if ($process.ExitCode -ne 0) { throw "Service setup failed. Inspect $target\logs\service-install.log. Application files were preserved." }
         Get-Service -Name $serviceName | Format-Table Name, Status, StartType
         return
+    }
+    if ($existing -and $ExistingAction -eq 'Start') {
+        Start-Service -Name $serviceName
+        (Get-Service -Name $serviceName).WaitForStatus('Running', [TimeSpan]::FromSeconds(30))
+        Start-Sleep -Seconds 2
+        if ((Get-Service -Name $serviceName).Status -ne 'Running') { throw 'Existing service did not stay running.' }
+        Get-Service -Name $serviceName | Format-Table Name, Status, StartType
+        return
+    }
+    $replaceFiles = $ExistingAction -eq 'Delete'
+    if ($existing -and $replaceFiles) {
+        Stop-Service -Name $serviceName
+        if ($existing -is [IDisposable]) { $existing.Dispose() }
+        & sc.exe delete $serviceName
+        if ($LASTEXITCODE -ne 0) { throw 'Existing service could not be deleted.' }
+        for ($attempt = 0; $attempt -lt 30; $attempt++) {
+            $remaining = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+            if (-not $remaining) { break }
+            if ($remaining -is [IDisposable]) { $remaining.Dispose() }
+            Start-Sleep -Seconds 1
+        }
+        if (Get-Service -Name $serviceName -ErrorAction SilentlyContinue) { throw 'Service deletion is still pending; retry after closing service management tools.' }
+        Write-Host 'Existing service removed. Installing the new service; application files and data were preserved.'
     }
     $logs = Join-Path $target 'logs'
     New-Item -ItemType Directory -Path $logs -Force | Out-Null
@@ -33,14 +71,14 @@ function Install-CockpitWindowsService {
     try {
         $wrapper = Join-Path $target 'HeishaMonCockpitService.exe'
         $config = Join-Path $target 'HeishaMonCockpitService.xml'
-        if ((Test-Path -LiteralPath $wrapper) -or (Test-Path -LiteralPath $config)) { throw 'Service wrapper files already exist; they will not be overwritten.' }
+        if (-not $replaceFiles -and ((Test-Path -LiteralPath $wrapper) -or (Test-Path -LiteralPath $config))) { throw 'Service wrapper files already exist; choose Delete for a registered service to replace them.' }
         # Observed SHA256 of the official v2.12.0 x64 release asset; not a publisher checksum file.
         $expectedHash = '05B82D46AD331CC16BDC00DE5C6332C1EF818DF8CEEFCD49C726553209B3A0DA'
         $download = Join-Path $logs ('winsw-' + [guid]::NewGuid().ToString('N') + '.download')
         try {
             Invoke-WebRequest -UseBasicParsing 'https://github.com/winsw/winsw/releases/download/v2.12.0/WinSW-x64.exe' -OutFile $download
             if ((Get-FileHash -LiteralPath $download -Algorithm SHA256).Hash -ne $expectedHash) { throw 'WinSW checksum mismatch; service setup aborted.' }
-            Move-Item -LiteralPath $download -Destination $wrapper
+            Move-Item -LiteralPath $download -Destination $wrapper -Force:$replaceFiles
         } finally { if (Test-Path -LiteralPath $download) { Remove-Item -LiteralPath $download } }
         @'
     <service>
@@ -82,4 +120,8 @@ function Install-CockpitWindowsService {
     } finally { Stop-Transcript | Out-Null }
 }
 
-if ($MyInvocation.InvocationName -ne '.') { Install-CockpitWindowsService -InstallDirectory $InstallDirectory }
+if ($MyInvocation.InvocationName -ne '.') {
+    $arguments = @{ InstallDirectory = $InstallDirectory }
+    if ($ExistingAction) { $arguments.ExistingAction = $ExistingAction }
+    Install-CockpitWindowsService @arguments
+}

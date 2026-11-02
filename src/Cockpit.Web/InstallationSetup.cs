@@ -6,6 +6,23 @@ using System.Text.Json;
 
 public static class InstallationSetup
 {
+    public static bool ReadYesNo(string label, TextReader input, TextWriter output)
+    {
+        while (true)
+        {
+            output.Write($"{label} (yes/y/no/n) [no]: ");
+            var answer = input.ReadLine() ?? throw new EndOfStreamException("Interactive input ended; setup was cancelled.");
+            switch (answer.Trim().ToLowerInvariant())
+            {
+                case "y": case "yes": case "j": case "ja": return true;
+                case "": case "n": case "no": case "nein": return false;
+                default: output.WriteLine("Invalid value. Enter yes/y or no/n, or press Enter for no."); break;
+            }
+        }
+    }
+
+    private static bool Confirm(string label) => ReadYesNo(label, Console.In, Console.Out);
+
     private static string Prompt(string label, string? fallback = null)
     {
         Console.Write(fallback is null ? $"{label}: " : $"{label} [{fallback}]: ");
@@ -30,30 +47,28 @@ public static class InstallationSetup
         var host = Prompt("MQTT broker host");
         if (!int.TryParse(Prompt("MQTT broker port", "1883"), out var port)) throw new InvalidOperationException("Invalid broker port.");
         var prefix = Prompt("HeishaMon topic base", "panasonic_heat_pump");
-        var tls = Prompt("Use TLS for MQTT? (yes/no)", "no");
-        if (tls is not ("yes" or "no")) throw new InvalidOperationException("Enter yes or no.");
+        var tls = Confirm("Use TLS for MQTT?");
         var brokerUser = Prompt("MQTT username (leave empty for anonymous)");
         var brokerPassword = brokerUser.Length == 0 ? null : Secret("MQTT password");
         if (!int.TryParse(Prompt("Web interface port", "5080"), out var webPort) || webPort is < 1024 or > 65535)
             throw new InvalidOperationException("Web interface port must be between 1024 and 65535.");
-        var allowControl = Prompt("Allow heat-pump control? (yes/no)", "no");
-        if (allowControl is not ("yes" or "no")) throw new InvalidOperationException("Enter yes or no.");
-        if (allowControl == "yes")
+        var allowControl = Confirm("Allow heat-pump control?");
+        if (allowControl)
         {
             Console.WriteLine("Control requires a compatible Panasonic WH-SDC0509L3E5 / WH-WDG05LE5 installation, verified firmware and broker credentials. See documentation/SUPPORTED-DEVICES.md.");
-            if (Prompt("Confirm the device and installation match this profile (yes/no)", "no") != "yes" ||
-                Prompt("Confirm you have checked other controllers for conflicting changes (yes/no)", "no") != "yes" ||
-                Prompt("Authorize the configured MQTT credentials for control (yes/no)", "no") != "yes")
+            if (!Confirm("Confirm the device and installation match this profile") ||
+                !Confirm("Confirm you have checked other controllers for conflicting changes") ||
+                !Confirm("Authorize the configured MQTT credentials for control"))
                 throw new InvalidOperationException("Control confirmations are required; nothing was configured.");
         }
-        var brokerInput = new MqttSettingsInput(host, port, prefix, tls == "yes", brokerUser.Length == 0 ? "clear" : "replace", brokerUser, brokerPassword, 0);
-        var options = new Cockpit.Infrastructure.MqttReadOptions { Host = host, Port = port, Prefix = prefix, UseTls = tls == "yes", LiveReadOnly = true, Username = brokerUser.Length == 0 ? null : brokerUser, Password = brokerPassword };
+        var brokerInput = new MqttSettingsInput(host, port, prefix, tls, brokerUser.Length == 0 ? "clear" : "replace", brokerUser, brokerPassword, 0);
+        var options = new Cockpit.Infrastructure.MqttReadOptions { Host = host, Port = port, Prefix = prefix, UseTls = tls, LiveReadOnly = true, Username = brokerUser.Length == 0 ? null : brokerUser, Password = brokerPassword };
         options.Validate();
         if (password.Length is < 12 or > 128 || string.IsNullOrWhiteSpace(username) || username.Length > 64 || username.Any(c => !char.IsAsciiLetterOrDigit(c) && c is not ('.' or '_' or '-')))
             throw new InvalidOperationException("Invalid administrator username or password; nothing was configured.");
         if (brokerUser.Length > 0 && (brokerUser.Length > 256 || brokerUser.Any(char.IsControl) || string.IsNullOrEmpty(brokerPassword) || brokerPassword.Length > 1024))
             throw new InvalidOperationException("Invalid broker credentials; nothing was configured.");
-        if (allowControl == "yes" && (string.IsNullOrWhiteSpace(brokerUser) || string.IsNullOrEmpty(brokerPassword)))
+        if (allowControl && (string.IsNullOrWhiteSpace(brokerUser) || string.IsNullOrEmpty(brokerPassword)))
             throw new InvalidOperationException("Control requires MQTT credentials; nothing was configured.");
         var dataDir = Path.Combine(root, "data"); Directory.CreateDirectory(dataDir);
         using var rsa = RSA.Create(3072);
@@ -75,7 +90,7 @@ public static class InstallationSetup
         using (var file = new FileStream(certificatePath, fileOptions)) { file.Write(cert.Export(X509ContentType.Pfx, "")); file.Flush(true); }
         new UserStore(usersPath).CreateInitialAdmin(username, password);
         mqtt.Save(brokerInput);
-        if (allowControl == "yes")
+        if (allowControl)
             new ControlSetupStore(Path.Combine(dataDir, "mqtt.db.control.json"))
                 .Save(new(true, Cockpit.Domain.HeatingCurve.Profile, true, true, true, 0), "mqtt", options, false);
         using (var file = new FileStream(localConfig, FileMode.CreateNew, FileAccess.Write, FileShare.None))

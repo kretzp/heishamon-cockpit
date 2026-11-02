@@ -17,7 +17,41 @@ service=heishamon-cockpit.service
 unit_file=/etc/systemd/system/$service
 load_state=$(systemctl show --property=LoadState --value "$service")
 if [ "$load_state" != 'not-found' ] || [ -e "$unit_file" ] || [ -L "$unit_file" ]; then
-  echo 'A heishamon-cockpit service already exists; it will not be overwritten.' >&2; exit 1
+  echo 'A heishamon-cockpit service already exists.'
+  while :; do
+    printf 'Choose [A]bort, [D]elete and reinstall, or [S]tart existing service [A]: '
+    IFS= read -r existing_action || existing_action='a'
+    case "$existing_action" in
+      ''|a|A) echo 'Aborted. Existing service was not changed.'; exit 0 ;;
+      s|S)
+        sudo systemctl start "$service"
+        sleep 2
+        if ! systemctl is-active --quiet "$service"; then echo 'Existing service did not start; inspect journalctl.' >&2; exit 1; fi
+        systemctl status "$service" --no-pager
+        exit 0 ;;
+      d|D) break ;;
+      *) echo 'Invalid value. Enter A, D or S.' ;;
+    esac
+  done
+  dropins=$(systemctl show --property=DropInPaths --value "$service")
+  if [ -n "$dropins" ]; then
+    echo 'Existing service has drop-in overrides. Remove or migrate them explicitly before Delete; the service was preserved.' >&2
+    printf 'Overrides: %s\n' "$dropins" >&2
+    exit 1
+  fi
+  fragment=$(systemctl show --property=FragmentPath --value "$service")
+  case "$fragment" in
+    ''|"$unit_file"|/run/systemd/system/heishamon-cockpit.service|/usr/lib/systemd/system/heishamon-cockpit.service|/lib/systemd/system/heishamon-cockpit.service) ;;
+    *) echo "Service definition has an unsupported location; preserved: $fragment" >&2; exit 1 ;;
+  esac
+  if ! sudo systemctl disable --now "$service"; then
+    if systemctl is-active --quiet "$service"; then echo 'Existing service could not be stopped; it was not deleted.' >&2; exit 1; fi
+  fi
+  sudo rm -f -- "$unit_file"
+  if [ -n "$fragment" ] && [ "$fragment" != "$unit_file" ]; then sudo rm -f -- "$fragment"; fi
+  sudo systemctl daemon-reload
+  sudo systemctl reset-failed "$service" 2>/dev/null || true
+  echo 'Existing service removed. Installing the new service; application files and data were preserved.'
 fi
 unit_dir=$(mktemp -d)
 unit="$unit_dir/heishamon-cockpit.service"

@@ -18,8 +18,15 @@ cd -- "$install_dir"
 cp "$package_dir/install-service.sh" "$install_dir/install-service.sh"
 printf '\nTo start later: cd "%s" && ./Cockpit.Web\n' "$install_dir"
 echo 'Choosing yes starts the service immediately and connects to the configured MQTT broker. Control settings remain unchanged.'
-printf 'Install as a service that starts automatically at boot? (yes/no) [no]: '
-IFS= read -r service_answer || service_answer=''
+while :; do
+  printf 'Install as a service that starts automatically at boot? (yes/y/no/n) [no]: '
+  IFS= read -r service_answer || service_answer=''
+  service_answer=$(printf '%s' "$service_answer" | tr '[:upper:]' '[:lower:]' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+  case "$service_answer" in
+    ''|n|no|nein|y|yes|j|ja) break ;;
+    *) echo 'Invalid value. Enter yes/y or no/n, or press Enter for no.' ;;
+  esac
+done
 case "$service_answer" in
   y|Y|yes|Yes|YES|j|J|ja|Ja|JA)
     if ! sh "$install_dir/install-service.sh" "$install_dir"; then

@@ -22,9 +22,11 @@ Extract the archive on the matching target. Run install.ps1 on Windows or sh ins
 
 Setup asks for the administrator, MQTT address and credentials, port (1883), TLS choice (no), HeishaMon topic base (panasonic_heat_pump), web port (5080) and control opt-in (no). Password input is hidden. Setup creates fresh SQLite accounts, encrypted broker settings and a self-signed HTTPS certificate. It starts the application and connects to the broker only if service installation is explicitly selected at the final prompt. Failed setup preserves the destination for inspection.
 
+All yes/no questions accept `yes`/`y` and `no`/`n`, case-insensitively and with surrounding whitespace ignored (`ja`/`j` and `nein` are also accepted). Enter keeps the default **no**. An invalid answer produces a message and repeats the same question until a valid answer is given. A valid no to a mandatory control confirmation still refuses control setup; an ended input stream does not imply consent.
+
 ## Prerequisites and operation
 
-Version **0.9.1** adds a final optional service prompt, default **no**, to all installation routes. With yes, automatic startup is registered and the application starts immediately and connects to MQTT. Windows uses checksum-pinned WinSW as LocalService; Linux/Pi use a systemd system service under the installing user's UID/GID. Existing services are preserved. See [service commands, logs, removal and verification scope](SERVICE.md).
+Version **0.9.1** adds a final optional service prompt, default **no**, to all installation routes. With yes, automatic startup is registered and the application starts immediately and connects to MQTT. Windows uses checksum-pinned WinSW as LocalService; Linux/Pi use a systemd system service under the installing user's UID/GID. For an existing service, choose Abort (`a/A`), Delete and reinstall (`d/D`), or Start (`s/S`); invalid input repeats the question. Enter defaults to Abort. See [service commands, logs, removal and verification scope](SERVICE.md).
 
 The source installers verify Python 3.10+ with SSL for MCP. Windows installs missing Python with WinGet for the current user; Linux and Pi use apt where available. Extracted package installers do not install Python or native system prerequisites. Configure the MCP client separately.
 
