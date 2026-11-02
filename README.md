@@ -1,6 +1,7 @@
 # HeishaMon Cockpit
 
-A self-hosted heat pump dashboard and control interface built on HeishaMon. **Requires HeishaMon and an MQTT broker.**
+A self-hosted heat pump dashboard and control interface built on HeishaMon (https://github.com/heishamon/HeishaMon). **Requires HeishaMon and an MQTT broker.**
+Thx to all Heishamon contributors for this peace of software.
 
 This is an independent companion application for HeishaMon, with historical charts, role-based accounts and explicitly confirmed control actions. The repository name is `heishamon-cockpit`.
 
