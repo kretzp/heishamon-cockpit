@@ -39,6 +39,36 @@ test('MQTT settings save an explicit false for initially unspecified TLS', async
   expect((await request).postDataJSON()).toMatchObject({ host: 'broker.example', useTls: false });
 });
 
+test('MQTT editing is blocked during control and unlocks after control settings change', async ({ page }) => {
+  await mockAdminSettings(page);
+  let enabled = true;
+  await page.route('**/api/v1/settings/control', route => route.fulfill({ json: {
+    enabled, active: enabled, externalMode: false, source: 'mqtt', revision: 1, brokerMatches: true
+  } }));
+  await page.goto('/');
+  await page.getByRole('navigation').getByRole('button', { name: 'Einstellungen', exact: true }).click();
+  const panel = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: 'MQTT-Broker', exact: true }) });
+  await expect(panel.getByLabel('Broker-Adresse', { exact: true })).toBeDisabled();
+  await expect(panel.getByRole('button', { name: 'Broker-Einstellungen speichern', exact: true })).toBeDisabled();
+  await expect(panel.getByRole('status')).toContainText('Nur lesen');
+  enabled = false;
+  await page.evaluate(() => window.dispatchEvent(new Event('cockpit-control-changed')));
+  await expect(panel.getByLabel('Broker-Adresse', { exact: true })).toBeEnabled();
+  await expect(panel.getByRole('button', { name: 'Broker-Einstellungen speichern', exact: true })).toBeEnabled();
+});
+
+test('MQTT editing explains startup configuration locks', async ({ page }) => {
+  await mockAdminSettings(page);
+  await page.route('**/api/v1/settings/control', route => route.fulfill({ json: {
+    enabled: false, active: true, externalMode: true, source: 'mqtt', revision: 1, brokerMatches: true
+  } }));
+  await page.goto('/');
+  await page.getByRole('navigation').getByRole('button', { name: 'Einstellungen', exact: true }).click();
+  const panel = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: 'MQTT-Broker', exact: true }) });
+  await expect(panel.getByLabel('Broker-Adresse', { exact: true })).toBeDisabled();
+  await expect(panel.getByRole('status')).toContainText('Startkonfiguration');
+});
+
 test('session lookup outage preserves drafts and blocks interaction until recovery', async ({ page }) => {
   await mockAdminSettings(page);
   await page.goto('/');

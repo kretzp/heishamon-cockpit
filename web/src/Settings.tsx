@@ -36,23 +36,49 @@ function MqttEditor({ csrfToken }: { csrfToken: string }) {
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState('');
   const [busy, setBusy] = useState(false);
+  const [control, setControl] = useState<ControlConfig | null>(null);
+  async function loadControl() {
+    try {
+      const response = await sessionFetch('/api/v1/settings/control', { cache: 'no-store' });
+      if (!response.ok) throw new Error('Unable to load control settings.');
+      setControl(await response.json());
+    } catch (error) { setControl(null); throw error; }
+  }
   async function load() {
+    await loadControl();
     const response = await sessionFetch('/api/v1/settings/mqtt', { cache: 'no-store' });
     if (!response.ok) throw new Error('Unable to load MQTT settings.');
     setConfig(await response.json());
   }
-  useEffect(() => { void load().catch(e => setStatus(e.message)); }, []);
+  useEffect(() => {
+    void load().catch(e => setStatus(e.message));
+    const refreshControl = () => { void loadControl().catch(e => setStatus(e.message)); };
+    window.addEventListener('cockpit-control-changed', refreshControl);
+    window.addEventListener('focus', refreshControl);
+    return () => {
+      window.removeEventListener('cockpit-control-changed', refreshControl);
+      window.removeEventListener('focus', refreshControl);
+    };
+  }, []);
+  const locked = control === null || control.source === 'mqtt' && (control.enabled || control.externalMode);
+  const lockMessage = control === null
+    ? 'MQTT changes are unavailable until control settings can be loaded. Reload broker settings to try again.'
+    : control.externalMode
+      ? 'MQTT changes are locked by startup configuration. Disable device control in the startup configuration, restart the application, then reload broker settings.'
+      : 'MQTT changes are locked while heat-pump control is enabled. Select Read only under Heat-pump control and save control settings. Then you can edit the broker and credentials.';
   return <section className="panel"><h2>{st("MQTT broker")}</h2>
     <p>{st("Changes reconnect the read connection. Broker settings cannot be changed while real-device control is enabled.")}</p>
+    {locked && <p role="status">{st(lockMessage)}</p>}
     {status && <p role="status">{st(status)}</p>}
-    {config && <form onSubmit={e => { e.preventDefault(); setBusy(true); setStatus(''); void (async () => {
+    {config && <form onSubmit={e => { e.preventDefault(); if (locked || busy) return; setBusy(true); setStatus(''); void (async () => {
       try {
         const response = await sessionFetch('/api/v1/settings/mqtt', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
           body: JSON.stringify({ ...config, useTls: config.useTls === true, credentialAction: action, username: action === 'replace' ? username : null, password: action === 'replace' ? password : null }) });
-        if (!response.ok) { const error = await response.json().catch(() => ({})); throw new Error(error.errorCode === 'mqtt_control_active' ? 'Disable real-device control and restart before changing the broker.' : error.errorCode === 'mqtt_conflict' ? 'The broker settings changed. Reload before saving.' : 'Unable to save MQTT settings. Check the values.'); }
+        if (!response.ok) { const error = await response.json().catch(() => ({})); if (error.errorCode === 'mqtt_control_active') await loadControl(); throw new Error(error.errorCode === 'mqtt_control_active' ? 'Disable real-device control and restart before changing the broker.' : error.errorCode === 'mqtt_conflict' ? 'The broker settings changed. Reload before saving.' : 'Unable to save MQTT settings. Check the values.'); }
         setConfig(await response.json()); setUsername(''); setPassword(''); setAction('keep'); setStatus('MQTT settings saved.');
       } catch (error) { setStatus((error as Error).message); } finally { setBusy(false); }
     })(); }}>
+      <fieldset className="mqtt-fields" disabled={busy || locked}>
       <label>{st("Broker host")}<Input required maxLength={253} value={config.host} onChange={e => setConfig({ ...config, host: e.target.value })} /></label>
       <label>{st("Broker port")}<Input required type="number" min={1} max={65535} value={config.port} onChange={e => setConfig({ ...config, port: Number(e.target.value) })} /></label>
       <label>{st("HeishaMon topic base")}<Input required maxLength={128} value={config.prefix} onChange={e => setConfig({ ...config, prefix: e.target.value })} /></label>
@@ -62,8 +88,10 @@ function MqttEditor({ csrfToken }: { csrfToken: string }) {
       </select></label>
       {action === 'replace' && <><label>{st("Broker username")}<Input autoComplete="off" maxLength={256} required value={username} onChange={e => setUsername(e.target.value)} /></label>
         <label>{st("Broker password")}<Input type="password" autoComplete="new-password" maxLength={1024} required value={password} onChange={e => setPassword(e.target.value)} /></label></>}
-      <Button disabled={busy}>{st("Save broker settings")}</Button><Button type="button" disabled={busy} onClick={() => void load().catch(e => setStatus(e.message))}>{st("Reload broker settings")}</Button>
+      <Button>{st("Save broker settings")}</Button>
+      </fieldset>
     </form>}
+    <Button type="button" disabled={busy} onClick={() => void load().catch(e => setStatus(e.message))}>{st("Reload broker settings")}</Button>
   </section>;
 }
 
