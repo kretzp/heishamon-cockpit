@@ -13,7 +13,7 @@ test('Dallas-1-Wire shows aliases, addresses, two decimals, red non-OK statuses 
     { key: 'ds18b20_28abcdef01234568', alias: null, value: -5.25, quality: 'stale', retained: true },
     { key: 'ds18b20_28abcdef01234569', alias: '<script>alert(1)</script>', value: null, quality: 'invalid', retained: false },
     { key: 'ds18b20_28abcdef0123456a', alias: 'Unbekannter Sensor', value: null, quality: 'unknown', retained: false }
-  ].map(v => ({ ...v, receivedAtUtc: new Date().toISOString(), unit: '°C', sourceKind: 'mqtt' }));
+  ].map(v => ({ ...v, receivedAtUtc: new Date(Date.now() - 15_000).toISOString(), unit: '°C', sourceKind: 'mqtt' }));
   await page.route('**/api/v1/snapshot', r => r.fulfill({ json: { ...snapshot, revision: Number.MAX_SAFE_INTEGER,
     brokerConnected: true, deviceAvailability: 'online', values: [...snapshot.values, ...sensors] } }));
   await fixtures(page);
@@ -33,6 +33,11 @@ test('Dallas-1-Wire shows aliases, addresses, two decimals, red non-OK statuses 
   await expect(cards.first().getByRole('heading')).toHaveText('Puffer');
   await expect(cards.first()).toContainText('28abcdef01234567');
   await expect(cards.first().locator('.value')).toHaveText('23,50 °C');
+  const age = cards.first().locator('.age-elapsed');
+  await expect(age).toHaveText(/ · vor \d+ s/);
+  const elapsed = Number((await age.innerText()).match(/\d+/)![0]);
+  expect(elapsed).toBeGreaterThanOrEqual(15);
+  await expect.poll(async () => Number((await age.innerText()).match(/\d+/)![0])).toBeGreaterThan(elapsed);
   const layout = await cards.first().evaluate(card => {
     const address = card.querySelector('.dallas-address')!.getBoundingClientRect();
     const temperature = card.querySelector('.value')!.getBoundingClientRect();

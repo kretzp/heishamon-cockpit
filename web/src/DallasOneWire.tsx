@@ -22,12 +22,13 @@ export const dallasLabel = (value: DallasValue): string => value.alias || t('Dal
 type Props = {
   values: DallasValue[];
   live: boolean;
+  now: number;
   brokerConnected: boolean;
   deviceAvailability: string;
   openChart: (key: string) => void;
 };
 
-export function DallasOneWirePanel({ values, live, brokerConnected, deviceAvailability, openChart }: Props) {
+export function DallasOneWirePanel({ values, live, now, brokerConnected, deviceAvailability, openChart }: Props) {
   useLanguage();
   return <section className="temperature-grid dallas-grid" aria-label="Dallas-1-Wire">
     {values.map(value => {
@@ -44,9 +45,9 @@ export function DallasOneWirePanel({ values, live, brokerConnected, deviceAvaila
         <div className="metric-top"><h2 className="metric-heading">{label}</h2><Badge variant="secondary" className={'quality dallas-status' + (ok ? '' : ' dallas-status-error')}>{status}</Badge></div>
         <p className="dallas-address">{t('Sensoradresse')}: <code>{address}</code></p>
         <p className="value">{number} <span>{number !== '—' ? '°C' : ''}</span></p>
-        <p className="age">{value.receivedAtUtc ? <time dateTime={value.receivedAtUtc}>{t('Empfangen ')}{new Intl.DateTimeFormat(getLocale(), {
+        <p className="age">{value.receivedAtUtc ? <><time dateTime={value.receivedAtUtc}>{t('Empfangen ')}{new Intl.DateTimeFormat(getLocale(), {
           timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit', second: '2-digit'
-        }).format(new Date(value.receivedAtUtc))}</time> : t('Noch kein Messwert')}</p>
+        }).format(new Date(value.receivedAtUtc))}</time><span className="age-elapsed">{t(' · vor {0} s', [Math.max(0, Math.floor((now - Date.parse(value.receivedAtUtc)) / 1000))])}</span></> : t('Noch kein Messwert')}</p>
         {value.retained && <p className="note">{t('Retained · historische Nachricht')}</p>}
         <Button className="metric-chart-open" aria-label={`${label} · ${address}${t(' – Diagramm öffnen')}`} onClick={() => openChart(value.key)} />
       </article></Card>;

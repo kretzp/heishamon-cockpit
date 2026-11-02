@@ -323,7 +323,7 @@ function App() {
       {!live && <div className="warning" role="alert">{t("Liveverbindung zum Backend unterbrochen oder noch nicht hergestellt. Angezeigte Werte sind nicht aktuell.")}</div>}
       {live && (!snapshot?.brokerConnected || snapshot.deviceAvailability === 'offline') && <p className="warning" role="alert">{t("Verbindungsausfall der Datenquelle. Letzte Werte sind veraltet.")}</p>}
       {tab === 'Heizkurve' && <HeatingCurvePanel values={snapshot?.values ?? []} live={live} enabled={curveControl} source={system?.source ?? ''} />}
-      {tab === 'Dallas-1-Wire' && <DallasOneWirePanel values={dallasValues} live={live} brokerConnected={snapshot?.brokerConnected ?? false} deviceAvailability={snapshot?.deviceAvailability ?? 'unknown'} openChart={setChartKey} />}
+      {tab === 'Dallas-1-Wire' && <DallasOneWirePanel values={dallasValues} live={live} now={now} brokerConnected={snapshot?.brokerConnected ?? false} deviceAvailability={snapshot?.deviceAvailability ?? 'unknown'} openChart={setChartKey} />}
       {(tab === 'Übersicht' || tab === 'Steuerung') && <>
         {editingOrder && <p id="sort-instructions">{t("Reihenfolge wird in diesem Browser gespeichert. Am Griff ziehen oder dessen Pfeiltasten verwenden. Alternativ mit den Pfeilbuttons verschieben. Sortieren innerhalb der jeweiligen Gruppe; Escape bricht das Ziehen ab.")}</p>}
         {layout.error && <p role="alert" className="warning">{localizeText(layout.error)}</p>}

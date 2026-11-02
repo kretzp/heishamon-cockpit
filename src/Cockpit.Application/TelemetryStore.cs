@@ -156,10 +156,8 @@ public sealed partial class TelemetryStore
         {
             var now = clock.GetUtcNow();
             var evaluated = Catalog.Metrics.Select(m => values[m.Key])
-                .Concat(values.Values.Where(v => v.Key.StartsWith(OneWire.KeyPrefix, StringComparison.Ordinal)).OrderBy(v => v.Key, StringComparer.Ordinal)).Select(v =>
-                v.Quality == Quality.Valid && (now - v.ReceivedAtUtc > TimeSpan.FromSeconds(policy.FreshSeconds)
-                    || !connected || availability == Availability.Offline)
-                ? v with { Quality = Quality.Stale } : v).ToList();
+                .Concat(values.Values.Where(v => v.Key.StartsWith(OneWire.KeyPrefix, StringComparison.Ordinal)).OrderBy(v => v.Key, StringComparer.Ordinal))
+                .Select(v => Current(v, now)).ToList();
             var spreadValue = EvaluateSpread(now);
             evaluated.Add(spreadValue);
             evaluated.Add(ExtraCop.Calculate(evaluated, now, sourceKind));
@@ -190,7 +188,8 @@ public sealed partial class TelemetryStore
     }
 
     private TelemetryValue Current(TelemetryValue value, DateTimeOffset now) =>
-        value.Quality == Quality.Valid && (now - value.ReceivedAtUtc > TimeSpan.FromSeconds(policy.FreshSeconds)
+        value.Quality == Quality.Valid && (now - value.ReceivedAtUtc > TimeSpan.FromSeconds(
+                value.Key.StartsWith(OneWire.KeyPrefix, StringComparison.Ordinal) ? 330 : policy.FreshSeconds)
             || !connected || availability == Availability.Offline)
             ? value with { Quality = Quality.Stale } : value;
 

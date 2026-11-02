@@ -28,6 +28,26 @@ public sealed class OneWireTelemetryTests
     private static TelemetryValue Sensor(TelemetryStore store) => Assert.Single(store.Read().Values, v => v.Key == Key);
 
     [Fact]
+    public void DallasRemainsFreshThrough330SecondsWithoutChangingOverviewPolicy()
+    {
+        var clock = new TestClock();
+        var store = new TelemetryStore(SourceKind.Mqtt, new TelemetryPolicy(FreshSeconds: 60), clock);
+        store.SetConnection(true);
+        store.Receive(Topic, "20");
+        store.Receive("main/Outside_Temp", "6");
+        clock.Advance(61);
+        Assert.Equal(Quality.Stale, store.Read().Values.Single(v => v.Key == "outsideTemperature").Quality);
+        Assert.Equal(Quality.Valid, Sensor(store).Quality);
+        clock.Advance(269);
+        Assert.Equal(Quality.Valid, Sensor(store).Quality);
+        clock.Advance(1);
+        Assert.Equal(Quality.Stale, Sensor(store).Quality);
+        Assert.Equal(20d, Sensor(store).Value);
+        store.Receive(Topic, "21");
+        Assert.Equal(Quality.Valid, Sensor(store).Quality);
+    }
+
+    [Fact]
     public void DiscoversTemperatureOnlyAndKeepsIdentityAcrossAliasChanges()
     {
         var store = new TelemetryStore(SourceKind.Mqtt);
@@ -60,7 +80,7 @@ public sealed class OneWireTelemetryTests
         store.SetConnection(true);
         store.Receive(Topic, "20.00");
         var received = Sensor(store).ReceivedAtUtc;
-        clock.Advance(121);
+        clock.Advance(331);
         store.Receive(Topic + "/alias", "Innen");
         Assert.Equal(received, Sensor(store).ReceivedAtUtc);
         Assert.Equal(Quality.Stale, Sensor(store).Quality);
