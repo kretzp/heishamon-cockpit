@@ -25,11 +25,13 @@ import { MetricIcon, metricIconNames } from './MetricIcon';
 import './metric-icons.css';
 import { SimulatorControlPanel } from './SimulatorControl';
 import { HeatingCurvePanel } from './HeatingCurve';
+import { DallasOneWirePanel, isDallasValue, dallasLabel } from './DallasOneWire';
 import { HistoryPanel, EventsPanel, StorageNotice } from './History';
 const MetricChartDialog = lazy(() => import('./charts/MetricChartDialog'));
 type Quality = 'unknown' | 'valid' | 'stale' | 'invalid';
 type Value = {
   key: string;
+  alias?: string | null;
   value: number | string | boolean | null;
   unit: string;
   quality: Quality;
@@ -97,8 +99,8 @@ const qualities: Record<Quality, string> = {
   invalid: 'Ungültig'
 };
 const modes = ['Heizen', 'Kühlen', 'Auto (Heizen)', 'Warmwasser', 'Heizen + Warmwasser', 'Kühlen + Warmwasser', 'Auto (Heizen) + Warmwasser', 'Auto (Kühlen)', 'Auto (Kühlen) + Warmwasser'];
-const tabs = ['Übersicht', 'Verlauf', 'Steuerung', 'Heizkurve', 'Ereignisse', 'Einstellungen'];
-const tabIcons: IconName[] = ['home', 'chart', 'sliders', 'chart', 'bell', 'settings'];
+const tabs = ['Übersicht', 'Verlauf', 'Steuerung', 'Heizkurve', 'Dallas-1-Wire', 'Ereignisse', 'Einstellungen'];
+const tabIcons: IconName[] = ['home', 'chart', 'sliders', 'chart', 'chart', 'bell', 'settings'];
 const temperatureKeys = ['flowTemperature', 'returnTemperature', 'temperatureSpread', 'outsideTemperature', 'indoorTemperature', 'dhwTemperature'];
 const powerKeys = ['heatPowerConsumption', 'heatPowerProduction', 'dhwPowerConsumption', 'dhwPowerProduction'];
 const detailKeys = ['heatpumpState', 'internalHeaterState', 'heatingControlMode', 'quietMode', 'activeError'];
@@ -184,6 +186,13 @@ function App() {
   const [system, setSystem] = useState<System | null>(null);
   const [transport, setTransport] = useState(false);
   const [now, setNow] = useState(Date.now());
+  const dallasValues = snapshot?.values.filter(isDallasValue) ?? [];
+  const hasDallasValues = dallasValues.length > 0;
+  const selectedDallas = dallasValues.find(value => value.key === chartKey);
+  const chartLabel = selectedDallas ? `${dallasLabel(selectedDallas)} · ${selectedDallas.key.slice('ds18b20_'.length)}` : localizeText(labels[chartKey ?? '']);
+  useEffect(() => {
+    if (!hasDallasValues && tab === 'Dallas-1-Wire') setTab('Übersicht');
+  }, [hasDallasValues, tab]);
   const received = useRef(0);
   useEffect(() => {
     let disposed = false;
@@ -302,18 +311,19 @@ function App() {
       <div className="header-connection"><span><i className={deviceOnline ? 'dot online' : 'dot'} />{deviceOnline ? localizeText('HeishaMon online') : localizeText('HeishaMon: ') + (live && snapshot?.deviceAvailability === 'offline' ? localizeText('Offline') : localizeText('unbekannt'))}</span><small>{system?.source === 'simulator' ? localizeText('Verbindungsstatus simuliert') : localizeText('Verfügbarkeit laut LWT')}</small></div>
       <div className="header-age">{snapshot ? localizeText('Stand ') + localizeText(formatTime(snapshot.generatedAtUtc)) + localizeText(' · Berlin') : localizeText('Warte auf Daten')}<small>{liveControl ? localizeText('Anlagensteuerung') : curveControl ? localizeText('Heizkurvensteuerung') : liveTest ? localizeText('Begrenzter Live-Test · reale Anlage') : simulatorControl ? localizeText('Simulatorsteuerung verfügbar') : localizeText('Nur lesen')}</small></div>
     </header>
-    <aside className="navigation" ref={navigationRef}><Brand plantName={system?.plantName} /><nav aria-label={t("Hauptnavigation")}>{localizeText(tabs.map((name, i) => <Button key={name} onClick={() => {
+    <aside className="navigation" ref={navigationRef}><Brand plantName={system?.plantName} /><nav aria-label={t("Hauptnavigation")}>{localizeText(tabs.map((name, i) => name === 'Dallas-1-Wire' && !hasDallasValues ? null : <Button key={name} onClick={() => {
           setTab(name);
           setEditingOrder(false);
         }} aria-current={tab === name ? 'page' : undefined}><Icon name={tabIcons[i]} />{localizeText(name)}</Button>))}<AccountMenu /></nav><p className="sidebar-note"><Icon name="lock" /> {liveControl ? localizeText('Anlagensteuerung') : curveControl ? localizeText('Heizkurvensteuerung') : liveTest ? localizeText('Begrenzter Live-Test') : simulatorControl ? localizeText('Simulatorbetrieb') : localizeText('Lesender Betrieb')}</p></aside>
     <main id="content" tabIndex={-1}>
-      {chartKey && <Suspense fallback={<p role="status">{t("Diagramm wird geöffnet …")}</p>}><MetricChartDialog metricKey={chartKey} label={localizeText(labels[chartKey])} onClose={() => setChartKey(null)} /></Suspense>}
+      {chartKey && <Suspense fallback={<p role="status">{t("Diagramm wird geöffnet …")}</p>}><MetricChartDialog key={chartKey} metricKey={chartKey} label={chartLabel} onClose={() => setChartKey(null)} /></Suspense>}
       <div className="page-heading"><div className="page-heading-row"><h1 className="page-title">{localizeText(tab)}</h1>{(tab === 'Übersicht' || tab === 'Steuerung') && <Button aria-pressed={editingOrder} onClick={() => setEditingOrder(!editingOrder)}>{editingOrder ? localizeText('Anordnung fertig') : localizeText('Kacheln anordnen')}</Button>}</div><p>{t("Version ")}{localizeText(system?.appVersion) ?? localizeText('—')} · {system ? system.source === 'simulator' ? localizeText('Simulatordaten') : system.readOnly ? localizeText('Lokaler Lesebetrieb') : localizeText('Lokaler Bedienbetrieb') : localizeText('Datenquelle wird geladen …')}</p></div>
       <div className="simulation" role="status"><Icon name="info" />{system?.source === 'simulator' ? localizeText('SIMULATION · Alle Messwerte und Verbindungszustände sind simuliert.') : system?.source === 'mqtt' ? liveControl ? localizeText('MQTT · Heizkurve und Warmwassersteuerung verfügbar') : curveControl ? localizeText('MQTT · Heizkurvensteuerung verfügbar') : localizeText('MQTT · Lesender Betrieb') : localizeText('Datenquelle wird geladen …')}</div>
       <StorageNotice />
       {!live && <div className="warning" role="alert">{t("Liveverbindung zum Backend unterbrochen oder noch nicht hergestellt. Angezeigte Werte sind nicht aktuell.")}</div>}
       {live && (!snapshot?.brokerConnected || snapshot.deviceAvailability === 'offline') && <p className="warning" role="alert">{t("Verbindungsausfall der Datenquelle. Letzte Werte sind veraltet.")}</p>}
       {tab === 'Heizkurve' && <HeatingCurvePanel values={snapshot?.values ?? []} live={live} enabled={curveControl} source={system?.source ?? ''} />}
+      {tab === 'Dallas-1-Wire' && <DallasOneWirePanel values={dallasValues} live={live} brokerConnected={snapshot?.brokerConnected ?? false} deviceAvailability={snapshot?.deviceAvailability ?? 'unknown'} openChart={setChartKey} />}
       {(tab === 'Übersicht' || tab === 'Steuerung') && <>
         {editingOrder && <p id="sort-instructions">{t("Reihenfolge wird in diesem Browser gespeichert. Am Griff ziehen oder dessen Pfeiltasten verwenden. Alternativ mit den Pfeilbuttons verschieben. Sortieren innerhalb der jeweiligen Gruppe; Escape bricht das Ziehen ab.")}</p>}
         {layout.error && <p role="alert" className="warning">{localizeText(layout.error)}</p>}

@@ -22,6 +22,7 @@ public sealed partial class TelemetryStore
 {
     private readonly object gate = new();
     private readonly Dictionary<string, TelemetryValue> values = new();
+    private readonly Dictionary<string, string?> oneWireAliases = new();
     private readonly TimeProvider clock;
     private readonly TelemetryPolicy policy;
     private readonly SourceKind sourceKind;
@@ -55,6 +56,8 @@ public sealed partial class TelemetryStore
             spreadReturnInput = null;
             connected = false;
             availability = Availability.Unknown;
+            values.Clear();
+            oneWireAliases.Clear();
             foreach (var m in Catalog.Metrics)
                 values[m.Key] = new(m.Key, null, m.Unit, Quality.Unknown, null, null, false, null, sourceKind);
         }
@@ -98,12 +101,23 @@ public sealed partial class TelemetryStore
                 if (availability != Availability.Online) InvalidateLiveValues();
                 return;
             }
-            var metric = Catalog.Metrics.FirstOrDefault(m => m.Suffix == suffix);
+            if (suffix.EndsWith("/alias", StringComparison.Ordinal) && OneWire.FromSuffix(suffix[..^6]) is { } aliasMetric)
+            {
+                if (payload.Length > 31 || payload.Any(char.IsControl)) return;
+                if (!oneWireAliases.ContainsKey(aliasMetric.Key) && oneWireAliases.Count >= OneWire.MaximumSensors) return;
+                var alias = string.IsNullOrWhiteSpace(payload) || payload == "NOT SET" ? null : payload;
+                oneWireAliases[aliasMetric.Key] = alias;
+                if (values.TryGetValue(aliasMetric.Key, out var existing)) values[aliasMetric.Key] = existing with { Alias = alias };
+                return;
+            }
+            var metric = Catalog.Metrics.FirstOrDefault(m => m.Suffix == suffix) ?? OneWire.FromSuffix(suffix);
             if (metric is null) return;
             var (value, quality) = Parse(metric, payload);
+            if (metric.Type == "ds18b20" && !values.ContainsKey(metric.Key)
+                && (quality != Quality.Valid || values.Keys.Count(k => k.StartsWith(OneWire.KeyPrefix, StringComparison.Ordinal)) >= OneWire.MaximumSensors)) return;
             if (quality == Quality.Valid && (retained || availability == Availability.Offline)) quality = Quality.Stale;
             values[metric.Key] = new(metric.Key, value, metric.Unit, quality, clock.GetUtcNow(), null,
-                retained, sourceTopic ?? suffix, sourceKind);
+                retained, sourceTopic ?? suffix, sourceKind) { Alias = oneWireAliases.GetValueOrDefault(metric.Key) };
             if (metric.Key is "flowTemperature" or "returnTemperature") EvaluateSpread(clock.GetUtcNow());
         }
     }
@@ -125,6 +139,7 @@ public sealed partial class TelemetryStore
         }
         if (!double.TryParse(payload, NumberStyles.Float, CultureInfo.InvariantCulture, out var number)
             || !double.IsFinite(number) || (metric.Type == "positive" && number < 0)) return (null, Quality.Invalid);
+        if (metric.Type == "ds18b20" && (number is < -55 or > 125)) return (null, Quality.Invalid);
         if (metric.Type == "curve") {
             var field = HeatingCurve.Fields.Single(f => f.Key == metric.Key);
             if (number != Math.Truncate(number) || number < field.Minimum || number > field.Maximum) return (null, Quality.Invalid);
@@ -140,7 +155,8 @@ public sealed partial class TelemetryStore
         lock (gate)
         {
             var now = clock.GetUtcNow();
-            var evaluated = Catalog.Metrics.Select(m => values[m.Key]).Select(v =>
+            var evaluated = Catalog.Metrics.Select(m => values[m.Key])
+                .Concat(values.Values.Where(v => v.Key.StartsWith(OneWire.KeyPrefix, StringComparison.Ordinal)).OrderBy(v => v.Key, StringComparer.Ordinal)).Select(v =>
                 v.Quality == Quality.Valid && (now - v.ReceivedAtUtc > TimeSpan.FromSeconds(policy.FreshSeconds)
                     || !connected || availability == Availability.Offline)
                 ? v with { Quality = Quality.Stale } : v).ToList();

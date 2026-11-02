@@ -174,8 +174,8 @@ test('zoom is bounded and export uses the actual selected duration and series co
 });
 
 
-test('flow, return and spread retain two decimals in chart tooltips and axes', () => {
-  for (const key of ['flowTemperature', 'returnTemperature', 'temperatureSpread']) {
+test('temperatures including Dallas sensors retain two decimals in chart tooltips and axes', () => {
+  for (const key of ['flowTemperature', 'returnTemperature', 'temperatureSpread', 'ds18b20_28abcdef01234567']) {
     assert.equal(metricNumber(34.5, key), '34,50');
     assert.equal(metricNumber(0, key), '0,00');
     assert.equal(metricNumber(-1.236, key), '-1,24');

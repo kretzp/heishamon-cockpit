@@ -86,7 +86,7 @@ export function lineOptions(data: History, labels: Record<string, string>, tempe
     }
     return {
       id: s.key,
-      name: translate(labels[s.key] ?? s.key),
+      name: s.key.startsWith('ds18b20_') ? labels[s.key] ?? s.key : translate(labels[s.key] ?? s.key),
       type: 'line',
       data: points,
       yAxisIndex: units.indexOf(s.unit),
@@ -163,7 +163,7 @@ export function lineOptions(data: History, labels: Record<string, string>, tempe
       position: index === 0 ? 'left' : 'right',
       ...numericScale(data.series.filter(s => s.unit === unit).flatMap(s => s.points.filter(validPoint).map(p => p.value!)), temperature, pressure),
       axisLabel: {
-        formatter: (value: number) => chartNumber(value, pressure || data.series.some(s => s.unit === unit && ['flowTemperature', 'returnTemperature', 'temperatureSpread', 'mainTargetTemperature', 'curveYCold', 'curveYWarm'].includes(s.key)))
+        formatter: (value: number) => chartNumber(value, pressure || data.series.some(s => s.unit === unit && (s.key.startsWith('ds18b20_') || ['flowTemperature', 'returnTemperature', 'temperatureSpread', 'mainTargetTemperature', 'curveYCold', 'curveYWarm'].includes(s.key))))
       },
       splitLine: {
         show: index === 0,

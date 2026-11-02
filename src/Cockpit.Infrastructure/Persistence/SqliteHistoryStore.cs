@@ -163,7 +163,7 @@ public sealed partial class SqliteHistoryStore : IHistoryStore, IDisposable
             long from = CeilingSeconds(query.From), to = CeilingSeconds(query.To), width = query.BucketSeconds;
             foreach (var key in query.Keys)
             {
-                var metric = HistoryQuery.Metrics[key];
+                var metric = HistoryQuery.FindMetric(key)!;
                 await using var command = db.Database.GetDbConnection().CreateCommand();
                 command.CommandTimeout = 15;
                 command.CommandText = """
@@ -237,7 +237,7 @@ public sealed partial class SqliteHistoryStore : IHistoryStore, IDisposable
             foreach (var row in rows)
             {
                 var fields = new[] { DateTimeOffset.FromUnixTimeSeconds(row.Time).ToString("O"), row.Key,
-                    row.Text ?? row.Value?.ToString("R", CultureInfo.InvariantCulture).Replace('.', ',') ?? "", HistoryQuery.Metrics[row.Key].Unit,
+                    row.Text ?? row.Value?.ToString("R", CultureInfo.InvariantCulture).Replace('.', ',') ?? "", HistoryQuery.FindMetric(row.Key)!.Unit,
                     ((Quality)row.Quality).ToString().ToLowerInvariant(), source.ToString().ToLowerInvariant(),
                     row.Received.HasValue ? DateTimeOffset.FromUnixTimeMilliseconds(row.Received.Value).ToString("O") : "", row.Retained ? "true" : "false" };
                 // Numeric negative values are generated from doubles, never untrusted spreadsheet formulas.

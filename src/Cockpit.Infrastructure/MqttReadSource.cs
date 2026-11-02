@@ -50,8 +50,10 @@ public sealed class MqttReadSource : IReadOnlyTelemetrySource
         this.options = options;
         optionalSubscriptions = Catalog.Metrics.Where(m => m.Optional || HeatingCurve.Fields.Any(f => f.Key == m.Key) || m.Key is "mainTargetTemperature" or "zonesState" || m.Suffix.StartsWith("extra/", StringComparison.Ordinal) || m.Key is "defrostState" or "threeWayValveState" or "zone1HeatRequest" or "zone1SensorMode" or "operationsHours" or "operationsCounter" or "waterPressure" or "dhwHeatDelta")
             .Select(m => options.Prefix + "/" + m.Suffix).ToHashSet(StringComparer.Ordinal);
+        optionalSubscriptions.UnionWith([options.Prefix + "/1wire/+", options.Prefix + "/1wire/+/alias"]);
         Subscriptions = Catalog.Metrics.Select(m => options.Prefix + "/" + m.Suffix)
-            .Append(options.Prefix + "/LWT").Distinct().ToArray();
+            .Append(options.Prefix + "/LWT").Append(options.Prefix + "/1wire/+")
+            .Append(options.Prefix + "/1wire/+/alias").Distinct().ToArray();
     }
 
     public async Task RunAsync(TelemetryStore store, CancellationToken cancellationToken)
@@ -60,14 +62,17 @@ public sealed class MqttReadSource : IReadOnlyTelemetrySource
         client.ApplicationMessageReceivedAsync += e =>
         {
             var message = e.ApplicationMessage;
-            if (!Subscriptions.Contains(message.Topic)) return Task.CompletedTask;
+            if (!message.Topic.StartsWith(options.Prefix + "/", StringComparison.Ordinal)) return Task.CompletedTask;
             var suffix = message.Topic[(options.Prefix.Length + 1)..];
+            var isAlias = suffix.EndsWith("/alias", StringComparison.Ordinal);
+            if (!Subscriptions.Contains(message.Topic) && OneWire.FromSuffix(isAlias ? suffix[..^6] : suffix) is null) return Task.CompletedTask;
             try
             {
+                if (isAlias && message.Payload.Length > 256) return Task.CompletedTask;
                 var payload = message.Payload.Length > 256 ? "" : StrictUtf8.GetString(message.Payload);
                 store.Receive(suffix, payload, message.Retain, message.Topic);
             }
-            catch (DecoderFallbackException) { store.Receive(suffix, "", message.Retain, message.Topic); }
+            catch (DecoderFallbackException) { if (!isAlias) store.Receive(suffix, "", message.Retain, message.Topic); }
             return Task.CompletedTask;
         };
         client.DisconnectedAsync += _ => { store.SetConnection(false); return Task.CompletedTask; };

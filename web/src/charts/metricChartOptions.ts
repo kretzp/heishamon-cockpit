@@ -95,7 +95,7 @@ export function metricOptions(data: History, label: string, p: Preferences): ECh
     aria: {
       enabled: true,
       label: {
-        description: translate("{0}: historischer Verlauf. Fehlende oder ungültige Messwerte bleiben leer. Originalwerte und Qualität stehen in der Tabelle unter dem Diagramm.", [localizeText(label)])
+        description: translate("{0}: historischer Verlauf. Fehlende oder ungültige Messwerte bleiben leer. Originalwerte und Qualität stehen in der Tabelle unter dem Diagramm.", [s.key.startsWith('ds18b20_') ? label : localizeText(label)])
       }
     },
     grid: {

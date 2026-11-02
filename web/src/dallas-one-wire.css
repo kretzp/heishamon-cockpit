@@ -1,0 +1,8 @@
+.temperature-grid.dallas-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+.temperature-grid.dallas-grid > .dallas-metric { display: flex; flex-direction: column; align-items: stretch; }
+.dallas-grid .metric-heading { overflow-wrap: anywhere; }
+.dallas-grid .dallas-address { color: var(--muted); font-size: .78rem; overflow-wrap: anywhere; }
+.dallas-grid .dallas-address code { display: inline-block; white-space: nowrap; }
+.dallas-grid .dallas-metric .value { margin: 12px 0; }
+:root[data-theme] .dallas-grid .dallas-status-error { color: var(--danger); background: var(--surface); }
+.dallas-grid .metric-top { flex-wrap: wrap; }

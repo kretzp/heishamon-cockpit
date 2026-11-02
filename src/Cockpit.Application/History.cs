@@ -20,9 +20,10 @@ public sealed record HistoryQuery(string[] Keys, DateTimeOffset From, DateTimeOf
         .Append(new Metric("temperatureSpread", Catalog.Kelvin, "", "number"))
         .Append(new Metric("heishamonCop", "", "", "positive"))
         .Append(new Metric("indoorTargetTemperature", Catalog.Celsius, "", "number")).ToDictionary(m => m.Key);
+    public static Metric? FindMetric(string key) => Metrics.GetValueOrDefault(key) ?? OneWire.FromKey(key);
     public void Validate(HistoryPolicy policy, bool export = false)
     {
-        if (Keys.Length is < 1 or > 8 || Keys.Distinct().Count() != Keys.Length || Keys.Any(k => !Metrics.ContainsKey(k)))
+        if (Keys.Length is < 1 or > 8 || Keys.Distinct().Count() != Keys.Length || Keys.Any(k => FindMetric(k) is null))
             throw new HistoryRequestException("invalid_keys", "Bitte 1 bis 8 unterschiedliche bekannte Messwerte wählen.");
         if (From < DateTimeOffset.UnixEpoch || To <= From || To - From > TimeSpan.FromDays(export ? 30 : 700))
             throw new HistoryRequestException("invalid_range", export ? "CSV: Zeitraum muss zwischen 0 und 30 Tagen liegen." : "Zeitraum muss zwischen 0 und 700 Tagen liegen.");

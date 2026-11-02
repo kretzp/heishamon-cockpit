@@ -6,7 +6,10 @@ public enum SourceKind { Simulator, Mqtt }
 
 public sealed record TelemetryValue(string Key, object? Value, string Unit, Quality Quality,
     DateTimeOffset? ReceivedAtUtc, DateTimeOffset? SourceTimestampUtc, bool Retained,
-    string? SourceTopic, SourceKind SourceKind);
+    string? SourceTopic, SourceKind SourceKind)
+{
+    public string? Alias { get; init; }
+}
 
 public sealed record Snapshot(long Revision, Guid InstanceId, DateTimeOffset GeneratedAtUtc,
     bool BrokerConnected, Availability DeviceAvailability, Quality TelemetryFreshness,

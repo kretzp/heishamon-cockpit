@@ -26,7 +26,7 @@ public sealed class MqttReadTests
     public void AcceptsExplicitLiveReadOnlyConfigurationWithoutConnecting(string host, string prefix, bool tls)
     {
         var source = new MqttReadSource(new() { Host = host, Prefix = prefix, Port = 1883, LiveReadOnly = true, UseTls = tls });
-        Assert.Equal(44, source.Subscriptions.Count);
+        Assert.Equal(46, source.Subscriptions.Count);
         Assert.All(source.Subscriptions, topic => Assert.StartsWith(prefix + "/", topic));
     }
 
@@ -77,6 +77,8 @@ public sealed class MqttReadTests
 
         await Inject("main/Main_Outlet_Temp", "34.5", true);
         await Inject("LWT", "Online", true);
+        await Inject("1wire/28abcdef01234567/alias", "Retained Tank", true);
+        await Inject("1wire/28abcdef01234567", "19.25", true);
         var source = new MqttReadSource(new() { Port = port, IsolatedTestBroker = !live, LiveReadOnly = live, UseTls = false });
         var expectedSubscriptions = source.Subscriptions.Where(t => !rejectExtra || !t.Contains("/extra/", StringComparison.Ordinal)).ToArray();
         var store = new TelemetryStore(SourceKind.Mqtt);
@@ -87,7 +89,25 @@ public sealed class MqttReadTests
         {
             await Until(() => subscriptions.Count >= expectedSubscriptions.Length && Flow().Retained);
             Assert.Equal(expectedSubscriptions.Order(), subscriptions.Order());
-            Assert.DoesNotContain(subscriptions, t => t.Contains('#') || t.Contains('+') || t.Contains("commands"));
+            Assert.DoesNotContain(subscriptions, t => t.Contains('#') || t.Contains("commands"));
+            Assert.Equal(new[] { "cockpit_test/1wire/+", "cockpit_test/1wire/+/alias" }, subscriptions.Where(t => t.Contains('+')).Order());
+            await Until(() => store.Read().Values.Any(v => v.Key == "ds18b20_28abcdef01234567" && v.Alias == "Retained Tank"));
+            Assert.True(store.Read().Values.Single(v => v.Key == "ds18b20_28abcdef01234567").Retained);
+            Assert.Equal(Quality.Stale, store.Read().Values.Single(v => v.Key == "ds18b20_28abcdef01234567").Quality);
+            await Inject("1wire/28abcdef01234567/alias", "Puffer", true);
+            await Inject("1wire/28abcdef01234567", "23.75", true);
+            await Until(() => store.Read().Values.Any(v => v.Key == "ds18b20_28abcdef01234567" && v.Alias == "Puffer"));
+            var sensor = store.Read().Values.Single(v => v.Key == "ds18b20_28abcdef01234567");
+            Assert.Equal(23.75d, sensor.Value);
+            Assert.False(sensor.Retained); // Live delivery of a retained publication is fresh.
+            Assert.Equal(Quality.Valid, sensor.Quality);
+            await Inject("1wire/28abcdef01234567/alias", new string('x', 257));
+            await broker.InjectApplicationMessage(new InjectedMqttApplicationMessage(new MqttApplicationMessageBuilder()
+                .WithTopic("cockpit_test/1wire/28abcdef01234567/alias").WithPayload(new byte[] { 0xff }).Build())
+                { SenderClientId = "isolated-fixture" });
+            await Inject("1wire/28abcdef01234567", "24.25");
+            await Until(() => Equals(store.Read().Values.Single(v => v.Key == "ds18b20_28abcdef01234567").Value, 24.25d));
+            Assert.Equal("Puffer", store.Read().Values.Single(v => v.Key == "ds18b20_28abcdef01234567").Alias);
             Assert.Equal(Quality.Stale, Flow().Quality);
             Assert.Equal(Availability.Unknown, store.Read().DeviceAvailability);
             await Inject("LWT", "Online");

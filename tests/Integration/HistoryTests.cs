@@ -15,6 +15,51 @@ public sealed class HistoryTests : IDisposable
         new(1, Guid.NewGuid(), time, true, Availability.Online, quality,
             [new("flowTemperature", value, "°C", quality, time.AddSeconds(-5), null, false, "main/Main_Outlet_Temp", SourceKind.Simulator)]);
     private static HistoryQuery Query(DateTimeOffset from, int seconds = 30, int bucket = 30) => new(["flowTemperature"], from, from.AddSeconds(seconds), bucket);
+    [Fact]
+    public async Task DallasValuesSurviveRestartAndAliasChangesWithQualityGapsAndCsv()
+    {
+        const string key = "ds18b20_28abcdef01234567";
+        var clock = new FixedClock { Now = Start };
+        var telemetry = new TelemetryStore(SourceKind.Mqtt, clock: clock);
+        telemetry.SetConnection(true);
+        telemetry.Receive("1wire/28abcdef01234567/alias", "Puffer", true);
+        telemetry.Receive("1wire/28abcdef01234567", "23.75");
+        using (var store = new SqliteHistoryStore(Path.Combine(folder, "dallas.db"), SourceKind.Mqtt, new()))
+        {
+            await store.InitializeAsync(default);
+            await store.CaptureAsync(telemetry.Read(), true, default);
+            clock.Now = Start.AddSeconds(30);
+            telemetry.Receive("1wire/28abcdef01234567/alias", "Speicher");
+            telemetry.Receive("1wire/28abcdef01234567", "-5.50");
+            await store.CaptureAsync(telemetry.Read(), true, default);
+            clock.Now = Start.AddSeconds(60);
+            telemetry.Receive("1wire/28abcdef01234567", "", true);
+            await store.CaptureAsync(telemetry.Read(), true, default);
+            clock.Now = Start.AddSeconds(90);
+            telemetry.Receive("1wire/28abcdef01234567", "18.25", true);
+            await store.CaptureAsync(telemetry.Read(), true, default);
+        }
+        using var reopened = new SqliteHistoryStore(Path.Combine(folder, "dallas.db"), SourceKind.Mqtt, new());
+        await reopened.InitializeAsync(default);
+        var query = new HistoryQuery([key], Start, Start.AddSeconds(120), 30);
+        var series = Assert.Single((await reopened.QueryAsync(query, default)).Series);
+        Assert.Equal("°C", series.Unit);
+        Assert.Equal(SourceKind.Mqtt, series.Source);
+        Assert.Equal(new double?[] { 23.75, -5.5, null, null }, series.Points.Select(p => p.Value));
+        Assert.Equal(Quality.Invalid, series.Points[2].Quality);
+        Assert.Equal(Quality.Stale, series.Points[3].Quality);
+        var csv = await reopened.ExportAsync(query, default);
+        Assert.Contains(key, csv);
+        Assert.Contains(";23,75;\"°C\";\"valid\";", csv);
+        Assert.DoesNotContain("Puffer", csv);
+        Assert.DoesNotContain("Speicher", csv);
+    }
+
+    private sealed class FixedClock : TimeProvider
+    {
+        public DateTimeOffset Now { get; set; }
+        public override DateTimeOffset GetUtcNow() => Now;
+    }
     [Theory]
     [InlineData("pumpSpeed", "main/Pump_Speed", "1750.25", 1750.25, "U/min")]
     [InlineData("fanSpeed", "main/Fan1_Motor_Speed", "0", 0, "U/min")]

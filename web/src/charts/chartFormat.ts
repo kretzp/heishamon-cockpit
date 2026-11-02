@@ -52,4 +52,4 @@ export function stateLabel(key: string, value: number): string | null {
 export const stateColor = (value: number) => ['#526277', '#17633d', '#175ca0', '#86452d', '#67409a', '#8c345e', '#625710', '#006973', '#49429c'][value] ?? '#526277';
 
 export const twoDecimalMetrics = ["flowTemperature", "returnTemperature", "temperatureSpread", "mainTargetTemperature", "curveYCold", "curveYWarm"];
-export const metricNumber = (value: number, key: string, pressure = false) => chartNumber(value, pressure || twoDecimalMetrics.includes(key.replace(/^(?:trend:|pair:)/, "")));
+export const metricNumber = (value: number, key: string, pressure = false) => chartNumber(value, pressure || key.replace(/^(?:trend:|pair:)/, '').startsWith('ds18b20_') || twoDecimalMetrics.includes(key.replace(/^(?:trend:|pair:)/, "")));

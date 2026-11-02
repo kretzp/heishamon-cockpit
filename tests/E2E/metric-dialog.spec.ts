@@ -1,5 +1,89 @@
 import { test, expect, type Page } from './coverage-fixture';
 
+test('Dallas-1-Wire stays hidden without MQTT temperatures', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Übersicht', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Dallas-1-Wire', exact: true })).toHaveCount(0);
+});
+
+test('Dallas-1-Wire shows aliases, addresses, two decimals, red non-OK statuses and sensor history', async ({ page, request }, testInfo) => {
+  const snapshot = await (await request.get('/api/v1/snapshot')).json();
+  const sensors = [
+    { key: 'ds18b20_28abcdef01234567', alias: 'Puffer', value: 23.5, quality: 'valid', retained: false },
+    { key: 'ds18b20_28abcdef01234568', alias: null, value: -5.25, quality: 'stale', retained: true },
+    { key: 'ds18b20_28abcdef01234569', alias: '<script>alert(1)</script>', value: null, quality: 'invalid', retained: false },
+    { key: 'ds18b20_28abcdef0123456a', alias: 'Unbekannter Sensor', value: null, quality: 'unknown', retained: false }
+  ].map(v => ({ ...v, receivedAtUtc: new Date().toISOString(), unit: '°C', sourceKind: 'mqtt' }));
+  await page.route('**/api/v1/snapshot', r => r.fulfill({ json: { ...snapshot, revision: Number.MAX_SAFE_INTEGER,
+    brokerConnected: true, deviceAvailability: 'online', values: [...snapshot.values, ...sensors] } }));
+  await fixtures(page);
+  const requested: string[] = [];
+  page.on('request', r => {
+    const url = new URL(r.url());
+    if (url.pathname === '/api/v1/history') requested.push(url.searchParams.get('keys')!);
+  });
+  await page.goto('/');
+  const tab = page.getByRole('button', { name: 'Dallas-1-Wire', exact: true });
+  await tab.click();
+  const names = await page.getByRole('navigation', { name: 'Hauptnavigation' }).getByRole('button').allTextContents();
+  expect(names.indexOf('Dallas-1-Wire')).toBe(names.indexOf('Heizkurve') + 1);
+  expect(names.indexOf('Ereignisse')).toBe(names.indexOf('Dallas-1-Wire') + 1);
+  const cards = page.locator('.dallas-grid article');
+  await expect(cards).toHaveCount(4);
+  await expect(cards.first().getByRole('heading')).toHaveText('Puffer');
+  await expect(cards.first()).toContainText('28abcdef01234567');
+  await expect(cards.first().locator('.value')).toHaveText('23,50 °C');
+  const layout = await cards.first().evaluate(card => {
+    const address = card.querySelector('.dallas-address')!.getBoundingClientRect();
+    const temperature = card.querySelector('.value')!.getBoundingClientRect();
+    const code = card.querySelector('code')!;
+    return { addressWidth: address.width, separateRows: temperature.top >= address.bottom,
+      addressFits: code.scrollWidth <= code.clientWidth + 1 };
+  });
+  expect(layout.addressWidth).toBeGreaterThan(200);
+  expect(layout.separateRows && layout.addressFits).toBeTruthy();
+  await expect(cards.first().locator('.dallas-status')).toHaveText('OK');
+  await expect(cards.nth(1).getByRole('heading')).toHaveText('Dallas-Sensor');
+  await expect(cards.nth(1).locator('.value')).toHaveText('-5,25 °C');
+  await expect(cards.nth(2).getByRole('heading')).toHaveText('<script>alert(1)</script>');
+  await expect(page.locator('.dallas-status-error')).toHaveText(['Veraltet', 'Ungültig', 'Unbekannt']);
+  for (const theme of ['light', 'dark', 'nordic']) {
+    await page.evaluate(theme => document.documentElement.dataset.theme = theme, theme);
+    await expect.poll(async () => {
+      const colors = await page.locator('.dallas-status-error').evaluateAll(elements => elements.map(element => ({
+        actual: getComputedStyle(element).color,
+        expected: (() => { const probe = document.createElement('span'); probe.style.color = 'var(--danger)'; element.append(probe);
+          const color = getComputedStyle(probe).color; probe.remove(); return color; })()
+      })));
+      return colors.every(color => color.actual === color.expected);
+    }).toBeTruthy();
+  }
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+  await page.screenshot({ path: testInfo.outputPath('dallas-one-wire.png'), fullPage: true });
+  await cards.first().getByRole('button').focus();
+  await page.keyboard.press('Enter');
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('heading')).toHaveText('Puffer · 28abcdef01234567 – Diagramm');
+  await expect.poll(() => requested.includes('ds18b20_28abcdef01234567')).toBeTruthy();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+});
+
+test('Dallas-1-Wire marks offline sensors red while keeping history accessible', async ({ page, request }) => {
+  const snapshot = await (await request.get('/api/v1/snapshot')).json();
+  await page.route('**/api/v1/snapshot', r => r.fulfill({ json: { ...snapshot, revision: Number.MAX_SAFE_INTEGER,
+    brokerConnected: false, deviceAvailability: 'offline', values: [...snapshot.values, {
+      key: 'ds18b20_28abcdef01234567', alias: 'Tank', value: 20, unit: '°C', quality: 'stale',
+      receivedAtUtc: new Date().toISOString(), retained: false, sourceKind: 'mqtt'
+    }] } }));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Dallas-1-Wire', exact: true }).click();
+  await expect(page.locator('.dallas-status-error')).toHaveText('Offline');
+  await expect(page.locator('.dallas-grid .value')).toHaveText('20,00 °C');
+  await expect(page.locator('.dallas-grid button')).toBeEnabled();
+});
+
 test('smoothed trend starts enabled and metric opt-out persists', async ({ page }) => {
   await fixtures(page);
   await page.route('**/api/v1/history?*', r => {

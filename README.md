@@ -10,6 +10,7 @@ Windows x64, Linux x64 and Raspberry Pi ARM64 installation targets are available
 ## Features
 
 - Live measurements and connection status from HeishaMon MQTT topics.
+- Dallas DS18B20 sensors appear in **Dallas-1-Wire** between Heating curve and Events once MQTT temperatures arrive. Each card shows its alias, full sensor address, two-decimal temperature and status; all statuses other than OK are red. Click a card for stored history and CSV export.
 - SQLite measurement history, charts, daily energy views and CSV export.
 - COP calculated from HeishaMon Extra power readings, with separate heating and hot-water history.
 - Administrator, reader and reader/writer accounts with hashed passwords.

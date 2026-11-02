@@ -126,6 +126,8 @@ export default function MetricChartDialog({
 }) {
   const language = useLanguage();
   const dialog = useRef<HTMLDialogElement>(null);
+  const isDallas = metricKey.startsWith('ds18b20_');
+  const displayLabel = isDallas ? label : localizeText(label);
   const [preferences, setPreferences] = useState(() => readPreferences(metricKey));
   const [draft, setDraft] = useState(preferences.advanced);
   const [notice, setNotice] = useState('');
@@ -217,7 +219,7 @@ export default function MetricChartDialog({
       const url = URL.createObjectURL(await response.blob());
       const a = document.createElement('a');
       a.href = url;
-      a.download = exportFilename(localizeText(label) + t(' – Diagramm'), 'csv');
+      a.download = exportFilename(displayLabel + t(' – Diagramm'), 'csv');
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch {
@@ -226,7 +228,7 @@ export default function MetricChartDialog({
   }
   const states = data?.series[0]?.aggregation !== 'mean';
   return <dialog ref={dialog} className="metric-dialog" aria-labelledby="metric-dialog-title" onCancel={onClose}>
-    <header><LanguagePicker /><div><p className="field-note">{t("Übersicht · Messwertdetails")}</p><h2 id="metric-dialog-title">{localizeText(label)}{t(" – Diagramm")}</h2></div><Button autoFocus onClick={onClose} aria-label={t("Diagramm schließen")}>{t("Schließen ✕")}</Button></header>
+    <header><LanguagePicker /><div><p className="field-note">{t(isDallas ? 'Dallas-1-Wire · Messwertdetails' : 'Übersicht · Messwertdetails')}</p><h2 id="metric-dialog-title">{displayLabel}{t(" – Diagramm")}</h2></div><Button autoFocus onClick={onClose} aria-label={t("Diagramm schließen")}>{t("Schließen ✕")}</Button></header>
     {isError ? <><p>{t("Fehlercodes sind Textwerte und werden als gespeicherte Ereignisse angezeigt, nicht als erfundene Zahlenkurve.")}</p><EventsPanel initialKind="error" /></> : <>
       <div className="toolbar"><label>{t("Zeitraum")}<select defaultValue="6" onChange={e => {
             const end = Date.now();
