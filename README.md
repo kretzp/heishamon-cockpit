@@ -116,15 +116,26 @@ For package-only installation and custom destinations, see [installation details
 
 ## Update an existing installation
 
-From your source checkout, first run `git pull --ff-only`, then use the updater for your platform:
+Run these commands on the computer where Cockpit is installed, from your source checkout. Choose **only the command block for your operating system**:
+
+### Windows (PowerShell)
 
 ```powershell
+git pull --ff-only
 .\installation\update-windows.ps1 -InstallDirectory "$env:LOCALAPPDATA\HeishaMonCockpit"
 ```
 
+### Linux (x64 or ARM64, terminal)
+
 ```sh
+git pull --ff-only
 sh installation/update-linux.sh "$HOME/.local/share/heishamon-cockpit"
-# Raspberry Pi ARM64:
+```
+
+### Raspberry Pi (64-bit Raspberry Pi OS / Linux ARM64, terminal or SSH)
+
+```sh
+git pull --ff-only
 sh installation/update-raspberry-pi.sh "$HOME/.local/share/heishamon-cockpit"
 ```
 
