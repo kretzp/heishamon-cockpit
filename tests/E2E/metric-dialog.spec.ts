@@ -1,5 +1,63 @@
 import { test, expect, type Page } from './coverage-fixture';
 
+test('Dallas tiles reorder, hide and restore with browser persistence', async ({ page, request, context, isMobile }) => {
+  const snapshot = await (await request.get('/api/v1/snapshot')).json();
+  const sensors = ['28abcdef01234567', '28abcdef01234568'].map((address, index) => ({
+    key: `ds18b20_${address}`, alias: `Sensor ${index + 1}`, value: 20 + index, unit: '°C', quality: 'valid',
+    receivedAtUtc: new Date().toISOString(), retained: false, sourceKind: 'mqtt'
+  }));
+  await page.route('**/api/v1/snapshot', route => route.fulfill({ json: {
+    ...snapshot, revision: Number.MAX_SAFE_INTEGER, values: [...snapshot.values, ...sensors]
+  } }));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Dallas-1-Wire', exact: true }).click();
+  await page.getByRole('button', { name: 'Kacheln anordnen', exact: true }).click();
+  const cards = page.locator('.dallas-grid article');
+  await cards.first().getByRole('button', { name: /verschieben$/ }).focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(cards.first().getByRole('heading')).toHaveText('Sensor 2');
+  const visibility = page.getByRole('group', { name: 'Sichtbare Sensoren' });
+  await visibility.getByRole('checkbox', { name: 'Sensor 1 · 28abcdef01234567', exact: true }).uncheck();
+  await expect(cards).toHaveCount(1);
+  await page.reload();
+  await page.getByRole('button', { name: 'Dallas-1-Wire', exact: true }).click();
+  await expect(cards).toHaveCount(1);
+  await page.getByRole('button', { name: 'Kacheln anordnen', exact: true }).click();
+  await visibility.getByRole('checkbox', { name: 'Sensor 2 · 28abcdef01234568', exact: true }).uncheck();
+  await expect(cards).toHaveCount(0);
+  await page.getByRole('button', { name: 'Anordnung fertig', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Dallas-1-Wire', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Kacheln anordnen', exact: true }).click();
+  for (const checkbox of await visibility.getByRole('checkbox').all()) await checkbox.check();
+  await expect(cards.getByRole('heading')).toHaveText(['Sensor 2', 'Sensor 1']);
+  // Pointer/touch dragging uses the same controls as the overview.
+  const handle = cards.first().getByRole('button', { name: /verschieben$/ });
+  await handle.scrollIntoViewIfNeeded();
+  const beforeScroll = (await cards.last().boundingBox())!;
+  await page.evaluate(end => window.scrollBy(0, Math.max(0, end - (innerHeight - 80))), beforeScroll.y + 30);
+  const from = (await handle.boundingBox())!;
+  const to = (await cards.last().boundingBox())!;
+  const x = from.x + from.width / 2, y = from.y + from.height / 2;
+  const tx = to.x + to.width / 2, ty = to.y + 30;
+  if (isMobile) {
+    const client = await context.newCDPSession(page);
+    await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+    for (let i = 1; i <= 10; i++) await client.send('Input.dispatchTouchEvent', {
+      type: 'touchMove', touchPoints: [{ x: x + (tx - x) * i / 10, y: y + (ty - y) * i / 10 }]
+    });
+    await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await client.detach();
+  } else {
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(tx, ty, { steps: 10 });
+    await page.mouse.up();
+  }
+  await expect(cards.getByRole('heading')).toHaveText(['Sensor 1', 'Sensor 2']);
+  await page.getByRole('button', { name: 'Anordnung fertig', exact: true }).click();
+  await expect(cards.first().getByRole('button', { name: /Diagramm öffnen$/ })).toBeEnabled();
+});
+
 test('Dallas-1-Wire stays hidden without MQTT temperatures', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Übersicht', exact: true })).toBeVisible();

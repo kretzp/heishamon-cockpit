@@ -1,6 +1,7 @@
 // German source keys with English, French, Spanish, Italian and Portuguese UI translations.
 // Technical identifiers, user-entered text and persisted audit messages are not translated.
 export const catalog: Record<string, readonly [string, string, string, string, string]> = {
+  "Sichtbare Sensoren": ["Visible sensors", "Sondes visibles", "Sensores visibles", "Sensori visibili", "Sensores visíveis"],
   "Dallas-Sensor": ["Dallas sensor", "Sonde Dallas", "Sensor Dallas", "Sensore Dallas", "Sensor Dallas"],
   "Sensoradresse": ["Sensor address", "Adresse de la sonde", "Dirección del sensor", "Indirizzo del sensore", "Endereço do sensor"],
   "Dallas-1-Wire · Messwertdetails": ["Dallas-1-Wire · Reading details", "Dallas-1-Wire · Détails de mesure", "Dallas-1-Wire · Detalles de medición", "Dallas-1-Wire · Dettagli della misura", "Dallas-1-Wire · Detalhes da medição"],

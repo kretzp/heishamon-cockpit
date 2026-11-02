@@ -6,3 +6,6 @@
 .dallas-grid .dallas-metric .value { margin: 12px 0; }
 :root[data-theme] .dallas-grid .dallas-status-error { color: var(--danger); background: var(--surface); }
 .dallas-grid .metric-top { flex-wrap: wrap; }
+.dallas-visibility { margin-bottom: 16px; }
+.dallas-visibility label { display: flex; align-items: center; gap: 8px; margin: 8px 0; overflow-wrap: anywhere; }
+.dallas-visibility input { flex-shrink: 0; }
