@@ -19,11 +19,13 @@ load_state=$(systemctl show --property=LoadState --value "$service")
 if [ "$load_state" != 'not-found' ] || [ -e "$unit_file" ] || [ -L "$unit_file" ]; then
   echo 'A heishamon-cockpit service already exists; it will not be overwritten.' >&2; exit 1
 fi
-unit=$(mktemp)
-trap 'rm -f -- "$unit"' EXIT HUP INT TERM
-# systemd expands percent specifiers in both values and dollar variables in ExecStart.
-directory=$(printf '%s' "$install_dir" | sed 's/\\/\\\\/g; s/"/\\"/g; s/%/%%/g')
-executable=$(printf '%s' "$directory/Cockpit.Web" | sed 's/\$/$$/g')
+unit_dir=$(mktemp -d)
+unit="$unit_dir/heishamon-cockpit.service"
+trap 'rm -f -- "$unit"; rmdir -- "$unit_dir"' EXIT HUP INT TERM
+# WorkingDirectory is a raw path. ExecStart's executable token supports quoting,
+# but not environment-variable expansion. Both values expand percent specifiers.
+directory=$(printf '%s' "$install_dir" | sed 's/%/%%/g')
+executable=$(printf '%s' "$directory/Cockpit.Web" | sed 's/\\/\\\\/g; s/"/\\"/g')
 cat > "$unit" <<EOF
 [Unit]
 Description=HeishaMon Cockpit
@@ -34,7 +36,7 @@ After=network-online.target
 Type=simple
 User=$(id -u)
 Group=$(id -g)
-WorkingDirectory="$directory"
+WorkingDirectory=$directory
 ExecStart="$executable"
 Restart=on-failure
 RestartSec=5
@@ -44,6 +46,11 @@ NoNewPrivileges=true
 [Install]
 WantedBy=multi-user.target
 EOF
+if command -v systemd-analyze >/dev/null 2>&1; then
+  systemd-analyze verify "$unit"
+else
+  echo 'systemd-analyze is unavailable; generated unit syntax could not be checked locally.' >&2
+fi
 # noclobber also rejects an existing symlink; do not overwrite an existing unit.
 sudo sh -c 'set -euC; umask 022; cat -- "$1" > "$2"' sh "$unit" "$unit_file"
 sudo systemctl daemon-reload

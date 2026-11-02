@@ -70,4 +70,17 @@ Systems without systemd can use the existing manual startup. The installer does 
 
 ## Verification scope
 
-Service generation, opt-in/default-no behavior, failure paths and preservation of existing services are tested with isolated command stubs. Actual UAC/service registration, startup at boot and hardware-specific behavior must additionally be verified on the intended target. The tests do not start production MQTT connections or install a real service.
+Service generation, opt-in/default-no behavior, failure paths and preservation of existing services are tested with isolated command stubs. Generated Linux units are additionally checked with the real `systemd-analyze verify` parser in Linux CI, including paths with spaces, dollar signs and percent signs. The installer also runs this check before registration when `systemd-analyze` is available. Actual UAC/service registration, startup at boot and hardware-specific behavior must additionally be verified on the intended target. The tests do not start production MQTT connections or install a real service.
+
+## Repair an early 0.9.1 Linux unit
+
+An early installer incorrectly quoted `WorkingDirectory`, which systemd interprets as part of the path. If service setup reported a bad unit file but application setup completed, do not reinstall or recreate accounts. Use `sudo systemctl edit --full heishamon-cockpit.service` to change only `WorkingDirectory="/your/installation"` to `WorkingDirectory=/your/installation`. Keep the quoted `ExecStart` line unchanged. Then validate and start:
+
+```sh
+sudo systemd-analyze verify /etc/systemd/system/heishamon-cockpit.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now heishamon-cockpit.service
+systemctl status heishamon-cockpit.service --no-pager
+```
+
+Starting the repaired service opens the configured MQTT connection. Application configuration and databases remain unchanged.

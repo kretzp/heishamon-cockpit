@@ -58,8 +58,8 @@ test('Linux service uses installing UID, escaped paths and enables immediate sta
   const result = runLinux('success');
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.unit, /User=1001\nGroup=1001/);
-  assert.match(result.unit, /WorkingDirectory=".*app \$value %%value"/);
-  assert.match(result.unit, /ExecStart=".*app \$\$value %%value\/Cockpit.Web"/);
+  assert.match(result.unit, /WorkingDirectory=\/.*app \$value %%value\n/);
+  assert.match(result.unit, /ExecStart=".*app \$value %%value\/Cockpit.Web"/);
   assert.match(result.unit, /UMask=0077\nNoNewPrivileges=true/);
   assert.match(result.commands, /enable --now heishamon-cockpit.service/);
 });
