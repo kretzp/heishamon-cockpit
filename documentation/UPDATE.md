@@ -10,21 +10,21 @@ In 64-bit PowerShell, change into the source checkout:
 
 ```powershell
 git pull --ff-only
-.\installation\update-windows.ps1 -InstallDirectory "$env:LOCALAPPDATA\HeishaMonCockpit"
+.\installation\update-windows.ps1
 ```
 
-Supply the actual installation directory if different. Use the same process-only execution-policy procedure from the Windows installation guide if necessary. An existing Windows service requires UAC elevation for stop/start; the package is built first, without elevating the build. Python is located using the initial installer's detection logic; no additional Python packages are required. The existing WinSW wrapper, XML, LocalService permissions and service registration remain in place.
+Without `-InstallDirectory`, the script detects the directory from the registered `HeishaMonCockpit` service executable. Before building, it validates the path, application files, read access and standard service configuration, and prints the target. If there is no service, provide an explicit absolute path, e.g. `.\installation\update-windows.ps1 -InstallDirectory "$env:LOCALAPPDATA\HeishaMonCockpit"` (replace with your actual path). No default path is guessed. Inspect a registered service with `Get-CimInstance Win32_Service -Filter "Name='HeishaMonCockpit'" | Select-Object -ExpandProperty PathName`; use the directory containing `HeishaMonCockpitService.exe`. A manual installation directory contains `Cockpit.Web.exe` and `data/`. Use the same process-only execution-policy procedure from the Windows installation guide if necessary. An existing Windows service requires UAC elevation for stop/start; the package is built first, without elevating the build. Python is located using the initial installer's detection logic; no additional Python packages are required. The existing WinSW wrapper, XML, LocalService permissions and service registration remain in place.
 
-## Linux x64
+## Linux x64 or ARM64
 
 From the source checkout:
 
 ```sh
 git pull --ff-only
-sh installation/update-linux.sh "$HOME/.local/share/heishamon-cockpit"
+sh installation/update-linux.sh
 ```
 
-If installation used the fallback `~/heishamon-cockpit`, pass that path instead. Do not run the updater with sudo: it refuses a different installation owner. It requests sudo only to stop/start an existing systemd service. A manual installation without a service remains manual and stopped after the update.
+With no path argument, the script reads `WorkingDirectory` from `heishamon-cockpit.service`, prints the detected path and validates access before building. Check it with `systemctl show heishamon-cockpit.service --property=WorkingDirectory --value`. If no service can be detected, supply the absolute directory containing `Cockpit.Web` and `data/`, for example `sh installation/update-linux.sh "$HOME/heishamon-cockpit"`. The script never guesses a default installation path. Do not run the updater with sudo: it refuses a different installation owner. It requests sudo only to stop/start an existing systemd service. A manual installation without a service remains manual and stopped after the update.
 
 ## Raspberry Pi ARM64
 
@@ -32,10 +32,10 @@ From the source checkout on a 64-bit ARM Linux system:
 
 ```sh
 git pull --ff-only
-sh installation/update-raspberry-pi.sh "$HOME/.local/share/heishamon-cockpit"
+sh installation/update-raspberry-pi.sh
 ```
 
-Use `"$HOME/heishamon-cockpit"` if that was the selected installation path. The Pi entrypoint rejects x64 and 32-bit systems and delegates to the common Linux updater for a `linux-arm64` package.
+The same automatic systemd path detection and pre-build validation apply. For a manual installation or an explicit path, use e.g. `sh installation/update-raspberry-pi.sh "$HOME/heishamon-cockpit"`. The Pi entrypoint rejects x64 and 32-bit systems and delegates to the common Linux updater for a `linux-arm64` package.
 
 ## What the update does
 

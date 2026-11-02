@@ -212,6 +212,62 @@ class UpdateTests(unittest.TestCase):
         self.assertEqual(1, self.service.starts)
 
 
+class InstallationDetectionTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory(prefix="cockpit detection ")
+        self.addCleanup(self.temporary.cleanup)
+        self.target = Path(self.temporary.name) / "installed app"
+        self.target.mkdir()
+        (self.target / "Cockpit.Web").touch()
+        (self.target / "data").mkdir()
+
+    def test_explicit_path_does_not_query_service(self) -> None:
+        with patch.object(updater, "command", side_effect=AssertionError("No service lookup")):
+            self.assertEqual(self.target.resolve(), updater.resolve_linux_installation(self.target))
+
+    def test_detects_service_directory_including_spaces(self) -> None:
+        with patch.object(updater.shutil, "which", return_value="systemctl"), patch.object(
+                updater, "command", side_effect=["loaded", str(self.target)]) as query:
+            self.assertEqual(self.target.resolve(), updater.resolve_linux_installation())
+            self.assertIn("--property=WorkingDirectory", query.call_args.args[0])
+
+    def test_missing_service_requires_explicit_path(self) -> None:
+        with patch.object(updater.shutil, "which", return_value="systemctl"), patch.object(
+                updater, "command", return_value="not-found"):
+            with self.assertRaisesRegex(updater.UpdateError, "Supply the absolute"):
+                updater.resolve_linux_installation()
+
+    def test_unavailable_systemd_requires_explicit_path(self) -> None:
+        with patch.object(updater.shutil, "which", return_value=None):
+            with self.assertRaisesRegex(updater.UpdateError, "Supply the absolute"):
+                updater.resolve_linux_installation()
+        with patch.object(updater.shutil, "which", return_value="systemctl"), patch.object(
+                updater, "command", side_effect=updater.UpdateError("No system bus")):
+            with self.assertRaisesRegex(updater.UpdateError, "Supply the absolute"):
+                updater.resolve_linux_installation()
+
+    @unittest.skipIf(os.name == "nt", "POSIX symlink guard")
+    def test_linked_target_is_rejected_before_resolution(self) -> None:
+        link = self.target.parent / "linked install"
+        link.symlink_to(self.target, target_is_directory=True)
+        with self.assertRaisesRegex(updater.UpdateError, "Linked installation"):
+            updater.resolve_linux_installation(link)
+
+    def test_empty_or_relative_service_directory_is_rejected(self) -> None:
+        for value in ("", "relative/path"):
+            with self.subTest(value=value), patch.object(updater.shutil, "which", return_value="systemctl"), patch.object(
+                    updater, "command", side_effect=["loaded", value]):
+                with self.assertRaises(updater.UpdateError):
+                    updater.resolve_linux_installation()
+
+    def test_wrong_or_inaccessible_target_is_rejected(self) -> None:
+        with self.assertRaises(updater.UpdateError):
+            updater.resolve_linux_installation(self.target.parent)
+        with patch.object(updater.os, "access", return_value=False):
+            with self.assertRaisesRegex(updater.UpdateError, "accessible and writable"):
+                updater.resolve_linux_installation(self.target)
+
+
 class UpdateEntryTests(unittest.TestCase):
     """Exercise the actual entry scripts with a fake builder/update engine."""
     def setUp(self) -> None:
@@ -230,13 +286,17 @@ class UpdateEntryTests(unittest.TestCase):
             shutil.copy2(source / name, self.installation / name)
         (self.installation / "update_installation.py").write_text(
             "import argparse,json,os\nfrom pathlib import Path\np=argparse.ArgumentParser()\n"
-            "p.add_argument('--install-dir');p.add_argument('--package-directory');p.add_argument('--runtime');p.add_argument('--result-file')\n"
-            "a=p.parse_args();Path(os.environ['UPDATE_TEST_TRACE']).write_text(json.dumps(vars(a)))\n")
+            "p.add_argument('--install-dir');p.add_argument('--package-directory');p.add_argument('--runtime');p.add_argument('--result-file');p.add_argument('--resolve-install-dir',action='store_true')\n"
+            "a=p.parse_args()\n"
+            "if a.resolve_install_dir:\n"
+            " if os.environ.get('UPDATE_TEST_RESOLVE_FAIL'): raise SystemExit(1)\n"
+            " print(a.install_dir or os.environ['UPDATE_TEST_TARGET']);raise SystemExit(0)\n"
+            "Path(os.environ['UPDATE_TEST_TRACE']).write_text(json.dumps(vars(a)))\n")
         self.environment = {key: value for key, value in os.environ.items() if key.lower() != "psmodulepath"}
         self.environment.update(UPDATE_TEST_TRACE=str(self.root / "trace.json"), UPDATE_TEST_PYTHON=sys.executable,
-                                UPDATE_TEST_ROOT=str(self.root))
+                                UPDATE_TEST_ROOT=str(self.root), UPDATE_TEST_TARGET=str(self.target))
 
-    def invoke_linux(self, pi: bool = False, prepared: bool = False, arch: str = "x86_64") -> subprocess.CompletedProcess:
+    def invoke_linux(self, pi: bool = False, prepared: bool = False, arch: str = "x86_64", detect: bool = False) -> subprocess.CompletedProcess:
         bin_dir = self.root / "bin"
         bin_dir.mkdir()
         for name, text in {"uname": f"#!/bin/sh\ncase \"$1\" in -s) echo Linux;; -m) echo {arch};; esac\n",
@@ -246,11 +306,32 @@ class UpdateEntryTests(unittest.TestCase):
         (self.source / "packaging/build.sh").write_text(
             '#!/bin/sh\necho built > "$UPDATE_TEST_ROOT/built"\nmkdir "$HPC_PACKAGE_OUTPUT/content"\n'
             'tar -czf "$HPC_PACKAGE_OUTPUT/heishamon-cockpit-$1.tar.gz" -C "$HPC_PACKAGE_OUTPUT/content" .\n')
-        args = ["sh", str(self.installation / ("update-raspberry-pi.sh" if pi else "update-linux.sh")), str(self.target)]
+        args = ["sh", str(self.installation / ("update-raspberry-pi.sh" if pi else "update-linux.sh"))]
+        if not detect:
+            args.append(str(self.target))
         if prepared:
             args.append(str(self.package))
         return subprocess.run(args, env={**self.environment, "PATH": str(bin_dir) + ":" + os.environ["PATH"]},
                               text=True, capture_output=True, timeout=20)
+
+    @unittest.skipIf(os.name == "nt", "Native Linux entrypoint")
+    def test_linux_detects_target_before_build(self) -> None:
+        result = self.invoke_linux(detect=True)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual(str(self.target), json.loads((self.root / "trace.json").read_text())["install_dir"])
+
+    @unittest.skipIf(os.name == "nt", "Native Linux entrypoint")
+    def test_failed_detection_does_not_build(self) -> None:
+        self.environment['UPDATE_TEST_RESOLVE_FAIL'] = '1'
+        result = self.invoke_linux(detect=True)
+        self.assertNotEqual(0, result.returncode)
+        self.assertFalse((self.root / "built").exists())
+
+    @unittest.skipIf(os.name == "nt", "Native ARM64 wrapper dispatch")
+    def test_pi_detects_target(self) -> None:
+        result = self.invoke_linux(pi=True, arch="aarch64", detect=True)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual(str(self.target), json.loads((self.root / "trace.json").read_text())["install_dir"])
 
     @unittest.skipIf(os.name == "nt", "Native Linux entrypoint")
     def test_linux_builds_before_invoking_engine(self) -> None:
@@ -278,19 +359,72 @@ class UpdateEntryTests(unittest.TestCase):
         self.assertFalse((self.root / "built").exists())
         self.assertFalse((self.root / "trace.json").exists())
 
-    def invoke_windows(self, prepared: bool) -> subprocess.CompletedProcess:
+    def invoke_windows(self, prepared: bool, detect: bool = False, valid: bool = True,
+                       service: bool = False, service_arguments: bool = False,
+                       mismatched_service: bool = False) -> subprocess.CompletedProcess:
+        if valid:
+            (self.target / 'data').mkdir(parents=True)
+            (self.target / 'Cockpit.Web.exe').touch()
+        if service:
+            self.target.mkdir(parents=True, exist_ok=True)
+            (self.target / 'HeishaMonCockpitService.exe').touch()
+            (self.target / 'HeishaMonCockpitService.xml').write_text(
+                '<service><executable>%BASE%\\Cockpit.Web.exe</executable><workingdirectory>%BASE%</workingdirectory></service>')
         (self.installation / "ensure-python.ps1").write_text("function Find-CockpitPython { return $env:UPDATE_TEST_PYTHON }\n")
         (self.source / "packaging/build.ps1").write_text(
             "param([string]$Runtime)\nSet-Content -LiteralPath (Join-Path $env:UPDATE_TEST_ROOT 'built') -Value built\n"
             "$content=Join-Path $env:HPC_PACKAGE_OUTPUT 'content'; New-Item -ItemType Directory -Path $content | Out-Null\n"
             "& tar.exe -czf (Join-Path $env:HPC_PACKAGE_OUTPUT ('heishamon-cockpit-'+$Runtime+'.tar.gz')) -C $content .\n")
-        script = "function Get-Service { param($Name); return $null }; & $env:UPDATE_TEST_ENTRY -InstallDirectory $env:UPDATE_TEST_TARGET"
+        script = "function Get-Service { param($Name); return $null }; "
+        if service:
+            script += ("function Get-CimInstance { param($ClassName,$Filter); "
+                       "[pscustomobject]@{State='Stopped';PathName=('\"'+(Join-Path $env:UPDATE_TEST_SERVICE_TARGET 'HeishaMonCockpitService.exe')+'\"'"
+                       + ("+' --custom'" if service_arguments else "") + ")} }; ")
+        else:
+            script += "function Get-CimInstance { param($ClassName,$Filter); return $null }; "
+        script += "& $env:UPDATE_TEST_ENTRY"
+        if not detect:
+            script += " -InstallDirectory $env:UPDATE_TEST_TARGET"
         if prepared:
             script += " -PackageDirectory $env:UPDATE_TEST_PACKAGE"
         return subprocess.run(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
                               env={**self.environment, "UPDATE_TEST_ENTRY": str(self.installation / "update-windows.ps1"),
-                                   "UPDATE_TEST_TARGET": str(self.target), "UPDATE_TEST_PACKAGE": str(self.package)},
+                                   "UPDATE_TEST_TARGET": str(self.target), "UPDATE_TEST_PACKAGE": str(self.package),
+                                   "UPDATE_TEST_SERVICE_TARGET": str(self.root / 'other installation' if mismatched_service else self.target)},
                               text=True, capture_output=True, timeout=20)
+
+    @unittest.skipUnless(os.name == "nt", "Native Windows entrypoint")
+    def test_windows_detects_service_path_including_spaces(self) -> None:
+        result = self.invoke_windows(prepared=False, detect=True, service=True)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn(str(self.target), result.stdout)
+        self.assertEqual(str(self.target), json.loads((self.root / 'trace.json').read_text())['install_dir'])
+
+    @unittest.skipUnless(os.name == "nt", "Native Windows entrypoint")
+    def test_windows_missing_service_requires_path_before_build(self) -> None:
+        result = self.invoke_windows(prepared=False, detect=True)
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn('-InstallDirectory', result.stderr)
+        self.assertFalse((self.root / 'built').exists())
+
+    @unittest.skipUnless(os.name == "nt", "Native Windows entrypoint")
+    def test_windows_invalid_target_fails_before_build(self) -> None:
+        result = self.invoke_windows(prepared=False, valid=False)
+        self.assertNotEqual(0, result.returncode)
+        self.assertFalse((self.root / 'built').exists())
+
+    @unittest.skipUnless(os.name == "nt", "Native Windows entrypoint")
+    def test_windows_explicit_path_must_match_registered_service(self) -> None:
+        result = self.invoke_windows(prepared=False, service=True, mismatched_service=True)
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn('different installation', result.stderr)
+        self.assertFalse((self.root / 'built').exists())
+
+    @unittest.skipUnless(os.name == "nt", "Native Windows entrypoint")
+    def test_windows_custom_service_command_fails_before_build(self) -> None:
+        result = self.invoke_windows(prepared=False, detect=True, service=True, service_arguments=True)
+        self.assertNotEqual(0, result.returncode)
+        self.assertFalse((self.root / 'built').exists())
 
     @unittest.skipUnless(os.name == "nt", "Native Windows entrypoint")
     def test_windows_builds_before_invoking_engine(self) -> None:

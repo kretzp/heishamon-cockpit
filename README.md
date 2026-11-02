@@ -122,24 +122,53 @@ Run these commands on the computer where Cockpit is installed, from your source 
 
 ```powershell
 git pull --ff-only
-.\installation\update-windows.ps1 -InstallDirectory "$env:LOCALAPPDATA\HeishaMonCockpit"
+.\installation\update-windows.ps1
 ```
 
 ### Linux (x64 or ARM64, terminal)
 
 ```sh
 git pull --ff-only
-sh installation/update-linux.sh "$HOME/.local/share/heishamon-cockpit"
+sh installation/update-linux.sh
 ```
 
 ### Raspberry Pi (64-bit Raspberry Pi OS / Linux ARM64, terminal or SSH)
 
 ```sh
 git pull --ff-only
-sh installation/update-raspberry-pi.sh "$HOME/.local/share/heishamon-cockpit"
+sh installation/update-raspberry-pi.sh
 ```
 
-Supply your actual installation directory if different. Stop a manually started application first. The updater builds the current checkout, preserves configuration and data, retains a complete backup and restarts an existing service only if it was running. If startup fails, it attempts to restore the previous installation and databases. See [update prerequisites, rollback and prepared packages](documentation/UPDATE.md).
+On Linux and Raspberry Pi, omitting the directory detects and prints the actual installation path from `heishamon-cockpit.service` before building. No default path is guessed. To check it yourself:
+
+```sh
+systemctl show heishamon-cockpit.service --property=WorkingDirectory --value
+```
+
+For a manual installation without a service, use the directory containing `Cockpit.Web` and `data/`. You can also supply a known absolute path explicitly (for example, if the command above prints `/home/openhabian/heishamon-cockpit`):
+
+```sh
+# Linux:
+sh installation/update-linux.sh "/home/openhabian/heishamon-cockpit"
+# Raspberry Pi:
+sh installation/update-raspberry-pi.sh "/home/openhabian/heishamon-cockpit"
+```
+
+On Windows, omitting `-InstallDirectory` detects the installation directory from the registered `HeishaMonCockpit` service. Before building, the script checks the path, application files, read access and standard service configuration, and prints the detected path. It does not guess a default path. To inspect the service executable path yourself:
+
+```powershell
+Get-CimInstance Win32_Service -Filter "Name='HeishaMonCockpit'" | Select-Object -ExpandProperty PathName
+```
+
+To specify a path explicitly, pass the directory containing `HeishaMonCockpitService.exe` as `-InstallDirectory`. Without a service, this argument is required: use the directory containing `Cockpit.Web.exe` and `data/`, for example:
+
+```powershell
+.\installation\update-windows.ps1 -InstallDirectory "$env:LOCALAPPDATA\HeishaMonCockpit"
+```
+
+Replace that example with your actual installation directory. A registered service pointing elsewhere causes an abort.
+
+ Stop a manually started application first. The updater builds the current checkout, preserves configuration and data, retains a complete backup and restarts an existing service only if it was running. If startup fails, it attempts to restore the previous installation and databases. See [update prerequisites, rollback and prepared packages](documentation/UPDATE.md).
 
 ## Start the application
 

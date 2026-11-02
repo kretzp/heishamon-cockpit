@@ -1,7 +1,8 @@
 #!/bin/sh
 set -eu
 if [ "${1:-}" = '--help' ]; then
-  echo 'Usage: sh installation/update-raspberry-pi.sh ABSOLUTE-INSTALL-DIRECTORY [ABSOLUTE-EXTRACTED-PACKAGE-DIRECTORY]'
+  echo 'Usage: sh installation/update-raspberry-pi.sh [ABSOLUTE-INSTALL-DIRECTORY [ABSOLUTE-EXTRACTED-PACKAGE-DIRECTORY]]'
+  echo 'Without a directory, detects the installation from heishamon-cockpit.service.'
   echo 'Requires ARM64 Linux and a 64-bit userspace.'
   exit 0
 fi

@@ -1,10 +1,50 @@
 param(
-    [string]$InstallDirectory = (Join-Path $env:LOCALAPPDATA 'HeishaMonCockpit'),
+    [string]$InstallDirectory,
     [string]$PackageDirectory
 )
 $ErrorActionPreference = 'Stop'
 if ($env:OS -ne 'Windows_NT' -or $env:PROCESSOR_ARCHITECTURE -ne 'AMD64') { throw 'Requires 64-bit PowerShell on Windows x64.' }
-if (-not [IO.Path]::IsPathRooted($InstallDirectory)) { throw 'InstallDirectory must be absolute.' }
+# Resolve and validate before creating build artifacts or requesting elevation.
+$installedService = Get-CimInstance Win32_Service -Filter "Name='HeishaMonCockpit'"
+$serviceDirectory = $null
+if ($installedService) {
+    $serviceCommand = $installedService.PathName.Trim()
+    if ($serviceCommand -match '^"([^"\r\n]+[\\/]HeishaMonCockpitService\.exe)"$') {
+        $wrapperPath = $Matches[1]
+    } elseif ($serviceCommand -match '^([^"\r\n]+[\\/]HeishaMonCockpitService\.exe)$') {
+        $wrapperPath = $Matches[1]
+    } else { throw 'Custom Windows service command requires a manual update.' }
+    $serviceDirectory = Split-Path -Parent $wrapperPath
+}
+if (-not $InstallDirectory) {
+    if (-not $serviceDirectory) { throw 'No HeishaMonCockpit service detected. Supply the absolute installation directory with -InstallDirectory.' }
+    $InstallDirectory = $serviceDirectory
+}
+if ($InstallDirectory -notmatch '^(?:[A-Za-z]:[\\/]|\\\\[^\\/]+[\\/][^\\/]+[\\/])') { throw 'InstallDirectory must be absolute.' }
+$target = [IO.Path]::GetFullPath($InstallDirectory)
+if ($serviceDirectory -and $target.TrimEnd('\', '/') -ine ([IO.Path]::GetFullPath($serviceDirectory)).TrimEnd('\', '/')) {
+    throw 'Existing Windows service belongs to a different installation.'
+}
+$installation = Get-Item -LiteralPath $target -Force
+if (-not $installation.PSIsContainer -or ($installation.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+    throw 'Installation must be an existing directory, without symbolic links or junctions.'
+}
+if (-not (Test-Path -LiteralPath (Join-Path $target 'Cockpit.Web.exe') -PathType Leaf) -or
+    -not (Test-Path -LiteralPath (Join-Path $target 'data') -PathType Container)) {
+    throw 'Not a Cockpit installation: expected Cockpit.Web.exe and data/.'
+}
+Get-ChildItem -LiteralPath $target -Force -ErrorAction Stop | Out-Null
+Get-ChildItem -LiteralPath (Join-Path $target 'data') -Force -ErrorAction Stop | Out-Null
+if ($installedService) {
+    if (-not (Test-Path -LiteralPath (Join-Path $target 'HeishaMonCockpitService.exe') -PathType Leaf)) { throw 'Service wrapper is missing.' }
+    [xml]$serviceConfig = Get-Content -LiteralPath (Join-Path $target 'HeishaMonCockpitService.xml') -Raw
+    if ($serviceConfig.service.executable -cne '%BASE%\Cockpit.Web.exe' -or $serviceConfig.service.workingdirectory -cne '%BASE%' -or
+        $serviceConfig.service.env -or $serviceConfig.service.arguments -or $serviceConfig.service.startarguments) {
+        throw 'Custom WinSW paths/environment require a manual update.'
+    }
+    if ($installedService.State -notin @('Running', 'Stopped')) { throw 'Wait until the existing service is fully running or stopped.' }
+}
+Write-Host "Installation directory: $target"
 $root = Split-Path -Parent $PSScriptRoot
 . (Join-Path $PSScriptRoot 'ensure-python.ps1')
 $python = Find-CockpitPython
@@ -23,7 +63,6 @@ if (-not $PackageDirectory) {
     if ($LASTEXITCODE -ne 0) { throw 'Package extraction failed; installation was not changed.' }
 }
 if (-not [IO.Path]::IsPathRooted($PackageDirectory)) { throw 'PackageDirectory must be absolute.' }
-$target = [IO.Path]::GetFullPath($InstallDirectory)
 $package = [IO.Path]::GetFullPath($PackageDirectory)
 $resultFile = Join-Path $package 'update-result.json'
 if (Test-Path -LiteralPath $resultFile) { Remove-Item -LiteralPath $resultFile }

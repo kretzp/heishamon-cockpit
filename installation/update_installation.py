@@ -40,6 +40,38 @@ def powershell(script: str, target: Path) -> str:
     return result.stdout.strip()
 
 
+def resolve_linux_installation(directory: Path | None = None) -> Path:
+    """Resolve an explicit target or the installed system service, without guessing."""
+    if directory is None:
+        if not shutil.which("systemctl"):
+            raise UpdateError("No systemd service detected. Supply the absolute installation directory.")
+        try:
+            state = command(["systemctl", "show", "--property=LoadState", "--value", "heishamon-cockpit.service"])
+            if state != "loaded":
+                raise UpdateError("Service is not loaded.")
+            value = command(["systemctl", "show", "--property=WorkingDirectory", "--value", "heishamon-cockpit.service"])
+        except UpdateError as error:
+            raise UpdateError("Cannot detect the installation from heishamon-cockpit.service. "
+                              "Supply the absolute installation directory.") from error
+        if not value:
+            raise UpdateError("Service has no WorkingDirectory. Supply the absolute installation directory.")
+        directory = Path(value)
+    if not directory.is_absolute():
+        raise UpdateError("Installation directory must be absolute.")
+    try:
+        if directory.is_symlink():
+            raise UpdateError("Linked installation directories require a manual update: " + str(directory))
+        directory = directory.resolve(strict=True)
+        if not (directory / "Cockpit.Web").is_file() or not (directory / "data").is_dir():
+            raise UpdateError("Not a Cockpit installation: " + str(directory))
+        if not os.access(directory, os.R_OK | os.W_OK | os.X_OK) or not os.access(directory.parent, os.W_OK | os.X_OK):
+            raise UpdateError("Installation and its parent must be accessible and writable: " + str(directory))
+    except OSError as error:
+        raise UpdateError("Cannot access installation directory: " + str(directory)
+                          + ". Check the path and permissions; use the installing user.") from error
+    return directory
+
+
 class Service:
     """Control only the existing service belonging to the selected installation."""
     def __init__(self, target: Path) -> None:
@@ -332,11 +364,22 @@ def main() -> int:
         raise UpdateError("Update interrupted; attempting recovery.")
     signal.signal(signal.SIGTERM, interrupted)
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--install-dir", required=True, type=Path)
-    parser.add_argument("--package-directory", required=True, type=Path)
-    parser.add_argument("--runtime", required=True, choices=("win-x64", "linux-x64", "linux-arm64"))
+    parser.add_argument("--install-dir", type=Path)
+    parser.add_argument("--resolve-install-dir", action="store_true")
+    parser.add_argument("--package-directory", type=Path)
+    parser.add_argument("--runtime", choices=("win-x64", "linux-x64", "linux-arm64"))
     parser.add_argument("--result-file", type=Path)
     args = parser.parse_args()
+    if args.resolve_install_dir:
+        try:
+            print(resolve_linux_installation(args.install_dir))
+            return 0
+        except UpdateError as error:
+            import sys
+            print(str(error), file=sys.stderr)
+            return 1
+    if args.install_dir is None or args.package_directory is None or args.runtime is None:
+        parser.error("--install-dir, --package-directory and --runtime are required for an update")
     try:
         backup = update(args.install_dir, args.package_directory, args.runtime)
         result, code = {"ok": True, "backup": str(backup)}, 0
