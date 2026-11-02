@@ -52,7 +52,14 @@ public static class SimulatorControl
         services.AddAuthorization(o => { o.AddPolicy("simulator-operator", p => p.RequireAuthenticatedUser().RequireRole("writer", "admin")); o.AddPolicy("admin", p => p.RequireAuthenticatedUser().RequireRole("admin")); });
         services.AddRateLimiter(o => {
             o.RejectionStatusCode = 429;
-            o.AddFixedWindowLimiter("login", p => { p.PermitLimit = 5; p.Window = TimeSpan.FromMinutes(1); p.QueueLimit = 0; });
+            o.AddPolicy("login", context => {
+                // Use the trusted socket/forwarded-header middleware result, never raw headers.
+                var address = context.Connection.RemoteIpAddress;
+                if (address?.IsIPv4MappedToIPv6 == true) address = address.MapToIPv4();
+                return RateLimitPartition.GetFixedWindowLimiter(address?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions {
+                    PermitLimit = 5, Window = TimeSpan.FromMinutes(1), QueueLimit = 0
+                });
+            });
             o.AddFixedWindowLimiter("commands", p => { p.PermitLimit = 30; p.Window = TimeSpan.FromMinutes(1); p.QueueLimit = 0; });
         });
     }

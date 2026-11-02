@@ -48,7 +48,7 @@ function MqttEditor({ csrfToken }: { csrfToken: string }) {
     {config && <form onSubmit={e => { e.preventDefault(); setBusy(true); setStatus(''); void (async () => {
       try {
         const response = await sessionFetch('/api/v1/settings/mqtt', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
-          body: JSON.stringify({ ...config, credentialAction: action, username: action === 'replace' ? username : null, password: action === 'replace' ? password : null }) });
+          body: JSON.stringify({ ...config, useTls: config.useTls === true, credentialAction: action, username: action === 'replace' ? username : null, password: action === 'replace' ? password : null }) });
         if (!response.ok) { const error = await response.json().catch(() => ({})); throw new Error(error.errorCode === 'mqtt_control_active' ? 'Disable real-device control and restart before changing the broker.' : error.errorCode === 'mqtt_conflict' ? 'The broker settings changed. Reload before saving.' : 'Unable to save MQTT settings. Check the values.'); }
         setConfig(await response.json()); setUsername(''); setPassword(''); setAction('keep'); setStatus('MQTT settings saved.');
       } catch (error) { setStatus((error as Error).message); } finally { setBusy(false); }

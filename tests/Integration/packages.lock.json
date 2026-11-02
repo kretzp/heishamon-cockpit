@@ -296,6 +296,19 @@
           "MQTTnet": "[5.2.0.1603, )",
           "Microsoft.EntityFrameworkCore.Sqlite": "[10.0.12, )"
         }
+      },
+      "cockpit.simulator": {
+        "type": "Project",
+        "dependencies": {
+          "Cockpit.Application": "[1.0.0, )"
+        }
+      },
+      "cockpit.web": {
+        "type": "Project",
+        "dependencies": {
+          "Cockpit.Infrastructure": "[1.0.0, )",
+          "Cockpit.Simulator": "[1.0.0, )"
+        }
       }
     }
   }

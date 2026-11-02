@@ -3,6 +3,150 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test, expect, chromium } from './coverage-fixture';
 
+async function mockAdminSettings(page: import('./coverage-fixture').Page) {
+  await page.route('**/api/v1/auth/session', route => route.fulfill({ json: {
+    loginRequired: true, authenticated: true, username: 'review-admin', role: 'admin', csrfToken: 'test-csrf'
+  } }));
+  await page.route('**/api/v1/system', async route => {
+    const response = await route.fetch();
+    await route.fulfill({ json: { ...await response.json(), settingsEnabled: true } });
+  });
+  await page.route('**/api/v1/settings', route => route.fulfill({ json: {
+    values: { plantName: 'Test plant', retentionDays: 700, revision: 0 }, enabled: true,
+    source: 'simulator', sampleSeconds: 5, activeRetentionDays: 700, restartRequired: false
+  } }));
+  await page.route('**/api/v1/users', route => route.fulfill({ json: [] }));
+  await page.route('**/api/v1/settings/control', route => route.fulfill({ json: {
+    enabled: false, active: false, revision: 0, source: 'simulator', brokerMatches: true
+  } }));
+  await page.route('**/api/v1/settings/mqtt', route => route.fulfill({ json: {
+    host: '127.0.0.1', port: 18883, prefix: 'cockpit_test', useTls: null,
+    credentialsConfigured: false, revision: 0
+  } }));
+}
+
+test('MQTT settings save an explicit false for initially unspecified TLS', async ({ page }) => {
+  await mockAdminSettings(page);
+  await page.goto('/');
+  await page.getByRole('navigation').getByRole('button', { name: 'Einstellungen', exact: true }).click();
+  // Select by form to keep the request assertion independent of translated text.
+  const form = page.locator('form').filter({ has: page.locator('input[value="cockpit_test"]') });
+  await expect(form).toBeVisible();
+  await form.locator('input').first().fill('broker.example');
+  await expect(form.locator('input[type="checkbox"]')).not.toBeChecked();
+  const request = page.waitForRequest(request => request.url().endsWith('/api/v1/settings/mqtt') && request.method() === 'POST');
+  await form.locator('button[type="submit"], button:not([type])').click();
+  expect((await request).postDataJSON()).toMatchObject({ host: 'broker.example', useTls: false });
+});
+
+test('session lookup outage preserves drafts and blocks interaction until recovery', async ({ page }) => {
+  await mockAdminSettings(page);
+  await page.goto('/');
+  await page.getByRole('navigation').getByRole('button', { name: 'Einstellungen', exact: true }).click();
+  const name = page.getByLabel('Anlagenname', { exact: true });
+  await name.fill('Unsaved plant name');
+  await page.route('**/api/v1/auth/session', route => route.abort('failed'));
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await expect(name).toHaveValue('Unsaved plant name');
+  await expect(name.locator('xpath=ancestor::*[@inert]')).toHaveCount(1);
+  let saves = 0;
+  await page.route('**/api/v1/settings', route => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    saves++;
+    return route.fulfill({ json: {} });
+  });
+  // Even a scripted submit must not bypass the write guard while access is unknown.
+  await name.evaluate(input => input.closest('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
+  await expect(page.locator('.settings-content .warning')).toContainText('Anmeldedienst');
+  expect(saves).toBe(0);
+  await page.unroute('**/api/v1/auth/session');
+  await page.route('**/api/v1/auth/session', route => route.fulfill({ json: {
+    loginRequired: true, authenticated: true, username: 'review-admin', role: 'admin', csrfToken: 'test-csrf'
+  } }));
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await expect(page.locator('[inert]')).toHaveCount(0);
+  await expect(name).toHaveValue('Unsaved plant name');
+  // An authoritative expired session must still remove the protected UI.
+  await page.route('**/api/v1/auth/session', route => route.fulfill({ json: {
+    loginRequired: true, authenticated: false, csrfToken: 'test-csrf'
+  } }));
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await expect(page.getByRole('heading', { name: 'Anmelden', exact: true })).toBeVisible();
+  await expect(name).toHaveCount(0);
+});
+
+test('an older session response cannot restore access after a newer unauthorized response', async ({ page }) => {
+  await mockAdminSettings(page);
+  await page.goto('/');
+  await expect(page.getByRole('navigation')).toBeVisible();
+  let requests = 0;
+  let releaseOlder!: () => void;
+  let olderArrived!: () => void;
+  const olderPending = new Promise<void>(resolve => { olderArrived = resolve; });
+  const release = new Promise<void>(resolve => { releaseOlder = resolve; });
+  await page.route('**/api/v1/auth/session', async route => {
+    if (++requests === 1) {
+      olderArrived();
+      await release;
+      await route.fulfill({ json: { loginRequired: true, authenticated: true, username: 'review-admin', role: 'admin' } });
+    } else await route.fulfill({ status: 401 });
+  });
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await olderPending;
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await expect(page.getByRole('heading', { name: 'Anmelden', exact: true })).toBeVisible();
+  const completed = page.waitForResponse(response => response.url().endsWith('/auth/session') && response.status() === 200);
+  releaseOlder();
+  await completed;
+  // Flush the response and React update, rather than relying on an arbitrary sleep.
+  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+  await expect(page.getByRole('navigation')).toHaveCount(0);
+});
+
+test('a resource 401 removes protected content even when the session service is unavailable', async ({ page }) => {
+  await mockAdminSettings(page);
+  await page.goto('/');
+  await expect(page.getByRole('navigation')).toBeVisible();
+  await page.route('**/api/v1/auth/session', route => route.abort('failed'));
+  await page.route('**/api/v1/settings', route => route.fulfill({ status: 401 }));
+  await page.getByRole('navigation').getByRole('button', { name: 'Einstellungen', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Anmelden', exact: true })).toBeVisible();
+  await expect(page.getByRole('navigation')).toHaveCount(0);
+});
+
+test('optional simulator login retains public drafts when credentials expire', async ({ page }) => {
+  await mockAdminSettings(page);
+  await page.route('**/api/v1/auth/session', route => route.fulfill({ json: {
+    loginRequired: false, authenticated: true, role: 'admin', csrfToken: 'test-csrf'
+  } }));
+  await page.goto('/');
+  await page.getByRole('navigation').getByRole('button', { name: 'Einstellungen', exact: true }).click();
+  const name = page.getByLabel('Anlagenname', { exact: true });
+  await name.fill('Public simulator draft');
+  await page.route('**/api/v1/auth/session', route => route.abort('failed'));
+  await page.route('**/api/v1/settings', route => route.fulfill({ status: 401 }));
+  await page.getByRole('button', { name: 'Neu laden / Verwerfen', exact: true }).click();
+  await expect(name.locator('xpath=ancestor::*[@inert]')).toHaveCount(1);
+  await expect(name).toHaveValue('Public simulator draft');
+  await expect(page.locator('.access-page')).toHaveCount(0);
+});
+
+test('successful logout removes protected content even if its session refresh fails', async ({ page }) => {
+  await mockAdminSettings(page);
+  let loggedOut = false;
+  await page.route('**/api/v1/auth/session', route => loggedOut ? route.abort('failed') : route.fulfill({ json: {
+    loginRequired: true, authenticated: true, username: 'review-admin', role: 'admin', csrfToken: 'test-csrf'
+  } }));
+  await page.route('**/api/v1/auth/logout', route => {
+    loggedOut = true;
+    return route.fulfill({ status: 204 });
+  });
+  await page.goto('/');
+  await page.getByRole('navigation').getByRole('button', { name: 'Abmelden', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Anmelden', exact: true })).toBeVisible();
+  await expect(page.getByRole('navigation')).toHaveCount(0);
+});
+
 test('account action ends navigation and preserves login logout and error handling', async ({ page }, info) => {
   let authenticated = true, rejectLogout = true;
   await page.route('**/api/v1/auth/session', route => route.fulfill({ json: {

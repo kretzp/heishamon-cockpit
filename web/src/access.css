@@ -9,5 +9,7 @@
 .account-menu-button span { min-width: 0; overflow-wrap: anywhere; }
 .account-menu-button small { display: block; font-size: .7rem; font-weight: normal; white-space: normal; }
 .account-menu-error { margin: 0; padding: 8px; font-size: .8rem; overflow-wrap: anywhere; flex-basis: 100%; }
+.session-content { display: contents; }
+.session-status { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 1000; width: min(94vw, 600px); padding: 12px; display: flex; align-items: center; gap: 12px; }
 .access-card :focus-visible { outline: 3px solid #dc8a00; outline-offset: 3px; }
 @media (max-width: 600px) { .access-page { padding: 16px; } .access-card { padding: 24px; } }
