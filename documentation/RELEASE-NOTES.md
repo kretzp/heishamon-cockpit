@@ -1,5 +1,20 @@
 # Release notes
 
+## 0.9.3 — Container deployment, 2026-11-12
+
+- Add a Dockerfile and Compose configuration for Docker and Podman, with an
+  unprivileged runtime user and persistent installation data.
+- Keep image builds non-interactive. Configure accounts, HTTPS certificates and
+  MQTT settings afterwards through the existing interactive installation setup;
+  credentials are stored in the data volume rather than the image.
+- Update the pinned .NET SDK and installer build tooling to 10.0.404.
+- Add a Linux x64 Docker CI job for relevant pull requests and pushes to `master`.
+  Its isolated, read-only simulator checks frontend assets, health endpoints,
+  the unprivileged user and recorded history across container recreation.
+  The initial GitHub Actions run passed; Podman execution remains unverified.
+- See [container installation and operation](CONTAINERS.md) for setup, storage
+  and network access instructions.
+
 ## 0.9.2 — COP mode separation, 2026-11-11
 
 - Preserve separate heating and hot-water COP measurements in partially covered buckets.
