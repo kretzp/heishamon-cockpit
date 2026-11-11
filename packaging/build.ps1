@@ -7,7 +7,7 @@ New-Item -ItemType Directory -Path $env:NUGET_HTTP_CACHE_PATH,$env:NUGET_PACKAGE
 $tools = Join-Path $root '.cache\build-tools'
 New-Item -ItemType Directory -Path $tools -Force | Out-Null
 $nodeVersion = '24.20.0'
-$sdkVersion = '10.0.303'
+$sdkVersion = '10.0.404'
 $nodeName = "node-v$nodeVersion-win-x64"
 $nodePath = Join-Path $tools $nodeName
 if (-not (Test-Path -LiteralPath (Join-Path $nodePath 'node.exe'))) {

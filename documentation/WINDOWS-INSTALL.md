@@ -43,7 +43,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\installation\install-w
 
 Organizational policy may override this. Do not change a managed policy to bypass it.
 
-The installer downloads pinned Node.js 24.20.0 and .NET SDK 10.0.303 into `.cache/build-tools`, checks the Node archive checksum, restores locked dependencies, builds the frontend and publishes a self-contained Windows package. NuGet caches default to `.cache/nuget`; explicit cache environment variables are respected. Each build is retained in a new `artifacts/build-*` directory. The package is extracted and its interactive installer is run.
+The installer downloads pinned Node.js 24.20.0 and .NET SDK 10.0.404 into `.cache/build-tools`, checks the Node archive checksum, restores locked dependencies, builds the frontend and publishes a self-contained Windows package. NuGet caches default to `.cache/nuget`; explicit cache environment variables are respected. Each build is retained in a new `artifacts/build-*` directory. The package is extracted and its interactive installer is run.
 
 The default destination is `%LOCALAPPDATA%\HeishaMonCockpit`. An existing installation is never overwritten. For another new directory:
 

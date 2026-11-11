@@ -1,0 +1,14 @@
+services:
+  cockpit:
+    image: localhost/heishamon-cockpit:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:5080:5080"
+    volumes:
+      - cockpit-data:/data
+    restart: unless-stopped
+
+volumes:
+  cockpit-data:

@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 node_version=24.20.0
-sdk_version=10.0.303
+sdk_version=10.0.404
 root=$(CDPATH= cd "$(dirname "$0")/.." && pwd)
 tools_dir="$root/.cache/build-tools"
 NUGET_HTTP_CACHE_PATH=${NUGET_HTTP_CACHE_PATH:-"$root/.cache/nuget/http"}

@@ -229,6 +229,11 @@ Replace the paths and port for your installation. The CA file must be a trusted 
 
 Provide `COCKPIT_MCP_USERNAME` and `COCKPIT_MCP_PASSWORD` securely through the MCP client's process environment. They identify an existing Cockpit account. Do not commit credentials or place passwords in command-line arguments. MCP writing is disabled by default; it additionally requires `COCKPIT_MCP_ALLOW_WRITES=1`, a writer/admin account, enabled server control and explicit command confirmation. The bridge uses stdio and authenticates through the application API. It does not connect directly to MQTT or the database. Client registration is not automatic.
 
+## Containers
+
+For Docker or Podman installation, including Compose, persistent storage and
+interactive HTTPS/account setup, see [container instructions](documentation/CONTAINERS.md).
+
 ## Development and verification
 
 The build pins are in `global.json`, `.node-version` and dependency lockfiles. With matching tools available:

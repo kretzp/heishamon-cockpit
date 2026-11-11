@@ -43,7 +43,7 @@ Open a terminal on the Raspberry Pi in the source checkout. Clone the GitHub rep
 sh installation/install-raspberry-pi.sh
 ```
 
-The script checks for 64-bit ARM Linux and delegates to the shared Linux installer. It checks common tools and Python 3; on Raspberry Pi OS, missing common tools can be installed with `apt-get` and `sudo`. Node.js 24.20.0 and .NET SDK 10.0.303 are reused when available or downloaded into the checkout. NuGet caches default to `.cache/nuget` in the checkout; explicitly configured NuGet cache paths are respected. The script then builds a self-contained `linux-arm64` package and runs its interactive installer. The archive is retained under `artifacts/build.*` in the checkout. The host must also have the native libraries required by .NET and a working TLS setup.
+The script checks for 64-bit ARM Linux and delegates to the shared Linux installer. It checks common tools and Python 3; on Raspberry Pi OS, missing common tools can be installed with `apt-get` and `sudo`. Node.js 24.20.0 and .NET SDK 10.0.404 are reused when available or downloaded into the checkout. NuGet caches default to `.cache/nuget` in the checkout; explicitly configured NuGet cache paths are respected. The script then builds a self-contained `linux-arm64` package and runs its interactive installer. The archive is retained under `artifacts/build.*` in the checkout. The host must also have the native libraries required by .NET and a working TLS setup.
 
 The default installation directory is `~/.local/share/heishamon-cockpit`. If an existing `~/.local` or `~/.local/share` is not accessible to the current user, the script uses `~/heishamon-cockpit` instead and prints the chosen path. To choose a different new directory, pass its absolute path:
 

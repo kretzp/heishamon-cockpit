@@ -16,7 +16,7 @@ function run(exe, args, cwd = root) {
 const nodeMajor = Number(process.versions.node.split('.')[0]);
 if (nodeMajor !== 24) throw Error('Node.js 24 is required.');
 const version = spawnSync('dotnet', ['--version'], { cwd: root, encoding: 'utf8' });
-if (version.status !== 0 || version.stdout.trim() !== '10.0.303') throw Error('.NET SDK 10.0.303 is required.');
+if (version.status !== 0 || version.stdout.trim() !== '10.0.404') throw Error('.NET SDK 10.0.404 is required.');
 const dir = mkdtempSync(join(tmpdir(), 'heat-pump-package-'));
 const stage = join(dir, 'payload'); mkdirSync(stage);
 run('npm', ['ci'], join(root, 'web'));
