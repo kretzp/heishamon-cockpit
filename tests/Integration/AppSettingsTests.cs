@@ -1,4 +1,5 @@
 using Cockpit.Domain;
+using Cockpit.Application;
 using Cockpit.Infrastructure.Persistence;
 using Xunit;
 namespace Cockpit.Integration;
@@ -7,6 +8,21 @@ public sealed class AppSettingsTests : IDisposable
     private readonly string directory = Path.Combine(Path.GetTempPath(), "cockpit-settings-" + Guid.NewGuid());
     private string FilePath => Path.Combine(directory, "settings.json");
     public void Dispose() { if (Directory.Exists(directory)) Directory.Delete(directory, true); }
+    [Fact] public void AlternativeSettingsSurviveRestartAndOnlyPowerChangesAdvanceGeneration()
+    {
+        var store = new AppSettingsStore(FilePath, 700);
+        var power = new AlternativePowerOptions(true, new("meter", "$.power"), new("heater", ""));
+        var saved = store.Save(new("House", 700) { AlternativePower = power }, false);
+        Assert.Equal(1, saved.PowerGeneration);
+        Assert.Equal(power, new AppSettingsStore(FilePath, 700).Read().AlternativePower);
+        var renamed = store.Save(saved with { PlantName = "Renamed" }, false);
+        Assert.Equal(1, renamed.PowerGeneration);
+        var disabled = store.Save(renamed with { AlternativePower = power with { Enabled = false } }, false);
+        Assert.Equal(2, disabled.PowerGeneration);
+        Assert.Equal(power.Heatpump, disabled.AlternativePower.Heatpump);
+        Assert.Throws<CommandRejected>(() => store.Save(disabled with { AlternativePower = power with { Heatpump = new("meter/#", "$.power") } }, false));
+        Assert.Equal(disabled, store.Read());
+    }
     [Fact] public void SavesAndReloadsWithoutChangingDefaultsBeforeSave()
     {
         var store = new AppSettingsStore(FilePath, 700);

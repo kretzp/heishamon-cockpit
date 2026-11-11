@@ -23,6 +23,7 @@ export type CopResult = {
   expectedSeconds: number;
   energyRatio: number | null;
   points: CopPoint[];
+  series?: { mode: 'heat' | 'dhw'; points: CopPoint[] }[];
 };
 export type EnergyDay = {
   minOutdoorTemperatureC?: number | null;
@@ -48,6 +49,10 @@ export type EnergyResult = {
   timeZone: string;
   days: EnergyDay[];
 };
+export function energySourceLabel(source?: string): string {
+  return source === 'shelly-ac' ? 'Shelly · C + A' : source === 'alternative-mqtt' ? translate('Alternative Leistungsdaten')
+    : source === 'mixed' ? translate('Gemischte Quellen im Zeitraum') : translate('HeishaMon-Extra');
+}
 export const dayStatus = {
   complete: 'Vollständig',
   partial: 'Unvollständig',
@@ -55,6 +60,17 @@ export const dayStatus = {
   current: 'Laufender Tag',
   future: 'Zukünftig'
 };
+export function copModePoints(result: CopResult, mode: 'heat' | 'dhw'): CopPoint[] {
+  return result.series?.find(series => series.mode === mode)?.points ?? result.points.map(p => p.mode === mode ? p : { ...p, cop: null, average: null });
+}
+export function copDisplayPoints(result: CopResult): CopPoint[] {
+  if (!result.series) return result.points;
+  const measured = result.series.flatMap(series => series.points.filter(p => p.cop !== null));
+  const measuredTimes = new Set(measured.map(p => p.time));
+  const missing = result.points.filter(p => !measuredTimes.has(p.time));
+  return [...measured, ...missing].sort((a, b) => a.time.localeCompare(b.time) || String(a.mode).localeCompare(String(b.mode)));
+}
+function partial(p: CopPoint): boolean { return p.expectedSeconds > 0 && p.validSeconds < p.expectedSeconds; }
 export function copOptions(result: CopResult, trend = false): EChartsOption {
   const option: EChartsOption = {
     animation: false,
@@ -91,9 +107,9 @@ export function copOptions(result: CopResult, trend = false): EChartsOption {
       formatter: (raw: unknown) => {
         const rows = raw as {
           seriesName: string;
-          value: [number, number | null];
+          value: [number, number | null, number?, number?];
         }[];
-        return rows.length ? chartTime(rows[0].value[0]) + '\n' + rows.map(r => r.seriesName + ': ' + (r.value[1] === null ? translate("unbekannt") : chartNumber(r.value[1]))).join('\n') : '';
+        return rows.length ? chartTime(rows[0].value[0]) + '\n' + rows.map(r => r.seriesName + ': ' + (r.value[1] === null ? translate("unbekannt") : chartNumber(r.value[1])) + (r.value[2] !== undefined ? ` (${translate('Gültig / erwartet')}: ${chartNumber(r.value[2])} / ${chartNumber(r.value[3] ?? 0)} s)` : '')).join('\n') : '';
       }
     },
     series: (['heat', 'dhw'] as const).flatMap((mode, index) => (['cop', 'average'] as const).map(key => ({
@@ -109,11 +125,14 @@ export function copOptions(result: CopResult, trend = false): EChartsOption {
       itemStyle: {
         color: index === 0 ? '#0964d8' : '#a42b6c'
       },
-      data: result.points.map(p => [Date.parse(p.time), p.mode === mode ? p[key] : null])
+      data: copModePoints(result, mode).flatMap(p => {
+        const point = [Date.parse(p.time), p[key], p.validSeconds, p.expectedSeconds];
+        return partial(p) ? [[point[0], null], point, [point[0], null]] : [point];
+      })
     })))
   };
   if (trend) for (const [index, mode] of (['heat', 'dhw'] as const).entries()) {
-    const points: TrendPoint[] = result.points.map(p => [Date.parse(p.time), p.mode === mode ? p.cop : null]);
+    const points: TrendPoint[] = copModePoints(result, mode).map(p => [Date.parse(p.time), partial(p) ? null : p.cop]);
     (option.series as object[]).push(trendSeries('cop-' + mode, mode === 'heat' ? translate('Heizen') : translate('Warmwasser'), points, result.bucketSeconds, index === 0 ? '#0964d8' : '#a42b6c'));
   }
   return option;
@@ -133,7 +152,10 @@ export function energyOptions(result: EnergyResult): EChartsOption {
           value: [string, number];
         };
         const d = result.days.find(day => day.date === p.value?.[0]);
-        return d ? `${d.date} · ${translate(dayStatus[d.status])}\n${d.kwh === null ? translate("Keine erfasste Energie") : chartNumber(d.kwh) + translate(' kWh erfasst')}\n${chartNumber(d.validSeconds / 3600)} / ${chartNumber(d.expectedSeconds / 3600)} h` : '';
+        if (!d) return '';
+        const channels = d.heatpumpKwh != null || d.heaterKwh != null
+          ? `\n${translate('Wärmepumpe elektrisch')}: ${d.heatpumpKwh == null ? '—' : chartNumber(d.heatpumpKwh)} kWh\n${translate('Heizstab elektrisch')}: ${d.heaterKwh == null ? '—' : chartNumber(d.heaterKwh)} kWh` : '';
+        return `${d.date} · ${translate(dayStatus[d.status])}\n${d.kwh === null ? translate("Keine erfasste Energie") : chartNumber(d.kwh) + translate(' kWh erfasst')}\n${chartNumber(d.validSeconds / 3600)} / ${chartNumber(d.expectedSeconds / 3600)} h${channels}`;
       }
     },
     visualMap: {

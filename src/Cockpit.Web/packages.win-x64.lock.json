@@ -99,7 +99,7 @@
       "cockpit.application": {
         "type": "Project",
         "dependencies": {
-          "Cockpit.Domain": "[0.9.1, )"
+          "Cockpit.Domain": "[0.9.2, )"
         }
       },
       "cockpit.domain": {
@@ -108,7 +108,7 @@
       "cockpit.infrastructure": {
         "type": "Project",
         "dependencies": {
-          "Cockpit.Application": "[0.9.1, )",
+          "Cockpit.Application": "[0.9.2, )",
           "MQTTnet": "[5.2.0.1603, )",
           "Microsoft.EntityFrameworkCore.Sqlite": "[10.0.14, )"
         }
@@ -116,7 +116,7 @@
       "cockpit.simulator": {
         "type": "Project",
         "dependencies": {
-          "Cockpit.Application": "[0.9.1, )"
+          "Cockpit.Application": "[0.9.2, )"
         }
       }
     },

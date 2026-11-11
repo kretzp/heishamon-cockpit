@@ -839,3 +839,58 @@ test('Vorlauf, Rücklauf und Spreizung zeigen exakt zwei Nachkommastellen', asyn
   await expect(page.getByRole('article', { name: 'Rücklauf', exact: true }).locator('.value')).toHaveText('30,00 °C');
   await expect(page.getByRole('article', { name: 'Spreizung', exact: true }).locator('.value')).toHaveText('4,50 K');
 });
+
+
+test('alternative power settings submit both Shelly channels and preserve them when disabled', async ({ page }, info) => {
+  await mockAdminSettings(page);
+  let values = { plantName: 'Test plant', retentionDays: 700, revision: 0,
+    alternativePower: { enabled: false, heatpump: { topic: '', payloadPath: '' }, heater: { topic: '', payloadPath: '' } } };
+  await page.route('**/api/v1/settings', async route => {
+    if (route.request().method() === 'POST') {
+      values = { ...route.request().postDataJSON(), revision: values.revision + 1 };
+      return route.fulfill({ json: values });
+    }
+    return route.fulfill({ json: { values, enabled: true, source: 'simulator', sampleSeconds: 5, activeRetentionDays: 700, restartRequired: false } });
+  });
+  await page.goto('/');
+  await page.getByRole('navigation').getByRole('button', { name: 'Einstellungen', exact: true }).click();
+  const checkbox = page.getByRole('checkbox', { name: 'Alternative Leistungsdaten verwenden', exact: true });
+  await checkbox.check();
+  const hp = page.getByRole('group', { name: 'Wärmepumpe elektrisch', exact: true });
+  const heater = page.getByRole('group', { name: 'Heizstab elektrisch', exact: true });
+  for (const group of [hp, heater]) await group.getByLabel('MQTT-Topic', { exact: true }).fill('waermepumpe/events/rpc');
+  await hp.getByLabel('Payload-Pfad', { exact: true }).fill('$.params["em:0"].c_act_power');
+  await heater.getByLabel('Payload-Pfad', { exact: true }).fill('$.params["em:0"].a_act_power');
+  await checkbox.locator('..').locator('..').screenshot({ path: info.outputPath('alternative-power-settings.png') });
+  await page.getByRole('button', { name: 'Einstellungen speichern', exact: true }).click();
+  await expect.poll(() => values.alternativePower.enabled).toBe(true);
+  expect(values.alternativePower.heatpump).toEqual({ topic: 'waermepumpe/events/rpc', payloadPath: '$.params["em:0"].c_act_power' });
+  expect(values.alternativePower.heater).toEqual({ topic: 'waermepumpe/events/rpc', payloadPath: '$.params["em:0"].a_act_power' });
+  await checkbox.uncheck();
+  await page.getByRole('button', { name: 'Einstellungen speichern', exact: true }).click();
+  await expect.poll(() => values.alternativePower.enabled).toBe(false);
+  expect(values.alternativePower.heatpump.topic).toBe('waermepumpe/events/rpc');
+});
+
+test('alternative meter tiles reuse history dialogs and leave the HeishaMon COP tile unchanged', async ({ page }, info) => {
+  await page.route('**/api/v1/snapshot', async route => {
+    const snapshot = await (await route.fetch()).json();
+    const readings = { alternativePowerEnabled: 1, alternativeHeatpumpPower: 850, alternativeHeaterPower: 0 };
+    await route.fulfill({ json: { ...snapshot, revision: Number.MAX_SAFE_INTEGER,
+      values: [...snapshot.values.filter((v: { key: string }) => !(v.key in readings)), ...Object.entries(readings).map(([key, value]) => ({
+        key, value, unit: key === 'alternativePowerEnabled' ? '' : 'W', quality: 'valid', receivedAtUtc: new Date().toISOString(), retained: false, sourceKind: 'simulator'
+      }))] } });
+  });
+  await page.goto('/');
+  const panel = page.getByRole('region', { name: 'Anlagenstatus', exact: true });
+  await expect(panel.getByRole('article', { name: 'COP · HeishaMon', exact: true })).toContainText('Aus HeishaMon-Extra-Leistung berechnet');
+  const hp = panel.getByRole('article', { name: 'Wärmepumpe elektrisch', exact: true });
+  await expect(hp).toContainText('850');
+  await expect(panel.getByRole('article', { name: 'Heizstab elektrisch', exact: true })).toContainText('0');
+  await hp.screenshot({ path: info.outputPath('alternative-power-tile.png') });
+  const response = page.waitForResponse(r => r.url().includes('/api/v1/history?') && new URL(r.url()).searchParams.get('keys') === 'alternativeHeatpumpPower');
+  await hp.getByRole('button').click();
+  expect((await response).status()).toBe(200);
+  await expect(page.getByRole('dialog').getByRole('heading', { name: 'Wärmepumpe elektrisch – Diagramm', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+});

@@ -10,7 +10,7 @@ public sealed partial class SqliteHistoryStore
 {
     private static readonly string[] EnergyKeys = ["heatPowerConsumption", "coolPowerConsumption", "dhwPowerConsumption"];
     private static readonly string[] CopKeys = [.. EnergyKeys, "heatPowerProduction", "dhwPowerProduction",
-        "heatpumpState", "compressorFrequency", "defrostState", "internalHeaterState", "operatingMode", "threeWayValveState"];
+        "heatpumpState", "compressorFrequency", "defrostState", "internalHeaterState", "operatingMode", "threeWayValveState", "alternativeHeatpumpPower", "alternativeHeaterPower", "alternativePowerEnabled", "alternativePowerGeneration"];
     private sealed record PowerFrame(long Time, double?[] Values, long?[] Received)
     {
         public bool Compatible(IEnumerable<int> indices, int skew)
@@ -21,23 +21,28 @@ public sealed partial class SqliteHistoryStore
         }
         public int EnergyMode(int skew) => !Compatible([0, 1, 2], skew) || Values.Take(3).Count(v => v > 0) > 1
             ? -1 : Values[0] > 0 ? 0 : Values[1] > 0 ? 1 : Values[2] > 0 ? 2 : 3;
+        public bool Alternative => Values[13] == 1;
+        public string Generation => (Alternative ? "alternative:" : "extra:") + (Values[14] ?? 0).ToString(CultureInfo.InvariantCulture);
+        public int[] RequiredIndices(string mode) => Alternative
+            ? [mode == "heat" ? 3 : 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+            : [0, 1, 2, mode == "heat" ? 3 : 4, 5, 6, 7, 8, 9, 10];
         public (string Mode, double Electric, double Thermal, double State)? Cop(CopPolicy policy, int sampleSeconds)
         {
-            var mode = EnergyMode(CopPolicy.MaxAgeSeconds);
+            var mode = Alternative ? Values[10] == 0 ? 0 : Values[10] == 1 ? 2 : -1 : EnergyMode(CopPolicy.MaxAgeSeconds);
             if (mode is not (0 or 2)) return null;
             var thermal = mode == 0 ? 3 : 4;
-            if (!Compatible([0, 1, 2, thermal, 5, 6, 7, 8, 9, 10], CopPolicy.MaxAgeSeconds)
-                || !Compatible([mode, thermal], policy.MaxPairSeconds)
-                || new[] { 0, 1, 2, thermal, 5, 6, 7, 8, 9, 10 }.Any(i =>
-                    // Time is the start of a rounded storage slot. Receipts within
-                    // that slot are not future measurements.
-                    Received[i] >= (Time + sampleSeconds) * 1000 || Time * 1000 - Received[i] > CopPolicy.MaxAgeSeconds * 1000L)
+            var required = RequiredIndices(mode == 0 ? "heat" : "dhw");
+            var electric = Alternative ? Values[11] + Values[12] : Values[mode];
+            if (!Compatible(required, CopPolicy.MaxAgeSeconds)
+                || !Compatible(Alternative ? [11, 12, thermal] : [mode, thermal], policy.MaxPairSeconds)
+                || required.Any(i => Received[i] >= (Time + sampleSeconds) * 1000
+                    || Time * 1000 - Received[i] > CopPolicy.MaxAgeSeconds * 1000L)
                 || Values[5] != 1 || Values[6] <= 0 || Values[7] != 0 || Values[8] != 0
-                || Values[mode] < policy.MinimumElectricalWatts) return null;
+                || electric is null || !double.IsFinite(electric.Value) || electric < policy.MinimumElectricalWatts) return null;
             var state = Values[9]!.Value;
             if (mode == 0 && (Values[10] != 0 || state is not (0 or 2 or 4 or 6))) return null;
             if (mode == 2 && (Values[10] != 1 || state is not (3 or 4 or 5 or 6 or 8))) return null;
-            return (mode == 0 ? "heat" : "dhw", Values[mode]!.Value, Values[thermal]!.Value, state);
+            return (mode == 0 ? "heat" : "dhw", electric.Value, Values[thermal]!.Value, state);
         }
     }
 
@@ -71,8 +76,8 @@ public sealed partial class SqliteHistoryStore
         await foreach (var s in PowerFrames(CopKeys, Math.Max(0, query.From.ToUnixTimeSeconds() - minutes * 60 - Policy.SampleSeconds), CeilingSeconds(query.To) + Policy.SampleSeconds, token))
         {
             var c = s.Cop(policy, Policy.SampleSeconds);
-            var oldest = c.HasValue ? s.Received.Where((_, i) => i != (c.Value.Mode == "heat" ? 4 : 3)).Min() : null;
-            yield return new(s.Time, "extra", c?.Mode, c?.Electric ?? 0, c?.Thermal ?? 0, c.HasValue ? (int)c.Value.State : null,
+            var oldest = c.HasValue ? s.RequiredIndices(c.Value.Mode).Select(i => s.Received[i]).Min() : null;
+            yield return new(s.Time, s.Generation, c?.Mode, c?.Electric ?? 0, c?.Thermal ?? 0, c.HasValue ? (int)c.Value.State : null,
                 oldest.HasValue ? oldest.Value / 1000d + CopPolicy.MaxAgeSeconds : 0);
         }
     }
@@ -80,6 +85,7 @@ public sealed partial class SqliteHistoryStore
     {
         public double Seconds, Sum, AverageSeconds, AverageSum;
         public string? Mode;
+        public string? Generation;
         public bool Mixed;
     }
     public async Task<CopResult> CopAsync(HistoryQuery query, int windowMinutes, CopPolicy policy, CancellationToken token)
@@ -93,8 +99,9 @@ public sealed partial class SqliteHistoryStore
         var from = query.From.ToUnixTimeMilliseconds() / 1000d;
         var to = query.To.ToUnixTimeMilliseconds() / 1000d;
         var width = query.BucketSeconds;
-        var buckets = new Dictionary<long, CopBucket>();
+        var buckets = new Dictionary<(long Time, string Mode), CopBucket>();
         double validSeconds = 0, electricEnergy = 0, thermalEnergy = 0;
+        var electricalSources = new HashSet<string>();
         await readers.WaitAsync(token);
         try
         {
@@ -102,6 +109,7 @@ public sealed partial class SqliteHistoryStore
             CopFrame? previous = null;
             await foreach (var frame in CopFrames(query, windowMinutes, policy, token))
             {
+                if (frame.Time >= from && frame.Time < to) electricalSources.Add(frame.Generation.StartsWith("alternative:", StringComparison.Ordinal) ? "alternative-mqtt" : "heishamon-extra");
                 var a = previous; var b = frame;
                 if (a is null || a.Mode is null || b.Mode is null || b.Time <= a.Time || a.Generation != b.Generation
                     || b.Time - a.Time != Policy.SampleSeconds
@@ -127,8 +135,10 @@ public sealed partial class SqliteHistoryStore
                     {
                         var slot = (long)Math.Floor(t / width) * width;
                         var stop = Math.Min(end, slot + width); var seconds = stop - t;
-                        if (!buckets.TryGetValue(slot, out var bucket)) buckets[slot] = bucket = new();
-                        if (bucket.Mode is not null && bucket.Mode != a.Mode) bucket.Mixed = true;
+                        var key = (slot, a.Mode);
+                        if (!buckets.TryGetValue(key, out var bucket)) buckets[key] = bucket = new();
+                        if (bucket.Mode is not null && (bucket.Mode != a.Mode || bucket.Generation != a.Generation)) bucket.Mixed = true;
+                        bucket.Generation = a.Generation;
                         bucket.Mode = a.Mode; bucket.Seconds += seconds; bucket.Sum += value * seconds;
                         if (average.HasValue) { bucket.AverageSeconds += seconds; bucket.AverageSum += average.Value * seconds; }
                         t = stop;
@@ -139,27 +149,40 @@ public sealed partial class SqliteHistoryStore
         }
         finally { readers.Release(); }
         var points = new List<CopPoint>();
+        var heating = new List<CopPoint>(); var hotWater = new List<CopPoint>();
         for (var t = (long)Math.Floor(from / width) * width; t < to; t += width)
         {
             var expected = Math.Min(to, t + width) - Math.Max(from, t);
-            var b = buckets.GetValueOrDefault(t);
-            var complete = b is not null && !b.Mixed && double.IsFinite(b.Sum) && Math.Abs(b.Seconds - expected) < .001;
-            points.Add(new(DateTimeOffset.FromUnixTimeSeconds(t), complete ? b!.Mode : null,
-                complete ? b!.Sum / b.Seconds : null,
-                complete && double.IsFinite(b!.AverageSum) && Math.Abs(b.AverageSeconds - expected) < .001 ? b.AverageSum / b.AverageSeconds : null, b?.Seconds ?? 0, expected));
+            CopPoint Measured(string mode)
+            {
+                var b = buckets.GetValueOrDefault((t, mode));
+                var valid = b is not null && b.Seconds > 0 && double.IsFinite(b.Sum);
+                return new(DateTimeOffset.FromUnixTimeSeconds(t), valid ? mode : null,
+                    valid ? b!.Sum / b.Seconds : null,
+                    valid && !b!.Mixed && double.IsFinite(b.AverageSum) && Math.Abs(b.AverageSeconds - b.Seconds) < .001
+                        ? b.AverageSum / b.AverageSeconds : null, b?.Seconds ?? 0, expected);
+            }
+            var heat = Measured("heat"); var dhw = Measured("dhw");
+            heating.Add(heat); hotWater.Add(dhw);
+            // Keep the existing single-mode rows for older clients. Mixed blocks
+            // have two independent mode-series points, never a blended COP.
+            points.Add(heat.Cop.HasValue && dhw.Cop.HasValue
+                ? new(heat.Time, null, null, null, heat.ValidSeconds + dhw.ValidSeconds, expected)
+                : heat.Cop.HasValue ? heat : dhw.Cop.HasValue ? dhw : new(heat.Time, null, null, null, 0, expected));
         }
         var ratio = electricEnergy > 0 ? thermalEnergy / electricEnergy : (double?)null;
         return new(query.From.ToUniversalTime(), query.To.ToUniversalTime(), width, windowMinutes, source,
             policy.MinimumElectricalWatts, policy.MaxPairSeconds, validSeconds, to - from,
             ratio.HasValue && double.IsFinite(ratio.Value) ? ratio : null, points)
-        { ElectricalSource = "heishamon-extra" };
+        { ElectricalSource = electricalSources.Count > 1 ? "mixed" : electricalSources.SingleOrDefault() ?? "heishamon-extra",
+            Series = [new("heat", heating), new("dhw", hotWater)] };
     }
 
     public async Task<EnergyResult> EnergyAsync(int year, int maxPairSeconds, DateTimeOffset now, CancellationToken token)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
         deadline.CancelAfter(TimeSpan.FromSeconds(30)); token = deadline.Token;
-        var result = await ExtraEnergyAsync(year, maxPairSeconds, now, token);
+        var result = await RecordedEnergyAsync(year, maxPairSeconds, now, token);
         var minima = new double?[result.Days.Count];
         var counts = new int[result.Days.Count];
         await readers.WaitAsync(token);

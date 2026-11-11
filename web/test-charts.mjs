@@ -4,9 +4,43 @@ import { lineOptions, stateIntervals, numericScale } from './src/charts/historyO
 import { stateLabel, stateColor, metricColor, metricNumber, chartTime } from './src/charts/chartFormat.ts';
 import { bandSegments } from './src/charts/analysisOptions.ts';
 import { boundedRange, csvAllowed, zoomRange } from './src/charts/historyRange.ts';
-import { copOptions, energyOptions } from './src/charts/efficiencyOptions.ts';
+import { copOptions, copDisplayPoints, energyOptions, energySourceLabel } from './src/charts/efficiencyOptions.ts';
 import { metricOptions, defaults, parseOptions, readPreferences } from './src/charts/metricChartOptions.ts';
 import { trendPoints } from './src/charts/trendOptions.ts';
+
+test('COP table preserves missing intervals and both modes in mixed buckets', () => {
+  const point = (time, mode, cop, validSeconds) => ({ time, mode, cop, average: null, validSeconds, expectedSeconds: 120 });
+  const times = ['2026-11-11T10:00:00Z', '2026-11-11T10:02:00Z'];
+  const missing = point(times[1], null, null, 0);
+  const heat = point(times[0], 'heat', 4, 30), dhw = point(times[0], 'dhw', 3, 60);
+  assert.deepEqual(copDisplayPoints({ points: [point(times[0], null, null, 90), missing], series: [
+    { mode: 'heat', points: [heat, missing] }, { mode: 'dhw', points: [dhw, missing] }
+  ] }), [dhw, heat, missing]);
+});
+
+test('partial COP buckets retain both modes as isolated measured points', () => {
+  const time = '2026-11-11T10:00:00Z';
+  const point = (mode, cop) => ({ time, mode, cop, average: null, validSeconds: 30, expectedSeconds: 120 });
+  const option = copOptions({ points: [point(null, null)], series: [
+    { mode: 'heat', points: [point('heat', 4)] }, { mode: 'dhw', points: [point('dhw', 3)] }
+  ], windowMinutes: 15, bucketSeconds: 120 }, true);
+  assert.deepEqual(option.series[0].data.map(p => p[1]), [null, 4, null]);
+  assert.deepEqual(option.series[2].data.map(p => p[1]), [null, 3, null]);
+  assert.ok(option.series.slice(4).every(s => s.data.every(p => p[1] === null)));
+  assert.match(option.tooltip.formatter([{ seriesName: 'Heizen', value: option.series[0].data[1] }]), /30 \/ 120 s/);
+});
+
+test('daily meter energy labels and tooltip preserve source and individual channel readings', () => {
+  assert.equal(energySourceLabel('shelly-ac'), 'Shelly · C + A');
+  assert.equal(energySourceLabel('alternative-mqtt'), 'Alternative Leistungsdaten');
+  assert.equal(energySourceLabel('mixed'), 'Gemischte Quellen im Zeitraum');
+  assert.equal(energySourceLabel('heishamon-extra'), 'HeishaMon-Extra');
+  const option = energyOptions({ year: 2026, source: 'mqtt', electricalSource: 'shelly-ac', unit: 'kWh', timeZone: 'Europe/Berlin',
+    days: [{ date: '2026-11-01', kwh: 8.5, heatpumpKwh: 8, heaterKwh: .5, validSeconds: 86400, expectedSeconds: 86400, status: 'complete' }] });
+  const tooltip = option.tooltip.formatter({ value: ['2026-11-01', 8.5] });
+  assert.match(tooltip, /Wärmepumpe elektrisch: 8 kWh/);
+  assert.match(tooltip, /Heizstab elektrisch: 0,5 kWh/);
+});
 
 test('trend smooths without mutating measurements, inventing zeros or crossing gaps', () => {
   const points = [[0, 0], [30000, 9], [60000, 0]];

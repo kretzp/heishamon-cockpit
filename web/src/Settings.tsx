@@ -1,3 +1,4 @@
+import { AlternativePowerFields, type AlternativePowerOptions } from './AlternativePowerFields';
 import { settingsText as st } from './i18n/settings';
 import { t, text as localizeText, getLocale } from "./i18n/core";
 import { useLanguage } from "./i18n/Language";
@@ -10,6 +11,7 @@ type Values = {
   plantName: string;
   retentionDays: number;
   revision: number;
+  alternativePower: AlternativePowerOptions;
 };
 type Config = {
   values: Values;
@@ -202,7 +204,7 @@ export function SettingsPanel({
     });
     if (!response.ok) {
       const p = await response.json().catch(() => ({}));
-      throw Error(errors[p.errorCode] ?? (response.status === 401 ? 'Anmeldung erforderlich oder Zugangsdaten ungültig.' : response.status === 403 ? 'Bedienerrechte erforderlich.' : 'Anfrage fehlgeschlagen.'));
+      throw Error(({ invalid_power_topic: t("Ungültiges MQTT-Topic. Ein exaktes Topic ohne Platzhalter ist erforderlich."), invalid_power_path: t("Ungültiger Payload-Pfad. Erlaubt sind JSON-Objektfelder und Arrayindizes."), invalid_power_settings: t("Ungültige alternative Leistungsdaten.") } as Record<string, string>)[p.errorCode] ?? errors[p.errorCode] ?? (response.status === 401 ? 'Anmeldung erforderlich oder Zugangsdaten ungültig.' : response.status === 403 ? 'Bedienerrechte erforderlich.' : 'Anfrage fehlgeschlagen.'));
     }
     return response.status === 204 ? null : response.json();
   }
@@ -279,6 +281,7 @@ export function SettingsPanel({
           confirmReduction: confirmed
         });
         onSaved(saved.plantName);
+        window.dispatchEvent(new Event('cockpit-power-changed'));
         await load();
         setMessage('Einstellungen gespeichert. Eine geänderte Aufbewahrung gilt nach dem nächsten Cockpit-Neustart.');
       });
@@ -294,6 +297,7 @@ export function SettingsPanel({
       <p>{t("Aktiv: ")}{localizeText(config.activeRetentionDays)}{t(" Tage · Messraster: ")}{localizeText(config.sampleSeconds)}{t(" Sekunden. Ein anderes Messraster benötigt eine neue Datenbank.")}</p>
       {config.restartRequired && <p role="status">{t("Geänderte Aufbewahrung gespeichert – Cockpit-Neustart ausstehend.")}</p>}
       {reducing && <label><Input type="checkbox" checked={confirmed} disabled={!operator || busy} onChange={e => setConfirmed(e.target.checked)} />{t(" Ich bestätige: Nach dem Neustart werden Messwerte und Ereignisse außerhalb der verkürzten Aufbewahrung gelöscht.")}</label>}
+      <AlternativePowerFields value={draft.alternativePower ?? { enabled: false, heatpump: null, heater: null }} disabled={!operator || busy} onChange={alternativePower => setDraft({ ...draft, alternativePower })} />
       <div className="button-row"><Button type="button" disabled={busy} onClick={() => void act(load)}>{t("Neu laden / Verwerfen")}</Button><Button className="primary" disabled={!operator || busy || reducing && !confirmed}>{t("Einstellungen speichern")}</Button></div>
     </form>}
     <div className="two-column settings-grid">

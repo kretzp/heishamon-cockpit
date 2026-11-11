@@ -58,6 +58,8 @@ type System = {
   capabilities?: string[];
 };
 const labels: Record<string, string> = {
+  alternativeHeatpumpPower: 'Wärmepumpe elektrisch',
+  alternativeHeaterPower: 'Heizstab elektrisch',
   heishamonCop: 'COP · HeishaMon',
   heatPowerConsumption: 'Heizen elektrisch',
   heatPowerProduction: 'Heizen thermisch',
@@ -249,6 +251,7 @@ function App() {
     void connect();
     const refreshSystem = () => { void refresh().catch(() => setTransport(false)); };
     window.addEventListener('cockpit-control-changed', refreshSystem);
+    window.addEventListener('cockpit-power-changed', refreshSystem);
     const tick = setInterval(() => {
       setNow(Date.now());
       void connect();
@@ -258,6 +261,7 @@ function App() {
       abort.abort();
       clearInterval(tick);
       window.removeEventListener('cockpit-control-changed', refreshSystem);
+      window.removeEventListener('cockpit-power-changed', refreshSystem);
       void hub.stop();
     };
   }, []);
@@ -332,7 +336,7 @@ function App() {
         <div className="overview-layout"><div className="overview-main">
           <SortableMetrics group="temperatures" label={t("Messwerte")} className="temperature-grid" editing={editingOrder} keys={normalizeOrder(layout.orders.temperatures, temperatureKeys)} labels={labels} save={layout.save} render={(key, attrs, controls) => card(key, "", attrs, controls, 2)} />
           <section className="panel plant-panel" aria-label={t("Anlagenstatus")}><h2>{t("Anlagenstatus")}</h2>
-            <SortableMetrics group="plant" label={t("Anlagenmesswerte")} className="plant-grid" editing={editingOrder} keys={normalizeOrder(layout.orders.plant, plantKeys)} labels={labels} save={layout.save} render={(key, attrs, controls) => card(key, "plant-metric", attrs, controls)} />
+            <SortableMetrics group="plant" label={t("Anlagenmesswerte")} className="plant-grid" editing={editingOrder} keys={normalizeOrder(layout.orders.plant, currentValue('alternativePowerEnabled')?.value === 1 ? [...plantKeys, 'alternativeHeatpumpPower', 'alternativeHeaterPower'] : plantKeys)} labels={labels} save={layout.save} render={(key, attrs, controls) => card(key, "plant-metric", attrs, controls)} />
             <SortableMetrics group="details" label={t("Betriebszustände")} className="plant-details" editing={editingOrder} keys={detailOrder} labels={labels} save={layout.save} render={(key, attrs, controls) => card(key, "compact", attrs, controls)} />
           </section>
           <HistoryPanel compact /><EventsPanel compact />

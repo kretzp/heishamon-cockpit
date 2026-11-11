@@ -18,6 +18,8 @@ public sealed record HistoryQuery(string[] Keys, DateTimeOffset From, DateTimeOf
 {
     public static IReadOnlyDictionary<string, Metric> Metrics { get; } = Catalog.Metrics
         .Append(new Metric("temperatureSpread", Catalog.Kelvin, "", "number"))
+        .Append(new Metric("alternativeHeatpumpPower", Catalog.Watt, "", "positive"))
+        .Append(new Metric("alternativeHeaterPower", Catalog.Watt, "", "positive"))
         .Append(new Metric("heishamonCop", "", "", "positive"))
         .Append(new Metric("indoorTargetTemperature", Catalog.Celsius, "", "number")).ToDictionary(m => m.Key);
     public static Metric? FindMetric(string key) => Metrics.GetValueOrDefault(key) ?? OneWire.FromKey(key);

@@ -30,6 +30,8 @@ const shapes = {
 
 export type MetricIconName = keyof typeof shapes;
 export const metricIconNames: Record<string, MetricIconName> = {
+  "alternativeHeatpumpPower": "electricheat",
+  "alternativeHeaterPower": "heater",
   "heishamonCop": "regulation",
   "flowTemperature": "flow",
   "returnTemperature": "return",

@@ -13,11 +13,13 @@ public sealed record CopPolicy(double MinimumElectricalWatts = 200, int MaxPairS
     }
 }
 public sealed record CopPoint(DateTimeOffset Time, string? Mode, double? Cop, double? Average, double ValidSeconds, double ExpectedSeconds);
+public sealed record CopModeSeries(string Mode, IReadOnlyList<CopPoint> Points);
 public sealed record CopResult(DateTimeOffset From, DateTimeOffset To, int BucketSeconds, int WindowMinutes,
     SourceKind Source, double MinimumElectricalWatts, int MaxPairSeconds,
     double ValidSeconds, double ExpectedSeconds, double? EnergyRatio, IReadOnlyList<CopPoint> Points)
 {
     public string ElectricalSource { get; init; } = "heishamon-extra";
+    public IReadOnlyList<CopModeSeries> Series { get; init; } = [];
 }
 public sealed record EnergyDay(string Date, DateTimeOffset From, DateTimeOffset To, double? Kwh,
     double ValidSeconds, double ExpectedSeconds, string Status)

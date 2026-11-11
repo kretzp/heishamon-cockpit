@@ -38,7 +38,10 @@ if (!Path.IsPathRooted(historyPath)) historyPath = Path.Combine(builder.Environm
 var usersPath = builder.Configuration["Access:DatabasePath"] ?? Path.Combine(Path.GetDirectoryName(historyPath)!, "users.db");
 if (!Path.IsPathRooted(usersPath)) usersPath = Path.Combine(builder.Environment.ContentRootPath, usersPath);
 var mqttSecretDirectory = builder.Configuration["Mqtt:SecretDirectory"] ?? Path.Combine(Path.GetDirectoryName(usersPath)!, "mqtt-secrets");
-var mqttSettings = new MqttSettingsStore(mqttSecretDirectory, builder.Configuration.GetSection("Mqtt").Get<MqttReadOptions>() ?? new());
+var mqttDefaults = builder.Configuration.GetSection("Mqtt").Get<MqttReadOptions>() ?? new();
+if (mqttDefaults.LiveReadOnly && builder.Configuration["Mqtt:Prefix"] is null)
+    mqttDefaults = mqttDefaults with { Prefix = "panasonic_heat_pump" };
+var mqttSettings = new MqttSettingsStore(mqttSecretDirectory, mqttDefaults);
 var readOptions = mqttSettings.Read().Options;
 if (args.Contains("--setup-installation", StringComparer.Ordinal))
 {
@@ -110,6 +113,8 @@ if (authenticationEnabled)
 }
 var settings = new AppSettingsStore(historyPath + ".settings.json", historyPolicy.RetentionDays);
 historyPolicy = historyPolicy with { RetentionDays = settings.Read().RetentionDays };
+store.ConfigureAlternativePower(settings.Read().AlternativePower, settings.Read().PowerGeneration);
+settings.Changed += value => store.ConfigureAlternativePower(value.AlternativePower, value.PowerGeneration);
 builder.Services.AddSingleton(settings);
 builder.Services.AddSingleton(mqttSettings);
 builder.Services.AddSingleton(controlSetup);
@@ -119,7 +124,7 @@ builder.Services.AddSingleton<HistoryWorker>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<HistoryWorker>());
 builder.Services.AddSingleton<IReadOnlyTelemetrySource>(source == "simulator"
     ? simulator
-    : new ReloadingMqttSource(mqttSettings));
+    : new ReloadingMqttSource(mqttSettings, settings));
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter(System.Text.Json.JsonNamingPolicy.CamelCase)));
 builder.Services.AddSignalR().AddJsonProtocol(o => o.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter(System.Text.Json.JsonNamingPolicy.CamelCase)));
 builder.Services.AddHostedService<TelemetryWorker>();

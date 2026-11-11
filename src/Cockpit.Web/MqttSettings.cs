@@ -68,7 +68,7 @@ public sealed class MqttSettingsStore
     }
 }
 
-public sealed class ReloadingMqttSource(MqttSettingsStore settings) : Cockpit.Application.IReadOnlyTelemetrySource
+public sealed class ReloadingMqttSource(MqttSettingsStore settings, Cockpit.Infrastructure.Persistence.AppSettingsStore? appSettings = null) : Cockpit.Application.IReadOnlyTelemetrySource
 {
     public async Task RunAsync(Cockpit.Application.TelemetryStore store, CancellationToken cancellationToken)
     {
@@ -76,14 +76,18 @@ public sealed class ReloadingMqttSource(MqttSettingsStore settings) : Cockpit.Ap
         {
             using var reload = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             void Changed() { try { reload.Cancel(); } catch (ObjectDisposedException) { } }
+            var powerSettings = appSettings?.Read();
+            void PowerChanged(Cockpit.Infrastructure.Persistence.AppSettings value) { if (value.PowerGeneration != powerSettings?.PowerGeneration) Changed(); }
             settings.Changed += Changed;
+            if (appSettings is not null) appSettings.Changed += PowerChanged;
             try
             {
                 var options = settings.Read().Options;
-                await new MqttReadSource(options).RunAsync(store, reload.Token);
+                if (appSettings?.Read().PowerGeneration != powerSettings?.PowerGeneration) reload.Cancel();
+                await new MqttReadSource(options, powerSettings?.AlternativePower, powerSettings?.PowerGeneration ?? 0).RunAsync(store, reload.Token);
             }
             catch (OperationCanceledException) when (reload.IsCancellationRequested) { }
-            finally { settings.Changed -= Changed; store.SetConnection(false); }
+            finally { settings.Changed -= Changed; if (appSettings is not null) appSettings.Changed -= PowerChanged; store.SetConnection(false); }
         }
     }
 }

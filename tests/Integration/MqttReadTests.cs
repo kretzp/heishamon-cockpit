@@ -12,6 +12,16 @@ namespace Cockpit.Integration;
 
 public sealed class MqttReadTests
 {
+    [Fact]
+    public void AlternativeTopicsAreExactDeduplicatedAndMayBeOutsideHeishamonPrefix()
+    {
+        var settings = new AlternativePowerOptions(true, new("external/events", "$.a"), new("external/events", "$.c"));
+        var source = new MqttReadSource(new() { IsolatedTestBroker = true }, settings, 1);
+        Assert.Single(source.Subscriptions, topic => topic == "external/events");
+        Assert.Contains("cockpit_test/LWT", source.Subscriptions);
+        var disabled = new MqttReadSource(new() { IsolatedTestBroker = true }, settings with { Enabled = false });
+        Assert.DoesNotContain("external/events", disabled.Subscriptions);
+    }
     [Theory]
     [InlineData("192.0.2.1", "test", true)]
     [InlineData("localhost", "test", true)]

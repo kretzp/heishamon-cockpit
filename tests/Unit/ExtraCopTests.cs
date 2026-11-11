@@ -20,6 +20,19 @@ public sealed class ExtraCopTests
         return store;
     }
     private static TelemetryValue Cop(TelemetryStore store) => store.Read().Values.Single(v => v.Key == "heishamonCop");
+    [Fact]
+    public void AlternativeMetersDoNotChangeTheOverviewCop()
+    {
+        var store = Open();
+        var before = Cop(store);
+        store.ConfigureAlternativePower(new(true, new("external/hp", ""), new("external/heater", "")), 1);
+        store.ReceiveAlternativePower("external/hp", "750", false, 1);
+        store.ReceiveAlternativePower("external/heater", "250", false, 1);
+        Assert.Equal(before, Cop(store));
+        Assert.Equal(4d, Cop(store).Value);
+        store.ReceiveAlternativePower("external/hp", "broken", false, 1);
+        Assert.Equal(before, Cop(store));
+    }
     [Theory]
     [InlineData(false, 4)]
     [InlineData(true, 3)]

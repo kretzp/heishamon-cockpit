@@ -1,5 +1,25 @@
 import { test, expect, type Page } from './coverage-fixture';
 
+test('partial COP buckets show heating and hot water separately', async ({ page }) => {
+  await fixtures(page);
+  await page.route('**/api/v1/history/cop?*', route => {
+    const time = '2026-11-11T10:00:00Z';
+    const point = (mode: string | null, cop: number | null) => ({ time, mode, cop, average: null, validSeconds: 30, expectedSeconds: 120 });
+    return route.fulfill({ json: { source: 'simulator', bucketSeconds: 120, windowMinutes: 15,
+      validSeconds: 60, expectedSeconds: 120, energyRatio: 3.5, points: [point(null, null)],
+      series: [{ mode: 'heat', points: [point('heat', 4)] }, { mode: 'dhw', points: [point('dhw', 3)] }] } });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Verlauf', exact: true }).click();
+  const panel = page.getByRole('region', { name: 'Effizienz und Tagesenergie' });
+  await panel.getByText('COP-Wertetabelle (letzte 20 Intervalle)', { exact: true }).click();
+  await expect(panel.locator('tbody tr').filter({ hasText: 'Heizen' })).toContainText('30 / 120 s');
+  await expect(panel.locator('tbody tr').filter({ hasText: 'Warmwasser' })).toContainText('30 / 120 s');
+  await expect(panel.locator('.history-chart path[stroke="#0964d8"]')).not.toHaveCount(0);
+  await expect(panel.locator('.history-chart path[stroke="#a42b6c"]')).not.toHaveCount(0);
+  await expect(panel.getByText('Keine ausreichend gültigen Leistungsintervalle für COP.')).toHaveCount(0);
+});
+
 test('overview shows the separate COP calculated from HeishaMon Extra power', async ({ page }, info) => {
   await page.goto('/');
   const status = page.getByRole('region', { name: 'Anlagenstatus', exact: true });
@@ -18,7 +38,7 @@ test('overview shows the separate COP calculated from HeishaMon Extra power', as
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
 });
 
-async function fixtures(page: Page) {
+async function fixtures(page: Page, electricalSource = 'heishamon-extra') {
   await page.route('**/api/v1/history/cop?*', route => {
     const q = new URL(route.request().url()).searchParams;
     const from = q.get('from')!, to = q.get('to')!, windowMinutes = Number(q.get('windowMinutes'));
@@ -32,7 +52,7 @@ async function fixtures(page: Page) {
   await page.route('**/api/v1/history/energy?*', route => {
     const year = Number(new URL(route.request().url()).searchParams.get('year'));
     const count = new Date(Date.UTC(year, 1, 29)).getUTCMonth() === 1 ? 366 : 365;
-    return route.fulfill({ json: { year, source: 'simulator', unit: 'kWh', timeZone: 'Europe/Berlin', electricalSource: 'heishamon-extra',
+    return route.fulfill({ json: { year, source: 'simulator', unit: 'kWh', timeZone: 'Europe/Berlin', electricalSource,
       days: Array.from({ length: count }, (_, i) => {
         const date = new Date(Date.UTC(year, 0, i + 1)).toISOString().slice(0, 10);
         const from = date === '2026-03-29' ? '2026-03-28T23:00:00Z' : date + 'T00:00:00Z';
@@ -43,6 +63,18 @@ async function fixtures(page: Page) {
           expectedSeconds: (Date.parse(to) - Date.parse(from)) / 1000,
           status: i % 10 === 0 ? 'missing' : i % 7 === 0 ? 'partial' : 'complete' };
       }) } });
+  });
+}
+for (const [source, label] of [['shelly-ac', 'Shelly · C + A'], ['alternative-mqtt', 'Alternative Leistungsdaten'], ['mixed', 'Gemischte Quellen im Zeitraum']]) {
+  test(`daily energy follows recorded source ${source}`, async ({ page }) => {
+    await fixtures(page, source);
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Verlauf', exact: true }).click();
+    const daily = page.getByRole('region', { name: 'Tagesverbrauch', exact: true });
+    await expect(daily.getByRole('heading', { name: 'Tagesverbrauch · erfasste elektrische Energie' })).toBeVisible();
+    await expect(daily.getByText(`Simulation · Quelle: ${label}`, { exact: false })).toBeVisible();
+    await expect(daily.getByText('Integration elektrischer Extra-Leistung', { exact: false })).toHaveCount(0);
+    if (source === 'shelly-ac') await expect(daily.getByText('Messlücken über 20 s', { exact: false })).toBeVisible();
   });
 }
 test('E3 COP lines, window selection and calendar distinguish incomplete and zero days', async ({ page }, info) => {

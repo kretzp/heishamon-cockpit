@@ -36,6 +36,59 @@ public sealed class EfficiencyTests : IDisposable
         tx.Commit();
     }
     private static HistoryQuery Query(DateTimeOffset? start = null, int seconds = 900, int bucket = 30) => new(["heatPowerConsumption"], start ?? Start, (start ?? Start).AddSeconds(seconds), bucket);
+    private static void Alternative(Dictionary<string, double> values, double heater = 0, double generation = 1)
+    {
+        values["alternativePowerEnabled"] = 1;
+        values["alternativePowerGeneration"] = generation;
+        values["alternativeHeatpumpPower"] = 750;
+        values["alternativeHeaterPower"] = heater;
+    }
+    [Theory]
+    [InlineData(false, 0, 4000d / 750)]
+    [InlineData(false, 250, 4)]
+    [InlineData(true, 0, 4)]
+    public async Task AlternativeCopUsesBothMetersWithoutRequiringHeishamonElectricity(bool dhw, double heater, double expected)
+    {
+        using var store = Open(); await store.InitializeAsync(default);
+        await Seed(Start, 3, change: (_, v) => {
+            Alternative(v, heater);
+            v.Remove("heatPowerConsumption"); v.Remove("coolPowerConsumption"); v.Remove("dhwPowerConsumption");
+            if (dhw) { v["operatingMode"] = 3; v["threeWayValveState"] = 1; v["dhwPowerProduction"] = 3000; }
+        });
+        var result = await store.CopAsync(Query(seconds: 60), 5, new(), default);
+        Assert.Equal("alternative-mqtt", result.ElectricalSource);
+        Assert.All(result.Points, point => Assert.Equal(expected, point.Cop));
+        Assert.Equal(expected, result.EnergyRatio);
+        var history = await store.QueryAsync(new(["alternativeHeatpumpPower", "alternativeHeaterPower"], Start, Start.AddMinutes(1), 30), default);
+        Assert.Equal(2, history.Series.Count);
+        Assert.All(history.Series, series => Assert.Equal("W", series.Unit));
+    }
+    [Theory]
+    [InlineData("alternativeHeaterPower", false)]
+    [InlineData("alternativeHeatpumpPower", false)]
+    [InlineData("internalHeaterState", true)]
+    [InlineData("defrostState", true)]
+    public async Task InvalidAlternativeInputsNeverFallBackToHeishamon(string key, bool setState)
+    {
+        using var store = Open(); await store.InitializeAsync(default);
+        await Seed(Start, 3, change: (_, v) => { Alternative(v); if (setState) v[key] = 1; else v.Remove(key); });
+        var result = await store.CopAsync(Query(seconds: 60), 5, new(), default);
+        Assert.All(result.Points, point => Assert.Null(point.Cop));
+        Assert.Null(result.EnergyRatio);
+        Assert.Equal("alternative-mqtt", result.ElectricalSource);
+    }
+    [Fact]
+    public async Task HistoricalSelectionAndConfigurationChangesBreakIntervalsAndSmoothing()
+    {
+        using var store = Open(); await store.InitializeAsync(default);
+        await Seed(Start, 8, change: (i, v) => { if (i >= 2) Alternative(v, 250, i >= 5 ? 2 : 1); });
+        var result = await store.CopAsync(Query(seconds: 210), 5, new(), default);
+        Assert.Equal("mixed", result.ElectricalSource);
+        Assert.Equal(new double?[] { 4, null, 4, 4, null, 4, 4 }, result.Points.Select(p => p.Cop));
+        Assert.All(result.Points, point => Assert.Null(point.Average));
+        Assert.Equal("mixed", (await store.EnergyAsync(2026, 60, Start.AddDays(1), default)).ElectricalSource);
+    }
+
     [Theory]
     [InlineData("2026-03-29")]
     [InlineData("2026-10-25")]
@@ -144,6 +197,38 @@ public sealed class EfficiencyTests : IDisposable
         using var store = Open(step: 120); await store.InitializeAsync(default); await Seed(Start, 4, step: 120);
         var result = await store.CopAsync(Query(seconds: 360, bucket: 120), 5, new(), default);
         Assert.Null(result.Points[1].Average); Assert.Equal(4, result.Points[2].Average);
+    }
+    [Fact]
+    public async Task PartialCopBucketsKeepSeparateHeatingAndHotWaterMeasurements()
+    {
+        using var store = Open(); await store.InitializeAsync(default);
+        await Seed(Start, 9, change: (i, v) => {
+            if (i == 2) v.Remove("heatPowerConsumption");
+            if (i >= 4) { v["heatPowerConsumption"] = 0; v["dhwPowerConsumption"] = 1000;
+                v["dhwPowerProduction"] = 3000; v["threeWayValveState"] = 1; v["operatingMode"] = 3; }
+        });
+        var fine = await store.CopAsync(Query(seconds: 240), 5, new(), default);
+        var coarse = await store.CopAsync(Query(seconds: 240, bucket: 240), 5, new(), default);
+        var heat = Assert.Single(coarse.Series.Single(s => s.Mode == "heat").Points);
+        var dhw = Assert.Single(coarse.Series.Single(s => s.Mode == "dhw").Points);
+        Assert.Equal(4, heat.Cop); Assert.Equal(30, heat.ValidSeconds); Assert.Equal(240, heat.ExpectedSeconds);
+        Assert.Equal(3, dhw.Cop); Assert.Equal(120, dhw.ValidSeconds);
+        Assert.Null(heat.Average); Assert.Null(dhw.Average);
+        Assert.Equal(fine.ValidSeconds, coarse.ValidSeconds); Assert.Equal(fine.EnergyRatio, coarse.EnergyRatio);
+        Assert.Equal(coarse.ValidSeconds, heat.ValidSeconds + dhw.ValidSeconds);
+        Assert.Null(Assert.Single(coarse.Points).Cop); // Compatibility row never mixes the modes.
+    }
+    [Fact]
+    public async Task PartialCopUsesMeasuredTimeOnlyAndDoesNotEraseOtherBuckets()
+    {
+        using var store = Open(); await store.InitializeAsync(default);
+        await Seed(Start, 9, change: (i, v) => { if (i == 2) v.Remove("heatPowerConsumption"); });
+        var coarse = await store.CopAsync(Query(seconds: 240, bucket: 120), 5, new(), default);
+        var heat = coarse.Series.Single(s => s.Mode == "heat").Points;
+        Assert.Equal(new double?[] { 4, 4 }, heat.Select(p => p.Cop));
+        Assert.Equal(new double[] { 60, 120 }, heat.Select(p => p.ValidSeconds));
+        Assert.All(coarse.Series.Single(s => s.Mode == "dhw").Points, p => Assert.Null(p.Cop));
+        Assert.Equal(180, coarse.ValidSeconds);
     }
     [Theory]
     [InlineData("2026-03-29", 23)]

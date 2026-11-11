@@ -5,7 +5,7 @@
       "cockpit.application": {
         "type": "Project",
         "dependencies": {
-          "Cockpit.Domain": "[1.0.0, )"
+          "Cockpit.Domain": "[0.9.2, )"
         }
       },
       "cockpit.domain": {
