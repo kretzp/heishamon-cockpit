@@ -7,6 +7,10 @@ repository root. For Podman, replace `docker compose` with `podman compose`.
 
 ## First installation
 
+Building the image is non-interactive and requires no accounts, certificates or
+MQTT credentials. These are created by `--setup-installation` **after** the build
+and stored only in the installation's data volume, never in the image.
+
 ```sh
 docker compose build
 docker compose run --rm cockpit --setup-installation
@@ -61,6 +65,20 @@ See [control setup](CONTROL-SETUP.md) before enabling device control.
 The image uses native architecture base images; Linux x64 and ARM64 builds are
 intended. Cross-platform builds require a builder configured for that platform.
 Container packaging does not establish compatibility with real heat-pump hardware.
+
+## Continuous integration
+
+The Linux x64 Docker job in `.github/workflows/ci.yml` builds the image and checks
+Compose configuration on relevant pull requests and pushes to `master`.
+`python tools/test_container.py <image>` runs the smoke test locally as well.
+It starts a simulator with login and control disabled, without published ports,
+using Docker's `none` network. It checks readiness, liveness, the built frontend,
+read-only simulator status, the unprivileged user and writable data storage.
+It recreates the container with the same volume to check persistence, then removes
+its uniquely named test containers and volume, including on failure.
+No interactive setup or GitHub secrets are needed. This smoke test does not cover
+production login, HTTPS or MQTT connections; those use the installation procedure
+above.
 
 References: [Microsoft .NET container guide](https://docs.docker.com/guides/dotnet/)
 and [Podman Compose provider documentation](https://docs.podman.io/en/latest/markdown/podman-compose.1.html).

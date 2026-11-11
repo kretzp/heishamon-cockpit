@@ -8,6 +8,11 @@ on:
       - 'tests/**'
       - 'tools/Cockpit.Simulator/**'
       - 'installation/**'
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'compose.yaml'
+      - 'packaging/container-entrypoint.sh'
+      - 'tools/test_container.py'
       - 'tools/test-systemd-unit.sh'
       - 'tools/test_update_installation.py'
       - 'Cockpit.slnx'
@@ -25,6 +30,11 @@ on:
       - 'tests/**'
       - 'tools/Cockpit.Simulator/**'
       - 'installation/**'
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'compose.yaml'
+      - 'packaging/container-entrypoint.sh'
+      - 'tools/test_container.py'
       - 'tools/test-systemd-unit.sh'
       - 'tools/test_update_installation.py'
       - 'Cockpit.slnx'
@@ -44,6 +54,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  docker:
+    name: Docker simulator (Linux x64)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Validate Compose configuration
+        run: docker compose config --quiet
+      - name: Build Linux x64 image
+        run: docker build --platform linux/amd64 --tag cockpit-ci:local .
+      - name: Test isolated simulator and persistent storage
+        run: python3 tools/test_container.py cockpit-ci:local
+
   updater:
     name: Update scripts (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
