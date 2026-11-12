@@ -12,6 +12,7 @@ type Values = {
   retentionDays: number;
   revision: number;
   alternativePower: AlternativePowerOptions;
+  enableRelaySwitching: boolean;
 };
 type Config = {
   values: Values;
@@ -297,6 +298,7 @@ export function SettingsPanel({
       <p>{t("Aktiv: ")}{localizeText(config.activeRetentionDays)}{t(" Tage · Messraster: ")}{localizeText(config.sampleSeconds)}{t(" Sekunden. Ein anderes Messraster benötigt eine neue Datenbank.")}</p>
       {config.restartRequired && <p role="status">{t("Geänderte Aufbewahrung gespeichert – Cockpit-Neustart ausstehend.")}</p>}
       {reducing && <label><Input type="checkbox" checked={confirmed} disabled={!operator || busy} onChange={e => setConfirmed(e.target.checked)} />{t(" Ich bestätige: Nach dem Neustart werden Messwerte und Ereignisse außerhalb der verkürzten Aufbewahrung gelöscht.")}</label>}
+      <label><Input type="checkbox" checked={draft.enableRelaySwitching ?? false} disabled={!operator || busy} onChange={e => setDraft({ ...draft, enableRelaySwitching: e.target.checked })} />{t("Relaisschaltung aktivieren")}</label>
       <AlternativePowerFields value={draft.alternativePower ?? { enabled: false, heatpump: null, heater: null }} disabled={!operator || busy} onChange={alternativePower => setDraft({ ...draft, alternativePower })} />
       <div className="button-row"><Button type="button" disabled={busy} onClick={() => void act(load)}>{t("Neu laden / Verwerfen")}</Button><Button className="primary" disabled={!operator || busy || reducing && !confirmed}>{t("Einstellungen speichern")}</Button></div>
     </form>}

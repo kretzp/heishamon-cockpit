@@ -8,6 +8,13 @@ public sealed class AppSettingsTests : IDisposable
     private readonly string directory = Path.Combine(Path.GetTempPath(), "cockpit-settings-" + Guid.NewGuid());
     private string FilePath => Path.Combine(directory, "settings.json");
     public void Dispose() { if (Directory.Exists(directory)) Directory.Delete(directory, true); }
+    [Fact] public void RelaySwitchingDefaultsOffAndSurvivesRestart()
+    {
+        var store = new AppSettingsStore(FilePath, 700);
+        Assert.False(store.Read().EnableRelaySwitching);
+        store.Save(store.Read() with { EnableRelaySwitching = true }, false);
+        Assert.True(new AppSettingsStore(FilePath, 700).Read().EnableRelaySwitching);
+    }
     [Fact] public void AlternativeSettingsSurviveRestartAndOnlyPowerChangesAdvanceGeneration()
     {
         var store = new AppSettingsStore(FilePath, 700);

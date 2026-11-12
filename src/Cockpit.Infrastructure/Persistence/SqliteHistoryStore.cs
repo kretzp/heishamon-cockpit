@@ -95,7 +95,7 @@ public sealed partial class SqliteHistoryStore : IHistoryStore, IDisposable
                 if (v.Key == "activeError" && (old is null || !Equals(old.Value, v.Value)))
                     Add("error", v.Key, Equals(v.Value, Catalog.NoError) ? "Fehlerstatus: " + EventValue(v) : v.Value is string code ? "Gemeldeter Fehler: " + code : "Fehlerstatus unbekannt");
                 if (v.Quality == Quality.Valid && (old is null || !Equals(old.Value, v.Value))
-                    && HistoryQuery.Metrics.TryGetValue(v.Key, out var metric) && metric.Type == "enum")
+                    && HistoryQuery.Metrics.TryGetValue(v.Key, out var metric) && metric.Type is "enum" or "relay")
                     Add("state", v.Key, "Beobachteter Zustand: " + EventValue(v));
             }
             await db.SaveChangesAsync(token);
@@ -117,7 +117,7 @@ public sealed partial class SqliteHistoryStore : IHistoryStore, IDisposable
                 "threeWayValveState" => ["Raumheizung", "Warmwasser"],
                 "heatingControlMode" => ["Heizkurve", "Festwert"],
                 "zone1SensorMode" => ["Wasser", "Externer Thermostat", "Interner Thermostat/Thermistor"],
-                "heatpumpState" or "internalHeaterState" or "defrostState" => ["Aus", "Ein"],
+                "heatpumpState" or "internalHeaterState" or "defrostState" or "relayOne" or "relayTwo" => ["Aus", "Ein"],
                 _ => []
             };
             text = state >= 0 && state < names.Length ? names[state] + " (" + state + ")" : state.ToString(CultureInfo.InvariantCulture);
@@ -184,7 +184,7 @@ public sealed partial class SqliteHistoryStore : IHistoryStore, IDisposable
                         var expected = (Math.Min(to, time + width) + Policy.SampleSeconds - 1) / Policy.SampleSeconds
                             - (Math.Max(from, time) + Policy.SampleSeconds - 1) / Policy.SampleSeconds;
                         var complete = count == expected && reader.GetInt32(2) == count;
-                        var stable = metric.Type != "enum" || (!reader.IsDBNull(4) && reader.GetDouble(4) == reader.GetDouble(5));
+                        var stable = metric.Type is not ("enum" or "relay") || (!reader.IsDBNull(4) && reader.GetDouble(4) == reader.GetDouble(5));
                         double? value = complete && stable && !reader.IsDBNull(3) ? reader.GetDouble(3) : null;
                         if (value.HasValue && !double.IsFinite(value.Value)) value = null;
                         var quality = value.HasValue ? Quality.Valid : (Quality)reader.GetInt32(6);
@@ -195,7 +195,7 @@ public sealed partial class SqliteHistoryStore : IHistoryStore, IDisposable
                 var points = new List<HistoryPoint>();
                 for (var t = from / width * width; t < to; t += width)
                     points.Add(buckets.GetValueOrDefault(t) ?? new(DateTimeOffset.FromUnixTimeSeconds(t), null, Quality.Unknown, 0));
-                all.Add(new(key, metric.Unit, source, metric.Type == "enum" ? "stableState" : "mean", points));
+                all.Add(new(key, metric.Unit, source, metric.Type is "enum" or "relay" ? "stableState" : "mean", points));
             }
             return new(query.From.ToUniversalTime(), query.To.ToUniversalTime(), query.BucketSeconds, all);
         }

@@ -56,7 +56,7 @@ public sealed partial class SqliteHistoryStore
         finally { readers.Release(); }
     }
 
-    private static readonly HashSet<string> TimelineKeys = ["heatpumpState", "operatingMode", "internalHeaterState", "defrostState", "threeWayValveState", "sterilizationState"];
+    private static readonly HashSet<string> TimelineKeys = ["heatpumpState", "operatingMode", "internalHeaterState", "defrostState", "threeWayValveState", "sterilizationState", "relayOne", "relayTwo"];
     public async Task<StateIntervalResult> IntervalsAsync(HistoryQuery query, CancellationToken token)
     {
         query.Validate(Policy);

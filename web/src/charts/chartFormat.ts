@@ -46,7 +46,7 @@ const colors: Record<string, string> = {
 export const metricColor = (key: string) => colors[key] ?? '#40536b';
 const operatingModes = ['Heizen', 'Kühlen', 'Auto (Heizen)', 'Warmwasser', 'Heizen + Warmwasser', 'Kühlen + Warmwasser', 'Auto (Heizen) + Warmwasser', 'Auto (Kühlen)', 'Auto (Kühlen) + Warmwasser'];
 export function stateLabel(key: string, value: number): string | null {
-  const names = key === 'quietMode' ? ['Aus', 'Stufe 1', 'Stufe 2', 'Stufe 3'] : key === 'heatingControlMode' ? [translate("Heizkurve"), translate("Festwert")] : key === 'operatingMode' ? operatingModes : key === 'threeWayValveState' ? [translate("Raumheizung"), translate("Warmwasser")] : key === 'sterilizationState' ? [translate("Inaktiv"), translate("Aktiv")] : ['heatpumpState', 'internalHeaterState', 'defrostState'].includes(key) ? [translate("Aus"), translate("Ein")] : [];
+  const names = key === 'quietMode' ? ['Aus', 'Stufe 1', 'Stufe 2', 'Stufe 3'] : key === 'heatingControlMode' ? [translate("Heizkurve"), translate("Festwert")] : key === 'operatingMode' ? operatingModes : key === 'threeWayValveState' ? [translate("Raumheizung"), translate("Warmwasser")] : key === 'sterilizationState' ? [translate("Inaktiv"), translate("Aktiv")] : ['heatpumpState', 'internalHeaterState', 'defrostState', 'relayOne', 'relayTwo'].includes(key) ? [translate("Aus"), translate("Ein")] : [];
   return Number.isInteger(value) && names[value] !== undefined ? `${translate(names[value])} (${value})` : null;
 }
 export const stateColor = (value: number) => ['#526277', '#17633d', '#175ca0', '#86452d', '#67409a', '#8c345e', '#625710', '#006973', '#49429c'][value] ?? '#526277';

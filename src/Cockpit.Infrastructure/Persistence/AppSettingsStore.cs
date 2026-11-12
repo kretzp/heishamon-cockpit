@@ -7,6 +7,7 @@ namespace Cockpit.Infrastructure.Persistence;
 public sealed record AppSettings(string PlantName, int RetentionDays, long Revision = 0)
 {
     public AlternativePowerOptions AlternativePower { get; init; } = new();
+    public bool EnableRelaySwitching { get; init; }
     public long PowerGeneration { get; init; }
 }
 public sealed class AppSettingsStore

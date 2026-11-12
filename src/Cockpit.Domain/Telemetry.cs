@@ -73,6 +73,8 @@ public static class Catalog
         new Metric("sterilizationState", "enum", "main/Sterilization_State", "enum", 1, Optional: true, Top: 69),
         new Metric("sterilizationTemperature", Celsius, "main/Sterilization_Temp", "positive", Optional: true, Top: 70),
         new Metric("sterilizationMaxTime", Minute, "main/Sterilization_Max_Time", "counter", Optional: true, Top: 71),
+        new Metric("relayOne", "enum", "gpio/relay/one/state", "relay", 1, Optional: true),
+        new Metric("relayTwo", "enum", "gpio/relay/two/state", "relay", 1, Optional: true),
         new Metric("quietMode", "enum", "main/Quiet_Mode_Level", "enum", 3, Optional: true, Top: 18)
     ]).ToArray());
 }

@@ -171,6 +171,12 @@ else if (curveOptions.Enabled) {
     builder.Services.AddSingleton(sp => new CurveService(store,source,sp.GetRequiredService<ICurveJournal>(),sp.GetRequiredService<ICurveTransport>(),source == "mqtt" ? curveOptions.ExpiresUtc : null,coordinator:coordinator));
     builder.Services.AddHostedService<CurveWorker>();
 } else builder.Services.AddSingleton(new CurveService(store,source));
+var relayPermissionGate = new ControlSendGate();
+builder.Services.AddSingleton(relayPermissionGate);
+if (dynamicControl is not null || liveControl || controlEnabled) {
+    builder.Services.AddSingleton(sp => new RelayService(store, dynamicControl is not null ? dynamicControl : sp.GetRequiredService<ICommandTransport>(),
+        () => settings.Read().EnableRelaySwitching && (dynamicControl?.Active ?? (liveControl || controlEnabled)), relayPermissionGate));
+}
 var app = builder.Build();
 if (requireControlHttps) app.UseForwardedHeaders();
 if (authenticationEnabled) app.MapSimulatorControl(requireControlHttps, dynamicControl is not null || commandsEnabled && (!curveOptions.Enabled || liveControl), loginRequired);
@@ -188,6 +194,10 @@ if (loginRequired) app.Use(async (context, next) => {
     await next(context);
 });
 app.MapSettings(settingsEnabled, historyPolicy, source);
+if (dynamicControl is not null || liveControl || controlEnabled)
+    app.MapPost("/api/v1/commands/relays/{relay}", async (string relay, RelayInput input, RelayService relays) =>
+        Results.Ok(new { confirmed = await relays.SwitchAsync(relay, input.Value) }))
+        .RequireAuthorization("simulator-operator").RequireRateLimiting("commands");
 if (authenticationEnabled) {
     app.MapMqttSettings(source == "mqtt" && commandsEnabled, source);
     app.MapControlSetup(source, liveControl, externalMode, dynamicControl);
@@ -204,7 +214,7 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 app.MapGet("/api/v1/system", () => new
 {
-    appVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version!.ToString(3), plantName = settings.Read().PlantName, settingsEnabled, source, capabilities = new[] { "snapshot", "liveTelemetry", "history", "events", "csv" }.Concat(liveControl || dynamicControl?.Active == true ? new[] { source == "mqtt" ? "liveCommands" : "simulatorCommands", "heatingCurveCommands", "sterilizationCommands", "extendedCommands" } : controlEnabled ? new[] { "simulatorCommands" } : liveTest.Enabled ? new[] { "boundedLiveTest" } : curveOptions.Enabled ? new[] { "heatingCurveCommands" } : Array.Empty<string>()),
+    appVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version!.ToString(3), plantName = settings.Read().PlantName, settingsEnabled, enableRelaySwitching = settings.Read().EnableRelaySwitching, source, capabilities = new[] { "snapshot", "liveTelemetry", "history", "events", "csv" }.Concat(liveControl || dynamicControl?.Active == true ? new[] { source == "mqtt" ? "liveCommands" : "simulatorCommands", "heatingCurveCommands", "sterilizationCommands", "extendedCommands" } : controlEnabled ? new[] { "simulatorCommands" } : liveTest.Enabled ? new[] { "boundedLiveTest" } : curveOptions.Enabled ? new[] { "heatingCurveCommands" } : Array.Empty<string>()),
     liveControlArmed = dynamicControl?.Active ?? (liveControl && (source == "simulator" || curveOptions.ConnectionEnabled)), readOnly = !(commandsEnabled || dynamicControl?.Active == true), instanceId = store.InstanceId
 });
 app.MapGet("/api/v1/snapshot", () => store.Read());

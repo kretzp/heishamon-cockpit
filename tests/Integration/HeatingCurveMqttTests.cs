@@ -94,6 +94,14 @@ public sealed class HeatingCurveMqttTests
                 Assert.Equal(new[]{"SetSterilizationTemp","SetSterilizationTemp","SetSterilizationMaxTime","SetSterilizationMaxTime"},messages.Skip(10).Select(m=>m.Topic.Split('/').Last()));
                 Assert.Equal(new[]{"55","75","5","60"},messages.Skip(10).Select(m=>Encoding.UTF8.GetString(m.Payload)));
                 Assert.All(messages,m=>{Assert.StartsWith("cockpit_test/commands/",m.Topic);Assert.False(m.Retain);Assert.Equal(MqttQualityOfServiceLevel.AtMostOnce,m.QualityOfServiceLevel);});
+                await scalar.SendAsync("relayOne", 1);
+                await scalar.SendAsync("relayTwo", 0);
+                await Until(() => messages.Count == 16);
+                Assert.Equal(new[] { "cockpit_test/gpio/relay/one", "cockpit_test/gpio/relay/two" }, messages.Skip(14).Select(m => m.Topic));
+                Assert.Equal(new[] { "1", "0" }, messages.Skip(14).Select(m => Encoding.UTF8.GetString(m.Payload)));
+                Assert.All(messages.Skip(14), m => { Assert.False(m.Retain); Assert.Equal(MqttQualityOfServiceLevel.AtMostOnce, m.QualityOfServiceLevel); });
+                await Assert.ThrowsAsync<CommandRejected>(() => scalar.SendAsync("relayOne", 2));
+                Assert.Equal(16, messages.Count);
             } else await Assert.ThrowsAsync<CommandRejected>(()=>((ICommandTransport)writer).SendAsync("dhwTargetTemperature",52));
             Assert.Throws<ArgumentException>(()=>new SqliteCurveJournal(path,"simulator"));
         } finally {await stop.CancelAsync();try{await Task.WhenAll(running,readRunning);}catch(OperationCanceledException){}await broker.StopAsync();Directory.Delete(folder,true);}

@@ -33,6 +33,9 @@ public sealed partial class TelemetryStore
     private TelemetryValue? spreadFlowInput;
     private TelemetryValue? spreadReturnInput;
     private readonly Dictionary<string, TelemetryDiagnostic> diagnostics = new();
+    private long relayConnectionEpoch;
+    private readonly Dictionary<string, long> relayEpochs = new();
+    public bool RelayKnownForConnection(string key) { lock (gate) return relayEpochs.TryGetValue(key, out var epoch) && epoch == relayConnectionEpoch; }
     public Guid InstanceId { get; } = Guid.NewGuid();
     public long ConnectionEpoch { get; private set; }
     public T Guarded<T>(Func<T> action) { lock (gate) return action(); }
@@ -51,6 +54,7 @@ public sealed partial class TelemetryStore
         lock (gate)
         {
             ConnectionEpoch++;
+            relayConnectionEpoch++;
             lastSpread = null;
             spreadFlowInput = null;
             spreadReturnInput = null;
@@ -71,6 +75,7 @@ public sealed partial class TelemetryStore
             if (connected != isConnected)
             {
                 ConnectionEpoch++;
+                relayConnectionEpoch++;
                 availability = Availability.Unknown;
                 powerValues.Clear();
                 InvalidateLiveValues();
@@ -120,6 +125,7 @@ public sealed partial class TelemetryStore
             if (quality == Quality.Valid && (retained || availability == Availability.Offline)) quality = Quality.Stale;
             values[metric.Key] = new(metric.Key, value, metric.Unit, quality, clock.GetUtcNow(), null,
                 retained, sourceTopic ?? suffix, sourceKind) { Alias = oneWireAliases.GetValueOrDefault(metric.Key) };
+            if (metric.Type == "relay") relayEpochs[metric.Key] = relayConnectionEpoch;
             if (metric.Key is "flowTemperature" or "returnTemperature") EvaluateSpread(clock.GetUtcNow());
         }
     }
@@ -133,6 +139,7 @@ public sealed partial class TelemetryStore
             if (string.Equals(payload, Catalog.NoError, StringComparison.OrdinalIgnoreCase)) return (Catalog.NoError, Quality.Valid);
             return ErrorCode().IsMatch(payload) ? (payload, Quality.Valid) : (null, Quality.Unknown);
         }
+        if (metric.Type == "relay") return payload switch { "0" => (0, Quality.Valid), "1" => (1, Quality.Valid), _ => (null, Quality.Invalid) };
         if (metric.Type == "enum")
         {
             if (!int.TryParse(payload, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var state)
@@ -191,8 +198,8 @@ public sealed partial class TelemetryStore
     }
 
     private TelemetryValue Current(TelemetryValue value, DateTimeOffset now) =>
-        value.Quality == Quality.Valid && (now - value.ReceivedAtUtc > TimeSpan.FromSeconds(
-                value.Key.StartsWith(OneWire.KeyPrefix, StringComparison.Ordinal) ? 330 : policy.FreshSeconds)
+        value.Quality == Quality.Valid && ((value.Key is not ("relayOne" or "relayTwo") && now - value.ReceivedAtUtc > TimeSpan.FromSeconds(
+                value.Key.StartsWith(OneWire.KeyPrefix, StringComparison.Ordinal) ? 330 : policy.FreshSeconds))
             || !connected || availability == Availability.Offline)
             ? value with { Quality = Quality.Stale } : value;
 

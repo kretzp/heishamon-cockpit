@@ -11,7 +11,7 @@ import * as echarts from 'echarts';
 import type { EChartsOption } from 'echarts';
 import { sessionFetch } from '../Access';
 import { EventsPanel } from '../History';
-import { metricNumber, chartNumber, chartTime } from './chartFormat';
+import { metricNumber, chartNumber, chartTime, stateLabel } from './chartFormat';
 import { validPoint, type History } from './historyOptions';
 import { boundedRange, csvAllowed } from './historyRange';
 import { defaults, metricOptions, mergeOptions, parseOptions, readPreferences, type Preferences } from './metricChartOptions';
@@ -174,7 +174,7 @@ export default function MetricChartDialog({
       try {
         const storage = await get('/api/v1/storage');
         const bucket = Math.max(storage.sampleSeconds, Math.ceil((range.to - range.from) / 1000 / 800 / storage.sampleSeconds) * storage.sampleSeconds);
-        const intervals = ['heatpumpState', 'internalHeaterState', 'threeWayValveState'].includes(metricKey);
+        const intervals = ['heatpumpState', 'internalHeaterState', 'threeWayValveState', 'relayOne', 'relayTwo'].includes(metricKey);
         const result = await get('/api/v1/history' + (intervals ? '/intervals' : '') + '?' + new URLSearchParams({
           keys: metricKey,
           from: new Date(range.from).toISOString(),
@@ -307,7 +307,7 @@ export default function MetricChartDialog({
         }}>{t("Einstellungen zurücksetzen")}</Button>
       {notice && <p role="status">{localizeText(notice)}</p>}</details>
       {preferences.advanced.trim() !== '{}' && <p className="warning">{t("Benutzerdefinierte ECharts-Optionen aktiv. Maßgeblich bleiben die Originalwerte in Tabelle und CSV.")}</p>}
-      {data && <details><summary>{t("Originalwerte und Qualität (letzte 100 Einträge)")}</summary><div className="history-table-wrap"><table><thead><tr><th>{t("Zeit · Berlin")}</th><th>{t("Wert")}</th><th>{t("Qualität")}</th></tr></thead><tbody>{localizeText(data.series.flatMap(s => s.intervals ? s.intervals.slice(-100).map(p => <tr key={p.from}><td>{localizeText(chartTime(p.from))} – {localizeText(chartTime(p.to))}</td><td>{localizeText(p.value)}</td><td>{p.quality === 'valid' ? localizeText('Gültig') : localizeText('Unbekannt')}</td></tr>) : s.points.slice(-100).map(p => <tr key={p.time}><td>{localizeText(chartTime(p.time))}</td><td>{validPoint(p) ? localizeText(metricNumber(p.value!, s.key)) + localizeText(' ') + localizeText(s.unit) : localizeText('—')}</td><td>{localizeText({
+      {data && <details><summary>{t("Originalwerte und Qualität (letzte 100 Einträge)")}</summary><div className="history-table-wrap"><table><thead><tr><th>{t("Zeit · Berlin")}</th><th>{t("Wert")}</th><th>{t("Qualität")}</th></tr></thead><tbody>{localizeText(data.series.flatMap(s => s.intervals ? s.intervals.slice(-100).map(p => <tr key={p.from}><td>{localizeText(chartTime(p.from))} – {localizeText(chartTime(p.to))}</td><td>{localizeText(stateLabel(s.key, p.value) ?? p.value)}</td><td>{p.quality === 'valid' ? localizeText('Gültig') : localizeText('Unbekannt')}</td></tr>) : s.points.slice(-100).map(p => <tr key={p.time}><td>{localizeText(chartTime(p.time))}</td><td>{validPoint(p) ? localizeText(metricNumber(p.value!, s.key)) + localizeText(' ') + localizeText(s.unit) : localizeText('—')}</td><td>{localizeText({
                     valid: 'Gültig',
                     unknown: 'Unbekannt',
                     invalid: 'Ungültig',

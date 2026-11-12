@@ -243,3 +243,18 @@ test('export filenames include a safe diagram name and local timestamp', async (
   const { exportFilename } = await import('./src/charts/exportFilename.ts');
   assert.equal(exportFilename('Temperatur / Verlauf', 'csv', new Date(2026, 9, 31, 8, 4, 5)), 'Temperatur - Verlauf-20261031-080405.csv');
 });
+
+test('relay states use on/off labels and the existing interval chart', () => {
+  for (const key of ['relayOne', 'relayTwo']) {
+    assert.equal(stateLabel(key, 0), 'Aus (0)');
+    assert.equal(stateLabel(key, 1), 'Ein (1)');
+    assert.equal(stateLabel(key, 2), null);
+    const from = '2026-11-12T10:00:00Z', to = '2026-11-12T10:01:00Z';
+    const series = { key, unit: 'enum', aggregation: 'observedIntervals', points: [], intervals: [
+      { from, to, value: 1, quality: 'valid' }, { from, to, value: 0, quality: 'stale' }
+    ] };
+    const data = { from, to, bucketSeconds: 30, series: [series] };
+    assert.equal(stateIntervals(data, series).length, 1);
+    assert.equal(metricOptions(data, key, defaults).series[0].type, 'custom');
+  }
+});

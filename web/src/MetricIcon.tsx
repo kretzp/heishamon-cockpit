@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 
 // Approved style B: exact geometry from design/icon-proposals/symbols-b.svg.
 const shapes = {
+  "relay": <><rect x="7" y="7" width="34" height="34" rx="5" /><path d="M3 30h12 M33 30h12 M17 28l14-11 M17 7V3 M31 7V3 M17 41v4 M31 41v4" /><circle cx="17" cy="30" r="2" /><circle cx="31" cy="30" r="2" /></>,
   "flow": <><path d="M12 29V11a5 5 0 0 1 10 0v18a8 8 0 1 1-10 0Z M17 14v20"></path><circle cx="17" cy="35" r="2"></circle><path d="M28 18h14 M37 13l5 5-5 5"></path></>,
   "return": <><path d="M12 29V11a5 5 0 0 1 10 0v18a8 8 0 1 1-10 0Z M17 14v20"></path><circle cx="17" cy="35" r="2"></circle><path d="M42 18H28 M33 13l-5 5 5 5"></path></>,
   "spread": <><path d="m24 8 17 30H7Z M18 29h12 M24 23v6"></path></>,
@@ -30,6 +31,8 @@ const shapes = {
 
 export type MetricIconName = keyof typeof shapes;
 export const metricIconNames: Record<string, MetricIconName> = {
+  "relayOne": "relay",
+  "relayTwo": "relay",
   "alternativeHeatpumpPower": "electricheat",
   "alternativeHeaterPower": "heater",
   "heishamonCop": "regulation",

@@ -109,6 +109,24 @@ public sealed class HistoryAnalysisTests : IDisposable
         Assert.Equal(Start.AddSeconds(120), result.Series[0].Intervals[1].From);
         Assert.All(result.Series[0].Intervals, i => { Assert.False(i.StartObserved); Assert.False(i.EndObserved); });
     }
+    [Theory][InlineData("relayOne")][InlineData("relayTwo")]
+    public async Task RelayHistoryUsesOnOffIntervalsAndPreservesUnknownGaps(string key)
+    {
+        using var store = Open(); await store.InitializeAsync(default);
+        foreach (var (sec, val, quality, retained) in new[] { (0, 0, Quality.Valid, false), (30, 1, Quality.Valid, false), (60, 1, Quality.Stale, true), (90, 0, Quality.Valid, false) })
+            await store.CaptureAsync(Frame(sec) with { Values = [new(key, val, "enum", quality, Start.AddSeconds(sec), null, retained, "", SourceKind.Simulator)] }, true, default);
+        var query = new HistoryQuery([key], Start, Start.AddSeconds(120), 120);
+        var result = await store.IntervalsAsync(query, default);
+        var intervals = Assert.Single(result.Series).Intervals;
+        Assert.Equal(new[] { 0, 1, 0 }, intervals.Select(i => i.Value));
+        Assert.Equal(Start.AddSeconds(60), intervals[1].To);
+        Assert.Equal(Start.AddSeconds(90), intervals[2].From);
+        var coarse = Assert.Single((await store.QueryAsync(query, default)).Series);
+        Assert.Equal("stableState", coarse.Aggregation);
+        Assert.Null(Assert.Single(coarse.Points).Value);
+        var mixed = Assert.Single((await store.QueryAsync(query with { To = Start.AddSeconds(60), BucketSeconds = 60 }, default)).Series);
+        Assert.Null(Assert.Single(mixed.Points).Value);
+    }
     [Fact]
     public async Task InvalidQueriesAreRejected()
     {

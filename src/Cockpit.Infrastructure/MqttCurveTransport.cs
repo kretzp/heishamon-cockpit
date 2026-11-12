@@ -99,6 +99,19 @@ public sealed class MqttCurveTransport : ICurveTransport, ICommandTransport, IDi
     async Task ICommandTransport.SendAsync(string key, double value)
     {
         if (!options.Continuous || !options.ScalarCommands) throw new CommandRejected(403,"live_parameter_blocked");
+        if (key is "relayOne" or "relayTwo") {
+            if (value is not (0 or 1)) throw new CommandRejected(422, "invalid_command");
+            if (!await sending.WaitAsync(0)) throw new CommandRejected(409, "command_pending");
+            try {
+                if (!Connected) throw new CommandRejected(409, "state_unavailable");
+                using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+                await client.PublishAsync(new MqttApplicationMessageBuilder()
+                    .WithTopic(read.Prefix + "/gpio/relay/" + (key == "relayOne" ? "one" : "two"))
+                    .WithPayload(value == 1 ? "1" : "0").WithRetainFlag(false)
+                    .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtMostOnce).Build(), deadline.Token);
+            } finally { sending.Release(); }
+            return;
+        }
         var parameter = key == "sterilizationState" && options.SterilizationEnabled ? SimulatorParameter.SterilizationStart : SimulatorParameter.All.Concat(options.SterilizationEnabled ? SimulatorParameter.SterilizationSettings : []).Concat(options.ExtendedControlsEnabled ? SimulatorParameter.Extended : []).SingleOrDefault(p => p.Key == key);
         if (parameter is null || !double.IsFinite(value) || value != Math.Truncate(value) || value < parameter.Minimum || value > parameter.Maximum)
             throw new CommandRejected(422,"invalid_command");

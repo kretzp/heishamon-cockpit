@@ -52,6 +52,7 @@ type System = {
   appVersion: string;
   plantName?: string;
   settingsEnabled?: boolean;
+  enableRelaySwitching?: boolean;
   source: 'simulator' | 'mqtt';
   readOnly: boolean;
   instanceId: string;
@@ -92,6 +93,8 @@ const labels: Record<string, string> = {
   operatingMode: 'Betriebsart',
   heatingControlMode: 'Heizregelung',
   internalHeaterState: 'Heizstab',
+  relayOne: 'Relais 1',
+  relayTwo: 'Relais 2',
   activeError: 'Fehlerstatus'
 };
 const qualities: Record<Quality, string> = {
@@ -146,7 +149,7 @@ function display(value: Value) {
   if (value.key === 'operatingMode') return modes[Number(value.value)] ?? 'Unbekannt';
   if (value.key === 'heatingControlMode') return Number(value.value) === 0 ? 'Heizkurve' : 'Festwert';
   if (value.key === 'quietMode') return ['Aus', 'Stufe 1', 'Stufe 2', 'Stufe 3'][Number(value.value)] ?? '—';
-  if (value.key === 'internalHeaterState' || value.key === 'heatpumpState') return Number(value.value) === 1 ? 'Ein' : 'Aus';
+  if (['relayOne', 'relayTwo'].includes(value.key) || value.key === 'internalHeaterState' || value.key === 'heatpumpState') return Number(value.value) === 1 ? 'Ein' : 'Aus';
   return typeof value.value === 'number' ? value.value.toLocaleString(getLocale(), {
     maximumFractionDigits: 1
   }) : String(value.value);
@@ -176,6 +179,8 @@ function App() {
   const language = useLanguage();
   const layout = useMetricOrder();
   const savedDetails = layout.orders.details;
+  const [relayPending, setRelayPending] = useState<Record<string, boolean>>({});
+  const [relayMessages, setRelayMessages] = useState<Record<string, string>>({});
   const detailOrder = normalizeOrder(savedDetails, detailKeys);
   if (savedDetails && !savedDetails.includes('quietMode')) {
     detailOrder.splice(detailOrder.indexOf('quietMode'), 1);
@@ -186,6 +191,7 @@ function App() {
   const [tab, setTab] = useState('Übersicht');
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [system, setSystem] = useState<System | null>(null);
+  const [canSwitchRelays, setCanSwitchRelays] = useState(false);
   const [transport, setTransport] = useState(false);
   const [now, setNow] = useState(Date.now());
   const dallasValues = snapshot?.values.filter(isDallasValue) ?? [];
@@ -210,6 +216,9 @@ function App() {
         cache: 'no-store'
       })));
       if (responses.some(r => !r.ok)) throw new Error('Snapshot unavailable');
+      const authResponse = await sessionFetch('/api/v1/auth/session', { signal: abort.signal, cache: 'no-store' });
+      const auth = authResponse.ok ? await authResponse.json() : null;
+      if (!disposed) setCanSwitchRelays(auth?.authenticated === true && ['admin', 'writer'].includes(auth?.role));
       const [sys, next] = await Promise.all(responses.map(r => r.json()));
       if (!disposed) {
         setSystem(sys);
@@ -271,8 +280,30 @@ function App() {
   const curveControl = system?.capabilities?.includes('heatingCurveCommands') ?? false;
   const liveTest = system?.source === 'mqtt' && system.capabilities?.includes('boundedLiveTest');
   const simulatorControl = system?.source === 'simulator' && system.capabilities?.includes('simulatorCommands');
+  const visiblePlantKeys = [...plantKeys,
+    ...(currentValue('alternativePowerEnabled')?.value === 1 ? ['alternativeHeatpumpPower', 'alternativeHeaterPower'] : []),
+    ...(system?.enableRelaySwitching ? ['relayOne', 'relayTwo'] : [])];
   const mode = currentValue('operatingMode');
   const deviceOnline = live && snapshot?.deviceAvailability === 'online';
+  async function switchRelay(key: string) {
+    const value = currentValue(key);
+    if (relayPending[key] || !value || ![0, 1].includes(Number(value.value))) return;
+    setRelayPending(old => ({ ...old, [key]: true }));
+    setRelayMessages(old => ({ ...old, [key]: '' }));
+    try {
+      const session = await sessionFetch('/api/v1/auth/session', { cache: 'no-store' });
+      if (!session.ok) throw new Error();
+      const auth = await session.json();
+      const response = await sessionFetch('/api/v1/commands/relays/' + (key === 'relayOne' ? 'one' : 'two'), {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': auth.csrfToken },
+        body: JSON.stringify({ value: value.value === 1 ? 0 : 1 })
+      });
+      if (!response.ok) throw new Error();
+      const result = await response.json();
+      if (!result.confirmed) setRelayMessages(old => ({ ...old, [key]: 'Änderung nicht bestätigt' }));
+    } catch { setRelayMessages(old => ({ ...old, [key]: 'Änderung nicht bestätigt' })); }
+    finally { setRelayPending(old => ({ ...old, [key]: false })); }
+  }
   function card(key: string, variant = '', attributes: React.HTMLAttributes<HTMLElement> = {}, controls?: React.ReactNode, headingLevel: 2 | 3 = 3) {
     const Heading = headingLevel === 2 ? 'h2' : 'h3';
     const value = currentValue(key);
@@ -290,6 +321,12 @@ function App() {
       {targetKey && (targetQuality !== 'valid' || target?.retained) && <p className="note target-quality">{localizeText(labels[targetKey])}: {localizeText(qualities[targetQuality])}{target?.retained && <> · {t('Retained · historische Nachricht')}</>}</p>}
       <p className="age">{value?.receivedAtUtc ? <><time dateTime={value.receivedAtUtc}>{t("Empfangen ")}{localizeText(formatTime(value.receivedAtUtc))}</time><span className="age-elapsed">{t(" · vor {0} s", [Math.max(0, Math.floor((now - Date.parse(value.receivedAtUtc)) / 1000))])}</span></> : localizeText('Noch kein Messwert')}</p>
       {value?.retained && <p className="note">{t("Retained · historische Nachricht")}</p>}
+      {['relayOne', 'relayTwo'].includes(key) && <>
+        <label className="relay-switch"><input type="checkbox" role="switch" aria-label={localizeText(labels[key])} checked={value?.value === 1}
+          disabled={!canSwitchRelays || snapshot?.deviceAvailability === 'offline' || editingOrder || !!relayPending[key] || !live || !snapshot?.brokerConnected || !system?.enableRelaySwitching || !(liveControl || simulatorControl) || value?.value === null || !value || ['unknown', 'invalid'].includes(value.quality)}
+          onChange={() => void switchRelay(key)} /><span className="relay-switch-track" aria-hidden="true" /></label>
+        <p role="status" className="note">{relayPending[key] ? t("Wird geschaltet …") : localizeText(relayMessages[key] ?? '')}</p>
+      </>}
       {key === 'heishamonCop' && <p className="note">{t("Aus HeishaMon-Extra-Leistung berechnet")}</p>}
       {tab === 'Übersicht' && !editingOrder && <Button className="metric-chart-open" aria-label={localizeText(`${labels[key]} – Diagramm öffnen`)} onClick={() => setChartKey(key)} />}
     </article></Card>;
@@ -336,7 +373,7 @@ function App() {
         <div className="overview-layout"><div className="overview-main">
           <SortableMetrics group="temperatures" label={t("Messwerte")} className="temperature-grid" editing={editingOrder} keys={normalizeOrder(layout.orders.temperatures, temperatureKeys)} labels={labels} save={layout.save} render={(key, attrs, controls) => card(key, "", attrs, controls, 2)} />
           <section className="panel plant-panel" aria-label={t("Anlagenstatus")}><h2>{t("Anlagenstatus")}</h2>
-            <SortableMetrics group="plant" label={t("Anlagenmesswerte")} className="plant-grid" editing={editingOrder} keys={normalizeOrder(layout.orders.plant, currentValue('alternativePowerEnabled')?.value === 1 ? [...plantKeys, 'alternativeHeatpumpPower', 'alternativeHeaterPower'] : plantKeys)} labels={labels} save={layout.save} render={(key, attrs, controls) => card(key, "plant-metric", attrs, controls)} />
+            <SortableMetrics group="plant" label={t("Anlagenmesswerte")} className="plant-grid" editing={editingOrder} keys={normalizeOrder(layout.orders.plant, visiblePlantKeys)} labels={labels} save={layout.save} render={(key, attrs, controls) => card(key, "plant-metric", attrs, controls)} />
             <SortableMetrics group="details" label={t("Betriebszustände")} className="plant-details" editing={editingOrder} keys={detailOrder} labels={labels} save={layout.save} render={(key, attrs, controls) => card(key, "compact", attrs, controls)} />
           </section>
           <HistoryPanel compact /><EventsPanel compact />

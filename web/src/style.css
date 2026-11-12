@@ -149,3 +149,15 @@ dl > div { display: grid; grid-template-columns: 140px 1fr; gap: 15px; margin-bo
 .metric-chart-open { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; border-radius: inherit; background: transparent; color: #164d8b; cursor: pointer; }
 .metric-chart-open:hover { background: #0964d809; }
 .metric-chart-open:focus-visible { outline: 3px solid #0964d8; outline-offset: 3px; }
+.relay-switch { position: relative; z-index: 1; display: inline-flex; align-items: center; justify-content: center; min-width: 56px; min-height: 44px; padding: 6px 0; cursor: pointer; }
+.relay-switch input[role="switch"] { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.relay-switch-track { position: relative; display: block; width: 56px; height: 32px; box-sizing: border-box; border: 1px solid color-mix(in srgb, var(--muted) 40%, transparent); border-radius: 999px; background: color-mix(in srgb, var(--muted) 28%, var(--surface, #fff)); box-shadow: inset 0 1px 3px #00000014; pointer-events: none; transition: background .2s ease, border-color .2s ease, box-shadow .2s ease; }
+.relay-switch-track::before { content: ''; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 2px 5px #00000026, 0 1px 2px #00000014; transition: transform .2s cubic-bezier(.2, .8, .2, 1); }
+.relay-switch input:checked + .relay-switch-track { background: var(--blue); border-color: var(--blue); box-shadow: inset 0 1px 2px #00000014, 0 0 0 1px color-mix(in srgb, var(--blue) 15%, transparent); }
+.relay-switch input:checked + .relay-switch-track::before { transform: translateX(24px); }
+.relay-switch input:focus-visible + .relay-switch-track { outline: 3px solid var(--blue); outline-offset: 4px; }
+.relay-switch input:disabled { cursor: not-allowed; }
+.relay-switch input:disabled + .relay-switch-track { opacity: .45; }
+@media (prefers-reduced-motion: reduce) { .relay-switch-track, .relay-switch-track::before { transition: none; } }
+
+.plant-metric .relay-switch { grid-column: 2; }
