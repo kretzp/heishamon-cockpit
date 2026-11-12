@@ -1,6 +1,6 @@
 # Heat-pump control configuration
 
-The installed default remains read-only. An authenticated administrator can open **Settings → Heat-pump control**, select the supported `aquarea-l-wh-wdg` profile, and explicitly confirm the device and installation match, that other writers have been checked, and, for MQTT, that the configured broker account may be used for writing. MQTT credentials must already be configured. The selection is stored locally and takes effect without restarting. Saving it does not send a device command.
+The installed default remains read-only. An authenticated administrator can open **Settings → Control & relays → Heat-pump control**, select the supported `aquarea-l-wh-wdg` profile, and explicitly confirm the device and installation match, that other writers have been checked, and, for MQTT, that the configured broker account may be used for writing. MQTT credentials must already be configured. The selection is stored locally and takes effect without restarting. Saving it does not send a device command.
 
 Enabling or disabling control takes effect when the change is saved. Deactivation waits for any publish already in progress to finish; no new publish may start after deactivation is confirmed. A command already sent cannot be recalled. Reactivation is rejected while a previous command is still being resolved or cancelled; wait until it finishes. Activation and deactivation are not device commands and do not restore previous heat-pump values.
 

@@ -38,10 +38,11 @@ test('relay setting defaults off, displays existing metadata, and switches wait 
   await page.goto('/');
   await expect(page.getByRole('switch', { name: 'Relais 1', exact: true })).toHaveCount(0);
   await page.getByRole('navigation').getByRole('button', { name: 'Einstellungen', exact: true }).click();
+  await page.getByRole('tab', { name: 'Steuerung & Relais', exact: true }).click();
   const checkbox = page.getByLabel('Relaisschaltung aktivieren', { exact: true });
   await expect(checkbox).not.toBeChecked();
   await checkbox.check();
-  await page.getByRole('button', { name: 'Einstellungen speichern', exact: true }).click();
+  await page.getByRole('button', { name: 'Relais-Einstellung speichern', exact: true }).click();
   await page.getByRole('navigation').getByRole('button', { name: 'Übersicht', exact: true }).click();
   const relay = page.locator('article.relayOne');
   await expect(page.locator('.plant-grid > article.relayOne.plant-metric')).toBeVisible();
@@ -73,8 +74,9 @@ test('relay setting defaults off, displays existing metadata, and switches wait 
   expect(sends).toBe(1);
 
   await page.getByRole('navigation').getByRole('button', { name: 'Einstellungen', exact: true }).click();
+  await page.getByRole('tab', { name: 'Steuerung & Relais', exact: true }).click();
   await checkbox.uncheck();
-  await page.getByRole('button', { name: 'Einstellungen speichern', exact: true }).click();
+  await page.getByRole('button', { name: 'Relais-Einstellung speichern', exact: true }).click();
   await page.getByRole('navigation').getByRole('button', { name: 'Übersicht', exact: true }).click();
   await expect(page.locator('article.relayOne')).toHaveCount(0);
   expect(sends).toBe(1);

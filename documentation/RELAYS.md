@@ -7,10 +7,10 @@ does not automatically detect the board or relay firmware support.
 ## Enable the cards
 
 1. Sign in as an **Administrator** and open **Settings** (**Einstellungen**).
-2. Under **System & Data storage** (**Anlage & Datenspeicherung**), check
-   **Enable Relay Switching**
-   (**Relaisschaltung aktivieren**) and click **Save settings**
-   (**Einstellungen speichern**).
+2. Open **Control & relays** (**Steuerung & Relais**). In the **Relays**
+   (**Relais**) section, check **Enable Relay Switching**
+   (**Relaisschaltung aktivieren**) and click **Save relay setting**
+   (**Relais-Einstellung speichern**).
 3. Open **Overview** (**Übersicht**). **Relay 1** and **Relay 2** appear as
    individual large cards in **Anlagenstatus**, alongside cards such as
    **Verdichter**. They can be rearranged within this group.
@@ -23,7 +23,7 @@ shared by the installation, rather than being a browser-only preference.
 ## Use the toggle switches
 
 To operate a relay, sign in as **Reader + Writer** or **Administrator**. The
-existing **Settings → Heat-pump control** permission must also be enabled; see
+existing **Settings → Control & relays → Heat-pump control** permission must also be enabled; see
 [control setup](CONTROL-SETUP.md). Enabling the relay checkbox alone does not
 grant device-control permission. Readers can view enabled cards and their
 history but cannot switch them.

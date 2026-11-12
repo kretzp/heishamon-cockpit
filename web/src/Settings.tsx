@@ -7,6 +7,12 @@ import { Button } from './components/ui/button';
 import { sessionFetch } from './Access';
 import { useEffect, useState } from 'react';
 import { StorageNotice } from './History';
+import { Icon, type IconName } from './Icons';
+import { SettingsToggle, SettingsHeader, SettingsFooter } from './SettingsUi';
+import { MqttEditor, ControlEditor, UserEditor } from './SettingsEditors';
+import './settings.css';
+type Area = 'general' | 'relays' | 'power';
+
 type Values = {
   plantName: string;
   retentionDays: number;
@@ -30,133 +36,6 @@ type Session = {
   csrfToken: string;
 };
 type UserAccount = { username: string; role: string; disabled: boolean; version: number };
-type MqttConfig = { host: string; port: number; prefix: string; useTls: boolean | null; credentialsConfigured: boolean; revision: number };
-
-function MqttEditor({ csrfToken }: { csrfToken: string }) {
-  const [config, setConfig] = useState<MqttConfig | null>(null);
-  const [action, setAction] = useState('keep');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [status, setStatus] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [control, setControl] = useState<ControlConfig | null>(null);
-  async function loadControl() {
-    try {
-      const response = await sessionFetch('/api/v1/settings/control', { cache: 'no-store' });
-      if (!response.ok) throw new Error('Unable to load control settings.');
-      setControl(await response.json());
-    } catch (error) { setControl(null); throw error; }
-  }
-  async function load() {
-    await loadControl();
-    const response = await sessionFetch('/api/v1/settings/mqtt', { cache: 'no-store' });
-    if (!response.ok) throw new Error('Unable to load MQTT settings.');
-    setConfig(await response.json());
-  }
-  useEffect(() => {
-    void load().catch(e => setStatus(e.message));
-    const refreshControl = () => { void loadControl().catch(e => setStatus(e.message)); };
-    window.addEventListener('cockpit-control-changed', refreshControl);
-    window.addEventListener('focus', refreshControl);
-    return () => {
-      window.removeEventListener('cockpit-control-changed', refreshControl);
-      window.removeEventListener('focus', refreshControl);
-    };
-  }, []);
-  const locked = control === null || control.source === 'mqtt' && (control.enabled || control.externalMode);
-  const lockMessage = control === null
-    ? 'MQTT changes are unavailable until control settings can be loaded. Reload broker settings to try again.'
-    : control.externalMode
-      ? 'MQTT changes are locked by startup configuration. Disable device control in the startup configuration, restart the application, then reload broker settings.'
-      : 'MQTT changes are locked while heat-pump control is enabled. Select Read only under Heat-pump control and save control settings. Then you can edit the broker and credentials.';
-  return <section className="panel"><h2>{st("MQTT broker")}</h2>
-    <p>{st("Changes reconnect the read connection. Broker settings cannot be changed while real-device control is enabled.")}</p>
-    {locked && <p role="status">{st(lockMessage)}</p>}
-    {status && <p role="status">{st(status)}</p>}
-    {config && <form onSubmit={e => { e.preventDefault(); if (locked || busy) return; setBusy(true); setStatus(''); void (async () => {
-      try {
-        const response = await sessionFetch('/api/v1/settings/mqtt', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
-          body: JSON.stringify({ ...config, useTls: config.useTls === true, credentialAction: action, username: action === 'replace' ? username : null, password: action === 'replace' ? password : null }) });
-        if (!response.ok) { const error = await response.json().catch(() => ({})); if (error.errorCode === 'mqtt_control_active') await loadControl(); throw new Error(error.errorCode === 'mqtt_control_active' ? 'Disable real-device control and restart before changing the broker.' : error.errorCode === 'mqtt_conflict' ? 'The broker settings changed. Reload before saving.' : 'Unable to save MQTT settings. Check the values.'); }
-        setConfig(await response.json()); setUsername(''); setPassword(''); setAction('keep'); setStatus('MQTT settings saved.');
-      } catch (error) { setStatus((error as Error).message); } finally { setBusy(false); }
-    })(); }}>
-      <fieldset className="mqtt-fields" disabled={busy || locked}>
-      <label>{st("Broker host")}<Input required maxLength={253} value={config.host} onChange={e => setConfig({ ...config, host: e.target.value })} /></label>
-      <label>{st("Broker port")}<Input required type="number" min={1} max={65535} value={config.port} onChange={e => setConfig({ ...config, port: Number(e.target.value) })} /></label>
-      <label>{st("HeishaMon topic base")}<Input required maxLength={128} value={config.prefix} onChange={e => setConfig({ ...config, prefix: e.target.value })} /></label>
-      <label><Input type="checkbox" checked={config.useTls === true} onChange={e => setConfig({ ...config, useTls: e.target.checked })} /> {st("Use TLS")}</label>
-      <label>{st("Broker credentials")}<select value={action} onChange={e => { setAction(e.target.value); setUsername(''); setPassword(''); }}>
-        <option value="keep">{st(config.credentialsConfigured ? 'Keep existing credentials' : 'No credentials')}</option><option value="replace">{st("Set new credentials")}</option><option value="clear">{st("Remove credentials")}</option>
-      </select></label>
-      {action === 'replace' && <><label>{st("Broker username")}<Input autoComplete="off" maxLength={256} required value={username} onChange={e => setUsername(e.target.value)} /></label>
-        <label>{st("Broker password")}<Input type="password" autoComplete="new-password" maxLength={1024} required value={password} onChange={e => setPassword(e.target.value)} /></label></>}
-      <Button>{st("Save broker settings")}</Button>
-      </fieldset>
-    </form>}
-    <Button type="button" disabled={busy} onClick={() => void load().catch(e => setStatus(e.message))}>{st("Reload broker settings")}</Button>
-  </section>;
-}
-
-type ControlConfig = { enabled: boolean; profile: string | null; revision: number; active: boolean; restartRequired: boolean; externalMode: boolean; brokerMatches: boolean; source: string; brokerHost: string | null; brokerPort: number | null; topicBase: string | null; credentialsConfigured: boolean };
-function ControlEditor({ csrfToken }: { csrfToken: string }) {
-  const [config, setConfig] = useState<ControlConfig | null>(null);
-  const [enabled, setEnabled] = useState(false);
-  const [profile, setProfile] = useState('');
-  const [confirmProfile, setConfirmProfile] = useState(false);
-  const [confirmCredentials, setConfirmCredentials] = useState(false);
-  const [confirmWriters, setConfirmWriters] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState('');
-  async function load() {
-    const response = await sessionFetch('/api/v1/settings/control', { cache: 'no-store' });
-    if (!response.ok) throw Error('Unable to load control settings.');
-    const next: ControlConfig = await response.json(); setConfig(next); setEnabled(next.enabled); setProfile(next.profile ?? '');
-    setConfirmProfile(false); setConfirmCredentials(false); setConfirmWriters(false);
-  }
-  useEffect(() => { void load().catch(error => setStatus(error.message)); }, []);
-  return <section className="panel"><h2>{st("Heat-pump control")}</h2>
-    {config && <><p>{st('Current mode')}: {st(config.active ? 'control enabled' : 'read only')} · {st('source')}: {st(config.source)}</p>
-      {config.source === 'mqtt' && <p>{st('Broker host')}: {config.brokerHost}:{config.brokerPort} · {st('HeishaMon topic base')}: {config.topicBase}</p>}
-      {config.restartRequired && <p role="status">{st("The saved change takes effect only after the application is restarted. Until then the current mode remains active.")}</p>}
-      {!config.brokerMatches && <p role="alert">{st("The broker configuration no longer matches the saved confirmation. Control remains disabled; review and confirm it again.")}</p>}
-      {config.externalMode ? <p>{st("This control mode is managed by startup configuration and cannot be changed here.")}</p> : <form onSubmit={event => {
-        event.preventDefault(); setBusy(true); setStatus(''); void (async () => {
-          try {
-            const response = await sessionFetch('/api/v1/settings/control', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken }, body: JSON.stringify({ enabled, profile: enabled ? profile : null, confirmProfile, confirmSharedCredentials: confirmCredentials, confirmNoOtherWriters: confirmWriters, revision: config.revision }) });
-            if (!response.ok) { const data = await response.json().catch(() => ({})); throw Error(data.errorCode === 'control_conflict' ? 'Settings changed. Reload before saving.' : data.errorCode === 'control_command_pending' ? 'Wait until the previous command has finished before enabling control again.' : data.errorCode === 'control_confirmation_required' ? 'Select the supported profile and complete all required confirmations.' : 'Unable to save control settings.'); }
-            const next: ControlConfig = await response.json(); setConfig(next); setEnabled(next.enabled); setProfile(next.profile ?? ''); setConfirmProfile(false); setConfirmCredentials(false); setConfirmWriters(false);
-            setStatus('Control settings saved.'); window.dispatchEvent(new Event('cockpit-control-changed'));
-          } catch (error) { setStatus((error as Error).message); } finally { setBusy(false); }
-        })();
-      }}>
-        <label>{st("Control mode")}<select value={enabled ? 'enabled' : 'disabled'} onChange={event => { setEnabled(event.target.value === 'enabled'); setConfirmProfile(false); setConfirmCredentials(false); setConfirmWriters(false); }}><option value="disabled">{st("Read only")}</option><option value="enabled">{st("Enable control")}</option></select></label>
-        {enabled && <><label>{st("Device profile")}<select value={profile} required onChange={event => setProfile(event.target.value)}><option value="">{st("Select a profile")}</option><option value="aquarea-l-wh-wdg">Panasonic WH-SDC0509L3E5 / WH-WDG05LE5</option></select></label>
-          <label><Input type="checkbox" checked={confirmProfile} onChange={event => setConfirmProfile(event.target.checked)} required /> {st("I verified that the heat pump and installation match this profile.")}</label>
-          <label><Input type="checkbox" checked={confirmWriters} onChange={event => setConfirmWriters(event.target.checked)} required /> {st("I checked other controllers and will avoid conflicting changes.")}</label>
-          {config.source === 'mqtt' && <><p>{st('Control uses the configured broker credentials.')} {st(config.credentialsConfigured ? 'Credentials are configured.' : 'Configure broker credentials before enabling control.')}</p><label><Input type="checkbox" checked={confirmCredentials} onChange={event => setConfirmCredentials(event.target.checked)} required /> {st("I authorize using the configured broker account for control.")}</label></>}
-          <p>{st("The profile is based on the specified indoor and outdoor units. Verify the installed HeishaMon firmware and each command before use. Sterilization settings are experimental; room targets below 20 °C need separate verification.")}</p>
-          <p>{st("Activating this mode does not send a command. Each device change still requires a separate explicit confirmation.")}</p></>}
-        <Button disabled={busy || enabled && config.source === 'mqtt' && !config.credentialsConfigured}>{st("Save control settings")}</Button>
-        <Button type="button" disabled={busy} onClick={() => void load().catch(error => setStatus(error.message))}>{st("Reload control settings")}</Button>
-      </form>}
-    </>}{status && <p role="status">{st(status)}</p>}
-  </section>;
-}
-
-function UserEditor({ user, busy, save }: { user: UserAccount; busy: boolean; save: (user: UserAccount, role: string, disabled: boolean, password: string) => void }) {
-  const [role, setRole] = useState(user.role);
-  const [disabled, setDisabled] = useState(user.disabled);
-  const [password, setPassword] = useState('');
-  return <form onSubmit={e => { e.preventDefault(); save(user, role, disabled, password); }}>
-    <fieldset disabled={busy}><legend>{user.username}</legend>
-      <label>{st('Role for')} {user.username}<select value={role} onChange={e => setRole(e.target.value)}><option value="reader">{st("Reader")}</option><option value="writer">{st("Reader + Writer")}</option><option value="admin">Admin</option></select></label>
-      <label><Input type="checkbox" checked={disabled} onChange={e => setDisabled(e.target.checked)} /> {st('Disable')} {user.username}</label>
-      <label>{st('New password for')} {user.username} {st('(leave empty to keep current password)')}<Input type="password" autoComplete="new-password" minLength={12} maxLength={128} value={password} onChange={e => setPassword(e.target.value)} /></label>
-      <Button>{st('Save')} {user.username}</Button>
-    </fieldset>
-  </form>;
-}
 const errors: Record<string, string> = {
   settings_conflict: 'Einstellungen wurden inzwischen geändert. Bitte neu laden.',
   invalid_settings: 'Name: 1–80 Zeichen. Aufbewahrung: 1–700 ganze Tage.',
@@ -178,6 +57,9 @@ export function SettingsPanel({
   openHistory: () => void;
 }) {
   const language = useLanguage();
+  const [section, setSection] = useState('general');
+  const [areaBases, setAreaBases] = useState<Record<Area, Values> | null>(null);
+  const [pendingConfirmed, setPendingConfirmed] = useState({ relays: false, power: false });
   const [config, setConfig] = useState<Config | null>(null);
   const [draft, setDraft] = useState<Values | null>(null);
   const [days, setDays] = useState('');
@@ -213,6 +95,7 @@ export function SettingsPanel({
     const c: Config = await json('settings');
     setConfig(c);
     setDraft(c.values);
+    setAreaBases({ general: c.values, relays: c.values, power: c.values });
     setDays(String(c.values.retentionDays));
     setConfirmed(false);
     const current: Session = await json('auth/session');
@@ -236,76 +119,125 @@ export function SettingsPanel({
   }
   const operator = enabled && session?.role === 'admin';
   const reducing = !!config && Number(days) < Math.max(config.values.retentionDays, config.activeRetentionDays);
-  return <div className="settings-content">
-    {error && <p role="alert" className="warning">{localizeText(st(error))}</p>}{message && <p role="status">{localizeText(st(message))}</p>}
-    {session?.role === 'admin' && <section className="panel"><h2>{st("User administration")}</h2>
-      <p>{st("Saving an account signs out its active sessions. Saving your own account signs you out.")}</p>
-      <Button type="button" disabled={busy} onClick={() => void act(load)}>{st("Reload users")}</Button>
-      {users.map(user => <UserEditor key={`${user.username}:${user.version}`} user={user} busy={busy} save={(account, role, disabled, password) => void act(async () => {
-        await json('users/' + encodeURIComponent(account.username), { role, disabled, password: password || null, expectedVersion: account.version });
-        if (account.username === session.username) { window.dispatchEvent(new Event('cockpit-session-changed')); return; }
-        await load(); setMessage('User updated.');
-      })} />)}
-      <form onSubmit={e => { e.preventDefault(); void act(async () => {
-        await json('users', { username: newUsername, password: newPassword, role: newRole });
-        setNewUsername(''); setNewPassword(''); setNewRole('reader'); await load(); setMessage('User created.');
-      }); }}>
-        <label>{st("Username")}<Input autoComplete="off" maxLength={64} value={newUsername} onChange={e => setNewUsername(e.target.value)} required /></label>
-        <label>{st("Password")}<Input type="password" autoComplete="new-password" minLength={12} maxLength={128} value={newPassword} onChange={e => setNewPassword(e.target.value)} required /></label>
-        <label>{st("Role")}<select value={newRole} onChange={e => setNewRole(e.target.value)}><option value="reader">{st("Reader")}</option><option value="writer">{st("Reader + Writer")}</option><option value="admin">Admin</option></select></label>
-        <Button disabled={busy}>{st("Create user")}</Button>
-      </form>
-    </section>}
-    {session?.role === 'admin' && <MqttEditor csrfToken={session.csrfToken} />}
-    {session?.role === 'admin' && <ControlEditor csrfToken={session.csrfToken} />}
-    {enabled && !session?.loginRequired && <section className="panel"><h2>{t("Zugang")}</h2>{session?.authenticated ? <p>{t("Angemeldet: ")}{session.username} · {localizeText(session.role)} <Button disabled={busy} onClick={() => void act(async () => {
-          await json('auth/logout', {});
-          await load();
-        })}>{t("Abmelden")}</Button></p> : <form onSubmit={e => {
-        e.preventDefault();
-        void act(async () => {
-          await json('auth/login', {
-            username,
-            password
-          });
-          setPassword('');
-          await load();
-        });
-      }}><div className="field-row"><label>{t("Benutzername")}<Input autoComplete="username" value={username} onChange={e => setUsername(e.target.value)} required /></label><label>{t("Passwort")}<Input type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} required /></label></div><Button disabled={busy || !session}>{t("Anmelden")}</Button></form>}</section>}
-    {!enabled && <p>{t("Einstellungen sind lesend. Die lokale Administration kann den Einstellungszugang separat aktivieren.")}</p>}
-    {draft && config && <form className="panel" onSubmit={e => {
-      e.preventDefault();
-      void act(async () => {
-        const saved: Values = await json('settings', {
-          ...draft,
-          retentionDays: Number(days),
-          confirmReduction: confirmed
-        });
-        onSaved(saved.plantName);
-        window.dispatchEvent(new Event('cockpit-power-changed'));
-        await load();
-        setMessage('Einstellungen gespeichert. Eine geänderte Aufbewahrung gilt nach dem nächsten Cockpit-Neustart.');
-      });
-    }}><h2>{t("Anlage & Datenspeicherung")}</h2>
-      <label>{t("Anlagenname")}<Input value={draft.plantName} maxLength={80} required disabled={!operator || busy} onChange={e => setDraft({
-          ...draft,
-          plantName: e.target.value
-        })} /></label>
-      <label>{t("Aufbewahrung in Tagen")}<Input type="number" min={1} max={700} step={1} required value={days} disabled={!operator || busy} onChange={e => {
-          setDays(e.target.value);
-          setConfirmed(false);
-        }} /></label>
-      <p>{t("Aktiv: ")}{localizeText(config.activeRetentionDays)}{t(" Tage · Messraster: ")}{localizeText(config.sampleSeconds)}{t(" Sekunden. Ein anderes Messraster benötigt eine neue Datenbank.")}</p>
-      {config.restartRequired && <p role="status">{t("Geänderte Aufbewahrung gespeichert – Cockpit-Neustart ausstehend.")}</p>}
-      {reducing && <label><Input type="checkbox" checked={confirmed} disabled={!operator || busy} onChange={e => setConfirmed(e.target.checked)} />{t(" Ich bestätige: Nach dem Neustart werden Messwerte und Ereignisse außerhalb der verkürzten Aufbewahrung gelöscht.")}</label>}
-      <label><Input type="checkbox" checked={draft.enableRelaySwitching ?? false} disabled={!operator || busy} onChange={e => setDraft({ ...draft, enableRelaySwitching: e.target.checked })} />{t("Relaisschaltung aktivieren")}</label>
-      <AlternativePowerFields value={draft.alternativePower ?? { enabled: false, heatpump: null, heater: null }} disabled={!operator || busy} onChange={alternativePower => setDraft({ ...draft, alternativePower })} />
-      <div className="button-row"><Button type="button" disabled={busy} onClick={() => void act(load)}>{t("Neu laden / Verwerfen")}</Button><Button className="primary" disabled={!operator || busy || reducing && !confirmed}>{t("Einstellungen speichern")}</Button></div>
-    </form>}
-    <div className="two-column settings-grid">
-      <section className="panel"><h2>{t("Verbindung")}</h2><p>{t("Datenquelle: ")}{config?.source === 'mqtt' ? localizeText('MQTT') : config?.source === 'simulator' ? localizeText('Simulator') : localizeText('Unbekannt')}</p></section>
-      <section className="panel"><h2>{t("Daten & Sicherung")}</h2><StorageNotice /><Button onClick={openHistory}>{t("Verlauf / CSV-Export öffnen")}</Button></section>
-      <section className="panel"><h2>{t("Zugriff & Sicherheit")}</h2><p>{t("Bediener-Anmeldung mit 30 Minuten Sitzungsdauer. Änderungen an Einstellungen benötigen Bedienerrechte.")}</p></section>
+  const emptyPower: AlternativePowerOptions = { enabled: false, heatpump: null, heater: null };
+  const dirty = {
+    general: !!draft && !!config && (draft.plantName !== config.values.plantName || Number(days) !== config.values.retentionDays),
+    relays: !!draft && !!config && !!draft.enableRelaySwitching !== !!config.values.enableRelaySwitching,
+    power: !!draft && !!config && JSON.stringify(draft.alternativePower ?? emptyPower) !== JSON.stringify(config.values.alternativePower ?? emptyPower)
+  };
+  const pendingReduction = !!config && config.values.retentionDays < config.activeRetentionDays;
+  function fingerprint(area: Area, values: Values) {
+    return JSON.stringify(area === 'general' ? [values.plantName, values.retentionDays] : area === 'relays' ? !!values.enableRelaySwitching : values.alternativePower ?? emptyPower);
+  }
+  function retentionConfirmation(area: 'relays' | 'power') {
+    return pendingReduction && <div className="settings-callout settings-retention"><p>{t('Gespeicherte Aufbewahrung: {0} Tage. Die Verkürzung gilt nach dem Neustart.', [config!.values.retentionDays])}</p><label className="settings-confirm"><Input type="checkbox" required disabled={!operator || busy} checked={pendingConfirmed[area]} onChange={e => setPendingConfirmed(old => ({ ...old, [area]: e.target.checked }))} /><span>{t(' Ich bestätige: Nach dem Neustart werden Messwerte und Ereignisse außerhalb der verkürzten Aufbewahrung gelöscht.')}</span></label></div>;
+  }
+  function applyArea(area: Area, values: Values) {
+    setAreaBases(old => old ? { ...old, [area]: values } : { general: values, relays: values, power: values });
+    setPendingConfirmed({ relays: false, power: false });
+    setDraft(old => old ? { ...old, ...(area === 'general' ? { plantName: values.plantName, retentionDays: values.retentionDays }
+      : area === 'relays' ? { enableRelaySwitching: values.enableRelaySwitching }
+      : { alternativePower: values.alternativePower }), revision: values.revision } : values);
+    if (area === 'general') { setDays(String(values.retentionDays)); setConfirmed(false); }
+  }
+  async function discard(area: Area) {
+    const next: Config = await json('settings');
+    setConfig(next); applyArea(area, next.values);
+  }
+  async function save(area: Area) {
+    if (!config || !draft || !operator || !areaBases) return;
+    if (fingerprint(area, areaBases[area]) !== fingerprint(area, config.values)) throw Error(errors.settings_conflict);
+    const values = { ...config.values, ...(area === 'general' ? { plantName: draft.plantName, retentionDays: Number(days) }
+      : area === 'relays' ? { enableRelaySwitching: draft.enableRelaySwitching ?? false }
+      : { alternativePower: draft.alternativePower ?? emptyPower }) };
+    const saved: Values = await json('settings', { ...values, confirmReduction: area === 'general' ? confirmed : pendingConfirmed[area] });
+    setConfig({ ...config, values: saved, restartRequired: saved.retentionDays !== config.activeRetentionDays });
+    applyArea(area, saved); onSaved(saved.plantName);
+    window.dispatchEvent(new Event('cockpit-power-changed'));
+    setMessage('Einstellungen gespeichert. Eine geänderte Aufbewahrung gilt nach dem nächsten Cockpit-Neustart.');
+  }
+  const sections: { id: string; label: string; icon: IconName }[] = [
+    { id: 'general', label: 'Anlage & Daten', icon: 'sliders' },
+    ...(session?.role === 'admin' ? [{ id: 'mqtt', label: 'MQTT-Verbindung', icon: 'cloud' as IconName }] : []),
+    { id: 'control', label: 'Steuerung & Relais', icon: 'valve' },
+    { id: 'power', label: 'Leistungsdaten', icon: 'flow' },
+    ...(session?.role === 'admin' || enabled && !session?.loginRequired ? [{ id: 'users', label: 'Benutzer & Zugriff', icon: 'lock' as IconName }] : [])
+  ];
+  const activeSection = sections.some(item => item.id === section) ? section : 'general';
+  return <div className="settings-content settings-redesign">
+    <p className="settings-intro">{t('Anlage, Verbindungen und Zugriffsrechte übersichtlich verwalten.')}</p>
+    <div className="settings-layout">
+      <div className="settings-tabs" role="tablist" aria-label={t('Einstellungsbereiche')}>
+        {sections.map((item, index) => <Button type="button" variant="ghost" role="tab" key={item.id} id={'settings-tab-' + item.id} aria-controls={'settings-' + item.id} aria-selected={activeSection === item.id} onClick={() => { setSection(item.id); setError(''); setMessage(''); }} onKeyDown={event => {
+          let next: number | undefined;
+          if (['ArrowDown', 'ArrowRight'].includes(event.key)) next = (index + 1) % sections.length;
+          else if (['ArrowUp', 'ArrowLeft'].includes(event.key)) next = (index + sections.length - 1) % sections.length;
+          else if (event.key === 'Home') next = 0;
+          else if (event.key === 'End') next = sections.length - 1;
+          if (next !== undefined) { event.preventDefault(); setSection(sections[next].id); document.getElementById('settings-tab-' + sections[next].id)?.focus(); }
+        }}><Icon name={item.icon} />{t(item.label)}</Button>)}
+      </div>
+      <div className="settings-main">
+        {error && <p role="alert" className="warning">{localizeText(st(error))}</p>}
+        {message && <p role="status" className="settings-feedback">{localizeText(st(message))}</p>}
+        {!enabled && <p className="settings-help">{t('Einstellungen sind lesend. Die lokale Administration kann den Einstellungszugang separat aktivieren.')}</p>}
+        <section id="settings-general" role="tabpanel" aria-labelledby="settings-tab-general" hidden={activeSection !== 'general'}>
+          {draft && config && <form className="panel settings-panel" onSubmit={e => { e.preventDefault(); void act(() => save('general')); }}>
+            <SettingsHeader title={t('Anlage & Datenspeicherung')} description={t('Die Grundlagen deiner Installation und ihrer Aufzeichnung.')} />
+            <div className="settings-panel-body">
+              <label className="settings-field"><span>{t('Anlagenname')}</span><Input aria-label={t('Anlagenname')} value={draft.plantName} maxLength={80} required disabled={!operator || busy} onChange={e => setDraft({ ...draft, plantName: e.target.value })} /><small>{t('Wird in der Navigation angezeigt.')}</small></label>
+              <hr />
+              <div className="settings-field-grid">
+                <label className="settings-field"><span>{t('Aufbewahrung in Tagen')}</span><Input aria-label={t('Aufbewahrung in Tagen')} type="number" min={1} max={700} step={1} required value={days} disabled={!operator || busy} onChange={e => { setDays(e.target.value); setConfirmed(false); }} /><small>{t('Eine Änderung gilt nach dem nächsten Neustart.')}</small></label>
+                <label className="settings-field"><span>{t('Aufzeichnungsintervall in Sekunden')}</span><Input aria-label={t('Aufzeichnungsintervall in Sekunden')} value={config.sampleSeconds} disabled /><small>{t('Für diese Datenbank festgelegt.')}</small></label>
+              </div>
+              <p className="settings-help">{t('Aktiv: ')}{config.activeRetentionDays}{t(' Tage · Messraster: ')}{config.sampleSeconds}{t(' Sekunden. Ein anderes Messraster benötigt eine neue Datenbank.')}</p>
+              {config.restartRequired && <p role="status" className="settings-callout">{t('Geänderte Aufbewahrung gespeichert – Cockpit-Neustart ausstehend.')}</p>}
+              {reducing && <label className="settings-confirm settings-callout"><Input type="checkbox" checked={confirmed} disabled={!operator || busy} required onChange={e => setConfirmed(e.target.checked)} /><span>{t(' Ich bestätige: Nach dem Neustart werden Messwerte und Ereignisse außerhalb der verkürzten Aufbewahrung gelöscht.')}</span></label>}
+            </div>
+            <SettingsFooter dirty={dirty.general} busy={busy} disabled={!operator || reducing && !confirmed} onDiscard={() => void act(() => discard('general'))} discardLabel={t('Neu laden / Verwerfen')} saveLabel={t('Einstellungen speichern')} />
+          </form>}
+          <section className="panel settings-storage"><h2>{t('Daten & Sicherung')}</h2><StorageNotice /><Button onClick={openHistory}>{t('Verlauf / CSV-Export öffnen')}</Button></section>
+        </section>
+        {session?.role === 'admin' && <section id="settings-mqtt" role="tabpanel" aria-labelledby="settings-tab-mqtt" hidden={activeSection !== 'mqtt'}><MqttEditor csrfToken={session.csrfToken} /></section>}
+        <section id="settings-control" role="tabpanel" aria-labelledby="settings-tab-control" hidden={activeSection !== 'control'}>
+          {session?.role === 'admin' && <ControlEditor csrfToken={session.csrfToken} />}
+          {draft && config && <form className="panel settings-panel" onSubmit={e => { e.preventDefault(); void act(() => save('relays')); }}>
+            <SettingsHeader title={t('Relais')} description={t('Zusätzliche Schalter in der Anlagenübersicht.')} />
+            <div className="settings-panel-body"><SettingsToggle label={t('Relaisschaltung aktivieren')} description={t('Zeigt Relais 1 und 2 mit Toggle und Ein/Aus-Verlauf.')} checked={draft.enableRelaySwitching ?? false} disabled={!operator || busy} onChange={e => setDraft({ ...draft, enableRelaySwitching: e.target.checked })} /><p className="settings-help">{t('Zum Schalten sind eine aktive Steuerungsfreigabe und Schreibrechte nötig. Speichern verändert keinen Relaiszustand.')}</p>{retentionConfirmation('relays')}</div>
+            <SettingsFooter dirty={dirty.relays} busy={busy} disabled={!operator || pendingReduction && !pendingConfirmed.relays} onDiscard={() => void act(() => discard('relays'))} saveLabel={t('Relais-Einstellung speichern')} />
+          </form>}
+        </section>
+        <section id="settings-power" role="tabpanel" aria-labelledby="settings-tab-power" hidden={activeSection !== 'power'}>
+          {draft && config && <form className="panel settings-panel" onSubmit={e => { e.preventDefault(); void act(() => save('power')); }}>
+            <SettingsHeader title={t('Alternative Leistungsdaten')} description={t('Externe Strommessung für COP-Verlauf und Tagesverbrauch.')} />
+            <div className="settings-panel-body"><AlternativePowerFields value={draft.alternativePower ?? emptyPower} disabled={!operator || busy} onChange={alternativePower => setDraft({ ...draft, alternativePower })} />{retentionConfirmation('power')}</div>
+            <SettingsFooter dirty={dirty.power} busy={busy} disabled={!operator || pendingReduction && !pendingConfirmed.power} onDiscard={() => void act(() => discard('power'))} saveLabel={t('Leistungsdaten speichern')} />
+          </form>}
+        </section>
+        <section id="settings-users" role="tabpanel" aria-labelledby="settings-tab-users" hidden={activeSection !== 'users'}>
+          {session?.role === 'admin' && <section className="panel settings-panel">
+            <SettingsHeader title={st('User administration')} description={st('Saving an account signs out its active sessions. Saving your own account signs you out.')} />
+            <div className="settings-panel-body">
+              <div><Button type="button" disabled={busy} onClick={() => void act(async () => setUsers(await json('users')))}>{st('Reload users')}</Button></div>
+              {users.map(user => <UserEditor key={`${user.username}:${user.version}`} user={user} busy={busy} save={(account, role, disabled, password) => void act(async () => {
+                await json('users/' + encodeURIComponent(account.username), { role, disabled, password: password || null, expectedVersion: account.version });
+                if (account.username === session.username) { window.dispatchEvent(new Event('cockpit-session-changed')); return; }
+                setUsers(await json('users')); setMessage('User updated.');
+              })} />)}
+              <details className="settings-new-user"><summary>{st('Create user')}</summary><form onSubmit={e => { e.preventDefault(); void act(async () => {
+                await json('users', { username: newUsername, password: newPassword, role: newRole });
+                setNewUsername(''); setNewPassword(''); setNewRole('reader'); setUsers(await json('users')); setMessage('User created.');
+              }); }}>
+                <div className="settings-field-grid"><label className="settings-field">{st('Username')}<Input autoComplete="off" maxLength={64} value={newUsername} onChange={e => setNewUsername(e.target.value)} required /></label><label className="settings-field">{st('Role')}<select value={newRole} onChange={e => setNewRole(e.target.value)}><option value="reader">{st('Reader')}</option><option value="writer">{st('Reader + Writer')}</option><option value="admin">Admin</option></select></label></div>
+                <label className="settings-field">{st('Password')}<Input type="password" autoComplete="new-password" minLength={12} maxLength={128} value={newPassword} onChange={e => setNewPassword(e.target.value)} required /><small>{t('12 bis 128 Zeichen.')}</small></label><Button className="primary" disabled={busy}>{st('Create user')}</Button>
+              </form></details>
+            </div>
+          </section>}
+          {enabled && !session?.loginRequired && <section className="panel settings-panel"><SettingsHeader title={t('Zugang')} /><div className="settings-panel-body">{session?.authenticated ? <p>{t('Angemeldet: ')}{session.username} · {localizeText(session.role)} <Button disabled={busy} onClick={() => void act(async () => { await json('auth/logout', {}); await load(); })}>{t('Abmelden')}</Button></p> : <form onSubmit={e => { e.preventDefault(); void act(async () => { await json('auth/login', { username, password }); setPassword(''); await load(); }); }}><div className="settings-field-grid"><label className="settings-field">{t('Benutzername')}<Input autoComplete="username" value={username} onChange={e => setUsername(e.target.value)} required /></label><label className="settings-field">{t('Passwort')}<Input type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} required /></label></div><Button disabled={busy || !session}>{t('Anmelden')}</Button></form>}</div></section>}
+          <section className="panel settings-storage"><h2>{t('Zugriff & Sicherheit')}</h2><p className="settings-help">{t('Bediener-Anmeldung mit 30 Minuten Sitzungsdauer. Änderungen an Einstellungen benötigen Bedienerrechte.')}</p></section>
+        </section>
+      </div>
     </div>
   </div>;
 }

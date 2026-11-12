@@ -1,5 +1,24 @@
 # Release notes
 
+## 0.9.5 — Settings layout and usability, 2026-11-12
+
+- Organize settings into five sections: system and data, MQTT connection,
+  control and relays, power measurements, and users and access.
+- Add consistent field labels, helper text, toggle switches, expandable account
+  editors and save/discard actions for each section. Align broker host and port
+  inputs even when only one field has helper text.
+- Save each section independently while preserving unsaved drafts elsewhere.
+  Detect conflicting remote changes when refreshing another section, retaining
+  the existing server-side revision checks.
+- Preserve role restrictions, MQTT editing locks and explicit control
+  confirmations. Show the required retention-reduction confirmation in relay
+  and power settings while a saved reduction is awaiting restart.
+- Support desktop and mobile layouts, keyboard navigation, all three themes
+  and all six interface languages. Update the feature guides for the new
+  navigation and save actions.
+- No database schema migration is required. Existing data, settings and control
+  permissions are preserved.
+
 ## 0.9.4 — Relay switching and status history, 2026-11-12
 
 - Add two optional relay cards to **Overview → Anlagenstatus**, using the large

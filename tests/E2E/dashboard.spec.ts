@@ -29,14 +29,38 @@ test('MQTT settings save an explicit false for initially unspecified TLS', async
   await mockAdminSettings(page);
   await page.goto('/');
   await page.getByRole('navigation').getByRole('button', { name: 'Einstellungen', exact: true }).click();
+  await page.getByRole('tab', { name: 'MQTT-Verbindung', exact: true }).click();
   // Select by form to keep the request assertion independent of translated text.
   const form = page.locator('form').filter({ has: page.locator('input[value="cockpit_test"]') });
   await expect(form).toBeVisible();
+  const hostBox = await form.getByLabel('Broker-Adresse', { exact: true }).boundingBox();
+  const portBox = await form.getByLabel('Broker-Port', { exact: true }).boundingBox();
+  expect(hostBox).not.toBeNull(); expect(portBox).not.toBeNull();
+  if (page.viewportSize()!.width > 650) expect(Math.abs(hostBox!.y - portBox!.y)).toBeLessThanOrEqual(1);
+  else expect(portBox!.y).toBeGreaterThan(hostBox!.y);
+  expect(Math.abs(hostBox!.height - portBox!.height)).toBeLessThanOrEqual(1);
   await form.locator('input').first().fill('broker.example');
   await expect(form.locator('input[type="checkbox"]')).not.toBeChecked();
   const request = page.waitForRequest(request => request.url().endsWith('/api/v1/settings/mqtt') && request.method() === 'POST');
   await form.locator('button[type="submit"], button:not([type])').click();
   expect((await request).postDataJSON()).toMatchObject({ host: 'broker.example', useTls: false });
+});
+
+for (const endpoint of ['control', 'mqtt']) test(`MQTT initial ${endpoint} load failure can be retried`, async ({ page }) => {
+  await mockAdminSettings(page);
+  let failing = true;
+  await page.route(`**/api/v1/settings/${endpoint}`, route => failing
+    ? route.fulfill({ status: 503, json: {} }) : route.fallback());
+  await page.goto('/');
+  await page.getByRole('navigation').getByRole('button', { name: 'Einstellungen', exact: true }).click();
+  await page.getByRole('tab', { name: 'MQTT-Verbindung', exact: true }).click();
+  const panel = page.getByRole('tabpanel');
+  await expect(panel.getByLabel('Broker-Adresse', { exact: true })).toHaveCount(0);
+  const retry = panel.getByRole('button', { name: 'Broker-Einstellungen neu laden', exact: true });
+  await expect(retry).toBeVisible();
+  failing = false;
+  await retry.click();
+  await expect(panel.getByLabel('Broker-Adresse', { exact: true })).toBeEnabled();
 });
 
 test('MQTT editing is blocked during control and unlocks after control settings change', async ({ page }) => {
@@ -47,6 +71,7 @@ test('MQTT editing is blocked during control and unlocks after control settings 
   } }));
   await page.goto('/');
   await page.getByRole('navigation').getByRole('button', { name: 'Einstellungen', exact: true }).click();
+  await page.getByRole('tab', { name: 'MQTT-Verbindung', exact: true }).click();
   const panel = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: 'MQTT-Broker', exact: true }) });
   await expect(panel.getByLabel('Broker-Adresse', { exact: true })).toBeDisabled();
   await expect(panel.getByRole('button', { name: 'Broker-Einstellungen speichern', exact: true })).toBeDisabled();
@@ -64,6 +89,7 @@ test('MQTT editing explains startup configuration locks', async ({ page }) => {
   } }));
   await page.goto('/');
   await page.getByRole('navigation').getByRole('button', { name: 'Einstellungen', exact: true }).click();
+  await page.getByRole('tab', { name: 'MQTT-Verbindung', exact: true }).click();
   const panel = page.locator('section.panel').filter({ has: page.getByRole('heading', { name: 'MQTT-Broker', exact: true }) });
   await expect(panel.getByLabel('Broker-Adresse', { exact: true })).toBeDisabled();
   await expect(panel.getByRole('status')).toContainText('Startkonfiguration');
@@ -854,7 +880,8 @@ test('alternative power settings submit both Shelly channels and preserve them w
   });
   await page.goto('/');
   await page.getByRole('navigation').getByRole('button', { name: 'Einstellungen', exact: true }).click();
-  const checkbox = page.getByRole('checkbox', { name: 'Alternative Leistungsdaten verwenden', exact: true });
+  await page.getByRole('tab', { name: 'Leistungsdaten', exact: true }).click();
+  const checkbox = page.getByRole('switch', { name: 'Alternative Leistungsdaten verwenden', exact: true });
   await checkbox.check();
   const hp = page.getByRole('group', { name: 'Wärmepumpe elektrisch', exact: true });
   const heater = page.getByRole('group', { name: 'Heizstab elektrisch', exact: true });
@@ -862,12 +889,12 @@ test('alternative power settings submit both Shelly channels and preserve them w
   await hp.getByLabel('Payload-Pfad', { exact: true }).fill('$.params["em:0"].c_act_power');
   await heater.getByLabel('Payload-Pfad', { exact: true }).fill('$.params["em:0"].a_act_power');
   await checkbox.locator('..').locator('..').screenshot({ path: info.outputPath('alternative-power-settings.png') });
-  await page.getByRole('button', { name: 'Einstellungen speichern', exact: true }).click();
+  await page.getByRole('button', { name: 'Leistungsdaten speichern', exact: true }).click();
   await expect.poll(() => values.alternativePower.enabled).toBe(true);
   expect(values.alternativePower.heatpump).toEqual({ topic: 'waermepumpe/events/rpc', payloadPath: '$.params["em:0"].c_act_power' });
   expect(values.alternativePower.heater).toEqual({ topic: 'waermepumpe/events/rpc', payloadPath: '$.params["em:0"].a_act_power' });
   await checkbox.uncheck();
-  await page.getByRole('button', { name: 'Einstellungen speichern', exact: true }).click();
+  await page.getByRole('button', { name: 'Leistungsdaten speichern', exact: true }).click();
   await expect.poll(() => values.alternativePower.enabled).toBe(false);
   expect(values.alternativePower.heatpump.topic).toBe('waermepumpe/events/rpc');
 });
@@ -893,4 +920,167 @@ test('alternative meter tiles reuse history dialogs and leave the HeishaMon COP 
   expect((await response).status()).toBe(200);
   await expect(page.getByRole('dialog').getByRole('heading', { name: 'Wärmepumpe elektrisch – Diagramm', exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+});
+
+test('settings sections save independently and preserve unsaved drafts', async ({ page }, info) => {
+  await mockAdminSettings(page);
+  let values = { plantName: 'Saved plant', retentionDays: 700, revision: 0, enableRelaySwitching: false,
+    alternativePower: { enabled: false, heatpump: { topic: 'meter/power', payloadPath: '' }, heater: { topic: 'heater/power', payloadPath: '' } } };
+  const saves: typeof values[] = [];
+  await page.route('**/api/v1/settings', async route => {
+    if (route.request().method() === 'POST') {
+      const body = route.request().postDataJSON();
+      expect(body.revision).toBe(values.revision);
+      saves.push(body); values = { ...body, revision: values.revision + 1 };
+      return route.fulfill({ json: values });
+    }
+    return route.fulfill({ json: { values, enabled: true, source: 'simulator', sampleSeconds: 5, activeRetentionDays: 700, restartRequired: false } });
+  });
+  await page.goto('/');
+  await page.getByRole('navigation').getByRole('button', { name: 'Einstellungen', exact: true }).click();
+  await expect(page.getByRole('tab', { selected: true })).toHaveText('Anlage & Daten');
+  await page.getByLabel('Anlagenname', { exact: true }).fill('Unsaved plant');
+  await page.getByRole('tab', { name: 'Leistungsdaten', exact: true }).click();
+  await page.getByRole('switch', { name: 'Alternative Leistungsdaten verwenden', exact: true }).check();
+  await page.getByRole('tab', { name: 'Steuerung & Relais', exact: true }).click();
+  await page.getByRole('switch', { name: 'Relaisschaltung aktivieren', exact: true }).check();
+  await page.getByRole('button', { name: 'Relais-Einstellung speichern', exact: true }).click();
+  await expect.poll(() => saves.length).toBe(1);
+  expect(saves[0]).toMatchObject({ plantName: 'Saved plant', enableRelaySwitching: true, alternativePower: { enabled: false } });
+  await page.getByRole('tab', { name: 'Anlage & Daten', exact: true }).click();
+  await expect(page.getByLabel('Anlagenname', { exact: true })).toHaveValue('Unsaved plant');
+  await page.getByRole('button', { name: 'Einstellungen speichern', exact: true }).click();
+  await expect.poll(() => saves.length).toBe(2);
+  expect(saves[1]).toMatchObject({ plantName: 'Unsaved plant', enableRelaySwitching: true, alternativePower: { enabled: false } });
+  await page.getByRole('tab', { name: 'Leistungsdaten', exact: true }).click();
+  await expect(page.getByRole('switch', { name: 'Alternative Leistungsdaten verwenden', exact: true })).toBeChecked();
+  await page.getByRole('button', { name: 'Leistungsdaten speichern', exact: true }).click();
+  await expect.poll(() => saves.length).toBe(3);
+  expect(saves[2]).toMatchObject({ plantName: 'Unsaved plant', enableRelaySwitching: true, alternativePower: { enabled: true } });
+  await page.getByRole('tab', { name: 'Anlage & Daten', exact: true }).click();
+  await page.getByLabel('Aufbewahrung in Tagen', { exact: true }).fill('365');
+  await expect(page.getByRole('button', { name: 'Einstellungen speichern', exact: true })).toBeDisabled();
+  await page.getByRole('checkbox', { name: /Ich bestätige: Nach dem Neustart/ }).check();
+  await expect(page.getByRole('button', { name: 'Einstellungen speichern', exact: true })).toBeEnabled();
+  await page.getByRole('button', { name: 'Neu laden / Verwerfen', exact: true }).click();
+  await expect(page.getByLabel('Aufbewahrung in Tagen', { exact: true })).toHaveValue('700');
+  await page.locator('.settings-redesign').screenshot({ path: info.outputPath('settings-redesign.png') });
+  for (const name of ['MQTT-Verbindung', 'Steuerung & Relais', 'Leistungsdaten', 'Benutzer & Zugriff']) {
+    await page.getByRole('tab', { name, exact: true }).click();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+  }
+});
+
+test('settings refresh keeps conflicts in an unrelated dirty section', async ({ page }) => {
+  await mockAdminSettings(page);
+  let values = { plantName: 'Original', retentionDays: 700, revision: 0 };
+  let writes = 0;
+  await page.route('**/api/v1/settings', route => {
+    if (route.request().method() === 'POST') writes++;
+    return route.fulfill({ json: { values, enabled: true, source: 'simulator', sampleSeconds: 5, activeRetentionDays: 700, restartRequired: false } });
+  });
+  await page.goto('/');
+  await page.getByRole('navigation').getByRole('button', { name: 'Einstellungen', exact: true }).click();
+  await page.getByLabel('Anlagenname', { exact: true }).fill('Local draft');
+  values = { plantName: 'Remote change', retentionDays: 700, revision: 1 };
+  await page.getByRole('tab', { name: 'Leistungsdaten', exact: true }).click();
+  await page.getByRole('button', { name: 'Verwerfen', exact: true }).click();
+  await page.getByRole('tab', { name: 'Anlage & Daten', exact: true }).click();
+  await expect(page.getByLabel('Anlagenname', { exact: true })).toHaveValue('Local draft');
+  await page.getByRole('button', { name: 'Einstellungen speichern', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('Einstellungen wurden inzwischen geändert');
+  expect(writes).toBe(0);
+  await page.getByRole('button', { name: 'Neu laden / Verwerfen', exact: true }).click();
+  await expect(page.getByLabel('Anlagenname', { exact: true })).toHaveValue('Remote change');
+});
+
+test('settings sections expose pending retention confirmation before saving', async ({ page }) => {
+  await mockAdminSettings(page);
+  let values = { plantName: 'Test', retentionDays: 365, revision: 0, enableRelaySwitching: false,
+    alternativePower: { enabled: false, heatpump: { topic: 'meter/power', payloadPath: '' }, heater: { topic: 'heater/power', payloadPath: '' } } };
+  const saves: { retentionDays: number; confirmReduction: boolean }[] = [];
+  await page.route('**/api/v1/settings', route => {
+    if (route.request().method() === 'POST') {
+      const body = route.request().postDataJSON(); saves.push(body);
+      values = { ...body, revision: values.revision + 1 };
+      return route.fulfill({ json: values });
+    }
+    return route.fulfill({ json: { values, enabled: true, source: 'simulator', sampleSeconds: 5, activeRetentionDays: 700, restartRequired: true } });
+  });
+  await page.goto('/');
+  await page.getByRole('navigation').getByRole('button', { name: 'Einstellungen', exact: true }).click();
+  for (const [tab, toggle, save] of [
+    ['Steuerung & Relais', 'Relaisschaltung aktivieren', 'Relais-Einstellung speichern'],
+    ['Leistungsdaten', 'Alternative Leistungsdaten verwenden', 'Leistungsdaten speichern']
+  ]) {
+    await page.getByRole('tab', { name: tab, exact: true }).click();
+    await page.getByRole('switch', { name: toggle, exact: true }).check();
+    await expect(page.getByRole('button', { name: save, exact: true })).toBeDisabled();
+    await expect(page.getByRole('tabpanel', { name: tab, exact: true }).getByText('Gespeicherte Aufbewahrung: 365 Tage. Die Verkürzung gilt nach dem Neustart.', { exact: true })).toBeVisible();
+    await page.getByRole('checkbox', { name: /Ich bestätige: Nach dem Neustart/ }).check();
+    await page.getByRole('button', { name: save, exact: true }).click();
+    await expect.poll(() => saves.length).toBe(tab === 'Leistungsdaten' ? 2 : 1);
+    expect(saves.at(-1)).toMatchObject({ retentionDays: 365, confirmReduction: true });
+  }
+});
+
+test('settings readers see disabled options without admin editors', async ({ page }) => {
+  await mockAdminSettings(page);
+  await page.route('**/api/v1/auth/session', route => route.fulfill({ json: { loginRequired: true, authenticated: true, username: 'viewer', role: 'reader', csrfToken: 'test' } }));
+  await page.goto('/');
+  await page.getByRole('navigation').getByRole('button', { name: 'Einstellungen', exact: true }).click();
+  await expect(page.getByLabel('Anlagenname', { exact: true })).toBeDisabled();
+  await expect(page.getByRole('tab', { name: 'MQTT-Verbindung', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('tab', { name: 'Benutzer & Zugriff', exact: true })).toHaveCount(0);
+  await page.getByRole('tab', { name: 'Steuerung & Relais', exact: true }).click();
+  await expect(page.getByRole('switch', { name: 'Relaisschaltung aktivieren', exact: true })).toBeDisabled();
+  await expect(page.getByRole('radio')).toHaveCount(0);
+  await page.getByRole('tab', { name: 'Leistungsdaten', exact: true }).click();
+  await expect(page.getByRole('switch', { name: 'Alternative Leistungsdaten verwenden', exact: true })).toBeDisabled();
+});
+
+test('settings control mode keeps all explicit confirmations and updates MQTT lock', async ({ page }) => {
+  await mockAdminSettings(page);
+  let control = { enabled: false, active: false, profile: null as string | null, revision: 0, source: 'mqtt', brokerMatches: true, credentialsConfigured: true, externalMode: false };
+  const writes: unknown[] = [];
+  await page.route('**/api/v1/settings/control', route => {
+    if (route.request().method() === 'POST') { const body = route.request().postDataJSON(); writes.push(body); control = { ...control, ...body, active: body.enabled, revision: control.revision + 1 }; }
+    return route.fulfill({ json: control });
+  });
+  await page.goto('/');
+  await page.getByRole('navigation').getByRole('button', { name: 'Einstellungen', exact: true }).click();
+  await page.getByRole('tab', { name: 'Steuerung & Relais', exact: true }).click();
+  const form = page.locator('#settings-control form').first();
+  await form.getByRole('radio').nth(1).check();
+  await form.getByRole('combobox').selectOption('aquarea-l-wh-wdg');
+  await form.getByRole('button', { name: 'Steuerungseinstellungen speichern', exact: true }).click();
+  expect(writes).toHaveLength(0);
+  for (const checkbox of await form.getByRole('checkbox').all()) await checkbox.check();
+  await form.getByRole('button', { name: 'Steuerungseinstellungen speichern', exact: true }).click();
+  await expect.poll(() => writes.length).toBe(1);
+  expect(writes[0]).toMatchObject({ enabled: true, confirmProfile: true, confirmSharedCredentials: true, confirmNoOtherWriters: true });
+  await page.getByRole('tab', { name: 'MQTT-Verbindung', exact: true }).click();
+  await expect(page.getByLabel('Broker-Adresse', { exact: true })).toBeDisabled();
+});
+
+test('settings account editor keeps role version and disabled semantics', async ({ page }) => {
+  await mockAdminSettings(page);
+  let account = { username: 'operator', role: 'writer', disabled: false, version: 3 };
+  let saved: { role: string; disabled: boolean; password: string | null; expectedVersion: number } | undefined;
+  await page.route('**/api/v1/users', route => route.fulfill({ json: [account] }));
+  await page.route('**/api/v1/users/operator', route => {
+    saved = route.request().postDataJSON();
+    account = { ...account, role: saved!.role, disabled: saved!.disabled, version: 4 };
+    return route.fulfill({ status: 204 });
+  });
+  await page.goto('/');
+  await page.getByRole('navigation').getByRole('button', { name: 'Einstellungen', exact: true }).click();
+  await page.getByRole('tab', { name: 'Benutzer & Zugriff', exact: true }).click();
+  const editor = page.locator('.settings-user');
+  await editor.locator('summary').click();
+  await expect(editor.getByRole('switch', { name: 'Konto aktiv', exact: true })).toBeChecked();
+  await editor.getByRole('switch', { name: 'Konto aktiv', exact: true }).uncheck();
+  await editor.getByRole('button', { name: 'Speichern operator', exact: true }).click();
+  await expect.poll(() => saved).toBeTruthy();
+  expect(saved).toEqual({ role: 'writer', disabled: true, password: null, expectedVersion: 3 });
 });

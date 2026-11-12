@@ -1,7 +1,7 @@
 # Alternative electrical power measurements
 
-Administrators can enable two external power measurements in **Settings → Plant
-& data storage → Alternative power measurements**. Both sources use the configured
+Administrators can enable two external power measurements in **Settings → Power measurements
+→ Alternative power measurements**. Both sources use the configured
 MQTT broker and must report **watts**. Saving applies the change immediately and
 reconnects the read-only MQTT subscription when its configuration changes.
 
