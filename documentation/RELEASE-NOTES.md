@@ -1,5 +1,31 @@
 # Release notes
 
+## 0.9.4 — Relay switching and status history, 2026-11-12
+
+- Add two optional relay cards to **Overview → Anlagenstatus**, using the large
+  metric-card layout with relay icons, receipt time, message age, quality and
+  retained-state metadata.
+- Enable the cards through **Settings → Enable Relay Switching**. The setting is
+  disabled by default and takes effect without restarting. Switching additionally
+  requires a writer/admin account and enabled device control.
+- Provide accessible toggle switches with a clear on/off position, theme-aware
+  color, keyboard focus and a larger touch target. Toggle clicks send directly,
+  without an additional confirmation dialog; clicking elsewhere opens history.
+- Publish nonretained `0`/`1` commands to the HeishaMon relay topics. Wait for
+  matching feedback, show pending and unconfirmed states, avoid unchanged-value
+  commands, and never retry automatically. Reconnection and permission changes
+  are checked before sending.
+- Add Heizstab-style on/off history diagrams and state labels for both relays.
+  Preserve gaps and reject mixed-state averages. History follows the configured
+  sampling interval; retained-only readings do not establish valid history.
+- Document relay setup, permissions, MQTT topics and troubleshooting, plus Docker
+  update, full-data backup and rollback procedures. Refresh the README image.
+- Relay topic behavior was tested with **HeishaMon v4.3.1 on the ESP32 large
+  board**. Hardware/firmware support is not detected automatically. No history
+  database schema migration is required; existing settings default relay
+  switching to off.
+- See [relay usage](RELAYS.md) and [container updates](CONTAINERS.md).
+
 ## 0.9.3 — Container deployment, 2026-11-12
 
 - Add a Dockerfile and Compose configuration for Docker and Podman, with an
