@@ -26,7 +26,11 @@ Extract the archive on the matching target. Run install.ps1 on Windows or sh ins
 
 Setup asks for the administrator, MQTT address and credentials, port (1883), TLS choice (no), HeishaMon topic base (panasonic_heat_pump), web port (5080) and control opt-in (no). Password input is hidden. Setup creates fresh SQLite accounts, encrypted broker settings and a self-signed HTTPS certificate. It starts the application and connects to the broker only if service installation is explicitly selected at the final prompt. Failed setup preserves the destination for inspection.
 
-All yes/no questions accept `yes`/`y` and `no`/`n`, case-insensitively and with surrounding whitespace ignored (`ja`/`j` and `nein` are also accepted). Enter keeps the default **no**. An invalid answer produces a message and repeats the same question until a valid answer is given. A valid no to a mandatory control confirmation still refuses control setup; an ended input stream does not imply consent.
+All yes/no questions accept `yes`/`y` and `no`/`n`, case-insensitively and with surrounding whitespace ignored (`ja`/`j` and `nein` are also accepted). Enter keeps the default **no**. An invalid answer produces a message and repeats the same question until a valid answer is given. Declining a control confirmation completes installation read-only; an ended input stream cancels setup and does not imply consent. Anonymous MQTT control requires a separate explicit security-risk acceptance in addition to the device and conflicting-controller confirmations. Without that acceptance, installation completes read-only.
+
+## Repeat configuration without rebuilding
+
+For an unfinished initial setup, change to the installation directory and run `./Cockpit.Web --setup-installation` on Linux/Pi or `.\Cockpit.Web.exe --setup-installation` on Windows. This uses the existing binary and does not connect to MQTT. It refuses to overwrite existing accounts or configuration. After successful setup, use the web interface Settings for MQTT and control changes. See [Linux retry details and older-version workaround](LINUX-INSTALL.md#repeat-configuration-without-rebuilding), including how to repeat package installation without rebuilding.
 
 ## Prerequisites and operation
 
