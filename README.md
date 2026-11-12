@@ -16,7 +16,8 @@ Windows x64, Linux x64 and Raspberry Pi ARM64 installation targets are available
 - Optional [external MQTT power measurements](documentation/alternative-power.md) for historical COP and daily electrical energy, including imported Shelly history.
 - Administrator, reader and reader/writer accounts with hashed passwords.
 - Administrator settings for users, MQTT connection, HeishaMon topic base and control mode.
-- Control activation and deactivation without an application restart, with separate confirmation for each device change.
+- Control activation and deactivation without an application restart, with separate confirmation for heat-pump commands.
+- Optional [relay switching](documentation/RELAYS.md): two cards with direct manual toggles, receipt/retained metadata and on/off history diagrams; disabled by default.
 - An authenticated MCP stdio bridge using the same application accounts and permissions.
 - Interface languages: English, German, French, Spanish, Italian and Portuguese.
 
@@ -210,6 +211,15 @@ Passwords use salted PBKDF2-SHA256 hashes. Account changes revoke existing sessi
 An administrator enables control under **Settings → Heat-pump control**. Enabling it does not itself send a device command. Disabling waits for an in-progress send; an already sent command cannot be recalled. The server applies role, freshness, operating-mode and command checks. MQTT acknowledgement or matching telemetry is not proof that the device executed a specific command.
 
 The existing control profile is based on Panasonic WH-SDC0509L3E5 / WH-WDG05LE5 units. Verify the installed device, firmware and configuration before use. Firmware compatibility is not detected automatically; some commands remain experimental. Read [control setup](documentation/CONTROL-SETUP.md) and [profile review](documentation/SUPPORTED-DEVICES.md).
+
+## Relay switches
+
+An administrator can enable **Settings → Enable Relay Switching** (German:
+**Einstellungen → Relaisschaltung aktivieren**) and save. Two relay cards then
+appear in **Overview → Anlagenstatus**. Writer/admin accounts can use the toggles
+when device control is enabled; clicking the rest of a card opens its on/off
+history. Toggle clicks send directly, without an extra confirmation dialog.
+See [relay setup, operation and troubleshooting](documentation/RELAYS.md).
 
 ## COP and history
 

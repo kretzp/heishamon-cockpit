@@ -8,3 +8,13 @@ The saved confirmation is bound to the source, broker host, port, TLS mode and H
 
 The profile is based on the Panasonic WH-SDC0509L3E5 indoor unit and WH-WDG05LE5 outdoor unit; it does not imply support for other devices. See [SUPPORTED-DEVICES.md](SUPPORTED-DEVICES.md) for source evidence and unresolved compatibility questions. Firmware and individual commands are not automatically verified or restricted by the profile. In a simulator, an enabled configuration selects the normal control-capable scenario. Commands remain subject to server-side role checks, freshness and mode guards, audit, per-command confirmation and readback. MQTT acknowledgement or a matching observation does not prove that the heat pump executed a particular command. Account access and broker connection alone do not grant permission to change a real installation.
 
+
+## Relay switching
+
+The two HeishaMon relay switches additionally require the separately saved
+**Enable Relay Switching** checkbox under **Settings**. It is unchecked by
+default. Relay toggles are direct manual commands with matching-state feedback,
+without the per-command confirmation dialog used for heat-pump controls. Only
+writer/admin accounts can operate them when device control is enabled. See
+[relay setup and operation](RELAYS.md) for card metadata, on/off diagrams,
+MQTT topics and troubleshooting.
