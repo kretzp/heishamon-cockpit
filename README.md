@@ -21,7 +21,8 @@ Windows x64, Linux x64 and Raspberry Pi ARM64 installation targets are available
 - An authenticated MCP stdio bridge using the same application accounts and permissions.
 - Interface languages: English, German, French, Spanish, Italian and Portuguese.
 
-<img width="2525" height="1127" alt="image" src="https://github.com/user-attachments/assets/ec237616-5574-47b1-b962-bbb8e77d7ea5" />
+<img width="2556" height="1236" alt="image" src="https://github.com/user-attachments/assets/65136594-1df2-439f-91c3-987de839825d" />
+
 
 
 ## Requirements and supported targets
