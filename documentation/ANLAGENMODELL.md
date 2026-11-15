@@ -22,7 +22,7 @@ Der Messwert-Explorer zeigt die empfangenen Snapshot-Felder einschließlich opti
 
 Die Bauteilauswahl steht direkt unter der animierten Grafik. In der Desktopansicht stehen die zugehörigen Messwerte rechts neben der Grafik, auf schmalen Bildschirmen darunter. Lüfter und Pumpenrotor drehen in eigenen lokalen Koordinaten um feste Achsen. Geräteposition und Rotation sind getrennt, damit die Rotoren bei Animation und Live-Aktualisierung nicht aus dem Gehäuse wandern.
 
-Die Desktopgrafik skaliert proportional auf 320 bis 420 Pixel Höhe, während der Anlagenstatus mindestens 320 Pixel Breite erhält. Die Umschaltknöpfe stehen direkt darunter. Je nach Fenstergröße kann Scrollen erforderlich sein.
+Die Desktopgrafik skaliert proportional auf 370 bis 480 Pixel Höhe, während der Anlagenstatus mindestens 320 Pixel Breite erhält. Vergrößerte Beschriftungen und Messwerte erleichtern das Lesen. Die Umschaltknöpfe stehen direkt darunter. Je nach Fenstergröße kann Scrollen erforderlich sein.
 
 ## Grenzen der Darstellung
 

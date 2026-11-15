@@ -12,8 +12,8 @@ test('desktop model balances readable animation and wider status', async ({ page
   const buttons = await page.locator('.plant-canvas .plant-components').boundingBox();
   const status = await page.locator('.plant-inspector').boundingBox();
   const animation = await page.locator('.plant-diagram').boundingBox();
-  expect(animation!.height).toBeGreaterThanOrEqual(320);
-  expect(animation!.height).toBeLessThanOrEqual(420);
+  expect(animation!.height).toBeGreaterThanOrEqual(370);
+  expect(animation!.height).toBeLessThanOrEqual(480);
   expect(buttons!.y).toBeGreaterThanOrEqual(animation!.y + animation!.height);
   expect(status!.width).toBeGreaterThanOrEqual(320);
   await page.screenshot({ path: info.outputPath('compact-desktop.png') });

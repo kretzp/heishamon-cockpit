@@ -9,8 +9,8 @@
 .plant-model .plant-kpis article{min-width:0;padding:18px}.plant-model .plant-kpis span{display:block;font-size:.83rem;color:var(--muted)}.plant-model .plant-kpis strong{display:block;font-size:1.8rem;font-weight:600;font-variant-numeric:tabular-nums;margin-top:8px}
 .plant-model .plant-canvas{padding:20px 0}.plant-model .plant-section-heading{padding:0 22px}.plant-model .plant-section-heading h2{margin:0}.plant-model .plant-section-heading>span{color:var(--primary);background:var(--blue-soft);padding:5px 12px;border-radius:8px}
 .plant-model .plant-diagram-scroll{overflow:auto;margin-top:18px;padding:0 12px}.plant-model .plant-diagram{display:block;width:100%;min-width:850px;height:auto}
-.plant-model .plant-diagram text{font-family:inherit;fill:var(--foreground)}.plant-model .section-label{font-size:10px;letter-spacing:1px;fill:var(--muted)}
-.plant-model .component-title{font-size:12px;font-weight:600}.plant-model .tiny{font-size:10px;letter-spacing:.4px}.plant-model .muted-svg{font-size:12px;fill:var(--muted)}.plant-model .reading{font-size:21px;font-weight:600;font-variant-numeric:tabular-nums}
+.plant-model .plant-diagram text{font-family:inherit;fill:var(--foreground)}.plant-model .section-label{font-size:12px;letter-spacing:1px;fill:var(--muted)}
+.plant-model .component-title{font-size:15px;font-weight:600}.plant-model .tiny{font-size:12px;letter-spacing:.4px}.plant-model .muted-svg{font-size:14px;fill:var(--muted)}.plant-model .reading{font-size:25px;font-weight:600;font-variant-numeric:tabular-nums}
 .plant-model .plant-diagram .hot-text{fill:var(--orange)}.plant-model .plant-diagram .cold-text{fill:var(--primary)}
 .plant-model .equipment{fill:var(--card);stroke:var(--input-border);stroke-width:1.6}.plant-model .pipe,.plant-model .flow{fill:none;stroke-linejoin:round;stroke-linecap:round}
 .plant-model .pipe{stroke-width:8;opacity:.24}.plant-model .hot{stroke:var(--orange)}.plant-model .cold{stroke:var(--primary)}
@@ -49,7 +49,7 @@
 @media(min-width:1100px){
   .plant-model{gap:12px}
   .plant-model .plant-workbench{grid-template-columns:minmax(0,1fr) minmax(320px,.48fr)}
-  .plant-model .plant-diagram{min-width:0;height:clamp(320px,38vh,420px)}
+  .plant-model .plant-diagram{min-width:0;height:clamp(370px,44vh,480px)}
   .plant-model .plant-diagram-scroll{margin-top:10px}
   .plant-model .plant-kpis article{padding:12px 18px}
   .plant-model .plant-kpis strong{font-size:1.6rem;margin-top:4px}

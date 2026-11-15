@@ -1,7 +1,10 @@
 # Release notes
 
-## 0.9.7 — Animated Aquarea system model, 2026-11-15
+## 1.0.0 — Animated Aquarea system model, 2026-11-15
 
+- The animated system model was inspired by
+  [heatpump-hydraulic-card](https://github.com/Sturmi77/heatpump-hydraulic-card)
+  by [Sturmi77](https://github.com/Sturmi77).
 - Make Anlagenmodell the initial view, ahead of Overview. Select proportionate
   outdoor and indoor housings automatically from all 91 legacy model IDs and
   the confirmed local L-series signature. Unknown models use a neutral drawing.
@@ -11,9 +14,11 @@
 - Save one or two heating circuits, floor heating/radiators, storage and display
   options per installation. Only administrators can edit them; saves require
   CSRF protection and a matching settings revision.
-- Place component selectors beneath the compact desktop diagram and show
-  their measurements in the wider status panel to its right. Add a searchable
-  measurement explorer and translations for all supported languages.
+- Place component selectors beneath the animated desktop diagram and show
+  their measurements in the wider status panel to its right. Increase the
+  diagram size, labels and measurement text for better readability while
+  preserving device proportions. Add a searchable measurement explorer and
+  translations for all supported languages.
 - Exclude local runtime data from published applications so development and
   preview JSON files cannot enter installation packages.
 
