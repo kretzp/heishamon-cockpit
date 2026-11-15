@@ -211,7 +211,7 @@ Passwords use salted PBKDF2-SHA256 hashes. Account changes revoke existing sessi
 
 An administrator enables control under **Settings → Heat-pump control**. Enabling it does not itself send a device command. Disabling waits for an in-progress send; an already sent command cannot be recalled. The server applies role, freshness, operating-mode and command checks. MQTT acknowledgement or matching telemetry is not proof that the device executed a specific command.
 
-The existing control profile is based on Panasonic WH-SDC0509L3E5 / WH-WDG05LE5 units. Verify the installed device, firmware and configuration before use. Firmware compatibility is not detected automatically; some commands remain experimental. Read [control setup](documentation/CONTROL-SETUP.md) and [profile review](documentation/SUPPORTED-DEVICES.md).
+The read-only **Device profile** display automatically identifies the heat pump from HeishaMon TOP92, including indoor/outdoor model names. Unknown models show the raw identifier; missing data never defaults to an L-series model. The former fixed model dropdown has been removed. Control can be enabled after selecting **Enable control**, completing the existing confirmation checkboxes and saving. Verify the installed device, firmware and configuration before use. Firmware compatibility is not detected automatically; some commands remain experimental. Read [control setup](documentation/CONTROL-SETUP.md) and [profile review](documentation/SUPPORTED-DEVICES.md).
 
 ## Relay switches
 

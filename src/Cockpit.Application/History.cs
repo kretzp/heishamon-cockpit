@@ -16,7 +16,7 @@ public sealed class HistoryRequestException(string code, string message) : Excep
 }
 public sealed record HistoryQuery(string[] Keys, DateTimeOffset From, DateTimeOffset To, int BucketSeconds)
 {
-    public static IReadOnlyDictionary<string, Metric> Metrics { get; } = Catalog.Metrics
+    public static IReadOnlyDictionary<string, Metric> Metrics { get; } = Catalog.Metrics.Where(m => m.Type != "model")
         .Append(new Metric("temperatureSpread", Catalog.Kelvin, "", "number"))
         .Append(new Metric("alternativeHeatpumpPower", Catalog.Watt, "", "positive"))
         .Append(new Metric("alternativeHeaterPower", Catalog.Watt, "", "positive"))

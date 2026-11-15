@@ -16,7 +16,7 @@ public sealed class ControlSetupStore
     {
         this.path = Path.GetFullPath(path);
         current = File.Exists(this.path) ? JsonSerializer.Deserialize<ControlSetup>(File.ReadAllText(this.path)) ?? throw new InvalidDataException("Invalid control setup.") : new();
-        if (current.Revision < 0 || current.Enabled && current.Profile != HeatingCurve.Profile) throw new InvalidDataException("Invalid control setup.");
+        if (current.Revision < 0 || current.Enabled && !HeatingCurve.IsSupportedProfile(current.Profile)) throw new InvalidDataException("Invalid control setup.");
     }
     public static string Binding(string source, MqttReadOptions options)
     {
@@ -32,7 +32,7 @@ public sealed class ControlSetupStore
             if (input.Revision != current.Revision) throw new CommandRejected(409, "control_conflict");
             var anonymous = string.IsNullOrEmpty(options.Username) && string.IsNullOrEmpty(options.Password);
             var brokerAuthorized = anonymous ? input.ConfirmAnonymousRisk : input.ConfirmSharedCredentials && !string.IsNullOrWhiteSpace(options.Username) && !string.IsNullOrEmpty(options.Password);
-            if (input.Enabled && (input.Profile != HeatingCurve.Profile || !input.ConfirmProfile || !input.ConfirmNoOtherWriters || source == "mqtt" && !brokerAuthorized))
+            if (input.Enabled && (!HeatingCurve.IsSupportedProfile(input.Profile) || !input.ConfirmProfile || !input.ConfirmNoOtherWriters || source == "mqtt" && !brokerAuthorized))
                 throw new CommandRejected(422, "control_confirmation_required");
             var next = new ControlSetup(input.Enabled, input.Enabled ? HeatingCurve.Profile : null, input.Enabled ? Binding(source, options) : null, checked(current.Revision + 1), input.Enabled && source == "mqtt" && anonymous && input.ConfirmAnonymousRisk);
             var temp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";

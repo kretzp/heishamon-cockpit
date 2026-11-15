@@ -1,5 +1,10 @@
 # Release notes
 
+## Unreleased
+
+- Fix #12: detect the heat-pump model from HeishaMon TOP92 instead of showing a fixed L-series profile. Settings now show the detected indoor/outdoor model names, or the raw identifier for unknown models, without a dropdown. The header uses the same model.
+- Allow explicit control opt-in using the existing confirmation checkboxes without selecting the old L-series profile. Existing saved control setups remain compatible; model detection itself does not enable control.
+
 ## 0.9.5 — Settings layout and usability, 2026-11-12
 
 - Organize settings into five sections: system and data, MQTT connection,

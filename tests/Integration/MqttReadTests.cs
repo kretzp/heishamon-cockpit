@@ -36,7 +36,8 @@ public sealed class MqttReadTests
     public void AcceptsExplicitLiveReadOnlyConfigurationWithoutConnecting(string host, string prefix, bool tls)
     {
         var source = new MqttReadSource(new() { Host = host, Prefix = prefix, Port = 1883, LiveReadOnly = true, UseTls = tls });
-        Assert.Equal(48, source.Subscriptions.Count);
+        Assert.Equal(49, source.Subscriptions.Count);
+        Assert.Contains(prefix + "/main/Heat_Pump_Model", source.Subscriptions);
         Assert.All(source.Subscriptions, topic => Assert.StartsWith(prefix + "/", topic));
     }
 
@@ -87,6 +88,7 @@ public sealed class MqttReadTests
 
         await Inject("main/Main_Outlet_Temp", "34.5", true);
         await Inject("LWT", "Online", true);
+        await Inject("main/Heat_Pump_Model", "E2 D5 0B 08 95 02 D6 0E 66 95", true);
         await Inject("1wire/28abcdef01234567/alias", "Retained Tank", true);
         await Inject("1wire/28abcdef01234567", "19.25", true);
         var source = new MqttReadSource(new() { Port = port, IsolatedTestBroker = !live, LiveReadOnly = live, UseTls = false });
@@ -99,6 +101,8 @@ public sealed class MqttReadTests
         {
             await Until(() => subscriptions.Count >= expectedSubscriptions.Length && Flow().Retained);
             Assert.Equal(expectedSubscriptions.Order(), subscriptions.Order());
+            await Until(() => store.Read().HeatPumpModel.Known);
+            Assert.Equal("Panasonic WH-SDC0309K3E5 / WH-UDZ05KE5", store.Read().HeatPumpModel.DisplayName);
             Assert.DoesNotContain(subscriptions, t => t.Contains('#') || t.Contains("commands"));
             Assert.Equal(new[] { "cockpit_test/1wire/+", "cockpit_test/1wire/+/alias" }, subscriptions.Where(t => t.Contains('+')).Order());
             await Until(() => store.Read().Values.Any(v => v.Key == "ds18b20_28abcdef01234567" && v.Alias == "Retained Tank"));

@@ -133,6 +133,9 @@ public sealed partial class TelemetryStore
     public static (object? Value, Quality Quality) Parse(Metric metric, string payload)
     {
         if (payload.Length is 0 or > 64) return (null, Quality.Invalid);
+        if (metric.Type == "model")
+            return string.IsNullOrWhiteSpace(payload) || payload.Any(char.IsControl)
+                ? (null, Quality.Invalid) : (payload.Trim(), Quality.Valid);
         if (metric.Type == "error")
         {
             // Operator-confirmed all-clear token; other tokens remain unknown.
@@ -182,7 +185,7 @@ public sealed partial class TelemetryStore
                 Catalog.Celsius, targetCompatible ? Quality.Valid : Quality.Unknown,
                 targetCompatible ? request.ReceivedAtUtc : null, null, false,
                 targetCompatible ? request.SourceTopic : null, sourceKind));
-            var qualities = evaluated.Take(Catalog.Metrics.Count).Select(v => v.Quality).ToArray();
+            var qualities = evaluated.Take(Catalog.Metrics.Count).Where(v => v.Key != "heatPumpModel").Select(v => v.Quality).ToArray();
             var freshness = qualities.All(q => q == Quality.Valid) ? Quality.Valid :
                 qualities.Contains(Quality.Invalid) ? Quality.Invalid :
                 qualities.Contains(Quality.Stale) ? Quality.Stale : Quality.Unknown;

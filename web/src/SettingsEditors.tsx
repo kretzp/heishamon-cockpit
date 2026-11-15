@@ -1,3 +1,4 @@
+import { DeviceProfile, type HeatPumpModel } from './HeatPumpModel';
 import { settingsText as st } from './i18n/settings';
 import { t } from './i18n/core';
 import { Input } from './components/ui/input';
@@ -80,10 +81,9 @@ export function MqttEditor({ csrfToken }: { csrfToken: string }) {
 }
 
 type ControlConfig = { enabled: boolean; profile: string | null; revision: number; active: boolean; restartRequired: boolean; externalMode: boolean; brokerMatches: boolean; source: string; brokerHost: string | null; brokerPort: number | null; topicBase: string | null; credentialsConfigured: boolean };
-export function ControlEditor({ csrfToken }: { csrfToken: string }) {
+export function ControlEditor({ csrfToken, model }: { csrfToken: string; model?: HeatPumpModel }) {
   const [config, setConfig] = useState<ControlConfig | null>(null);
   const [enabled, setEnabled] = useState(false);
-  const [profile, setProfile] = useState('');
   const [confirmProfile, setConfirmProfile] = useState(false);
   const [confirmCredentials, setConfirmCredentials] = useState(false);
   const [confirmWriters, setConfirmWriters] = useState(false);
@@ -92,11 +92,11 @@ export function ControlEditor({ csrfToken }: { csrfToken: string }) {
   async function load() {
     const response = await sessionFetch('/api/v1/settings/control', { cache: 'no-store' });
     if (!response.ok) throw Error('Unable to load control settings.');
-    const next: ControlConfig = await response.json(); setConfig(next); setEnabled(next.enabled); setProfile(next.profile ?? '');
+    const next: ControlConfig = await response.json(); setConfig(next); setEnabled(next.enabled);
     setConfirmProfile(false); setConfirmCredentials(false); setConfirmWriters(false);
   }
   useEffect(() => { void load().catch(error => setStatus(error.message)); }, []);
-  const dirty = config !== null && (enabled !== config.enabled || enabled && profile !== (config.profile ?? '') || confirmProfile || confirmCredentials || confirmWriters);
+  const dirty = config !== null && (enabled !== config.enabled || confirmProfile || confirmCredentials || confirmWriters);
   function selectMode(next: boolean) { setEnabled(next); setConfirmProfile(false); setConfirmCredentials(false); setConfirmWriters(false); }
   return <section className="panel settings-panel">
     <SettingsHeader title={st('Heat-pump control')} description={t('Lege fest, ob Cockpit die Anlage nur liest oder auch steuern darf.')} />
@@ -104,12 +104,12 @@ export function ControlEditor({ csrfToken }: { csrfToken: string }) {
       <div className="settings-panel-notice settings-help">{st('Current mode')}: <strong>{st(config.active ? 'control enabled' : 'read only')}</strong> · {st('source')}: {st(config.source)}{config.source === 'mqtt' && <p>{st('Broker host')}: {config.brokerHost}:{config.brokerPort} · {st('HeishaMon topic base')}: {config.topicBase}</p>}</div>
       {config.restartRequired && <p role="status" className="settings-callout settings-panel-notice">{st('The saved change takes effect only after the application is restarted. Until then the current mode remains active.')}</p>}
       {!config.brokerMatches && <p role="alert" className="settings-callout settings-panel-notice">{st('The broker configuration no longer matches the saved confirmation. Control remains disabled; review and confirm it again.')}</p>}
-      {config.externalMode ? <p className="settings-callout settings-panel-notice">{st('This control mode is managed by startup configuration and cannot be changed here.')}</p> : <form onSubmit={event => {
+      {config.externalMode ? <><div className="settings-panel-body"><DeviceProfile model={model} /></div><p className="settings-callout settings-panel-notice">{st('This control mode is managed by startup configuration and cannot be changed here.')}</p></> : <form onSubmit={event => {
         event.preventDefault(); if (busy) return; setBusy(true); setStatus(''); void (async () => {
           try {
-            const response = await sessionFetch('/api/v1/settings/control', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken }, body: JSON.stringify({ enabled, profile: enabled ? profile : null, confirmProfile, confirmSharedCredentials: confirmCredentials, confirmNoOtherWriters: confirmWriters, revision: config.revision }) });
-            if (!response.ok) { const data = await response.json().catch(() => ({})); throw Error(data.errorCode === 'control_conflict' ? 'Settings changed. Reload before saving.' : data.errorCode === 'control_command_pending' ? 'Wait until the previous command has finished before enabling control again.' : data.errorCode === 'control_confirmation_required' ? 'Select the supported profile and complete all required confirmations.' : 'Unable to save control settings.'); }
-            const next: ControlConfig = await response.json(); setConfig(next); setEnabled(next.enabled); setProfile(next.profile ?? ''); setConfirmProfile(false); setConfirmCredentials(false); setConfirmWriters(false);
+            const response = await sessionFetch('/api/v1/settings/control', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken }, body: JSON.stringify({ enabled, profile: enabled ? 'aquarea-heishamon' : null, confirmProfile, confirmSharedCredentials: confirmCredentials, confirmNoOtherWriters: confirmWriters, revision: config.revision }) });
+            if (!response.ok) { const data = await response.json().catch(() => ({})); throw Error(data.errorCode === 'control_conflict' ? 'Settings changed. Reload before saving.' : data.errorCode === 'control_command_pending' ? 'Wait until the previous command has finished before enabling control again.' : data.errorCode === 'control_confirmation_required' ? 'Complete all required confirmations.' : 'Unable to save control settings.'); }
+            const next: ControlConfig = await response.json(); setConfig(next); setEnabled(next.enabled); setConfirmProfile(false); setConfirmCredentials(false); setConfirmWriters(false);
             setStatus('Control settings saved.'); window.dispatchEvent(new Event('cockpit-control-changed'));
           } catch (error) { setStatus((error as Error).message); } finally { setBusy(false); }
         })();
@@ -120,14 +120,14 @@ export function ControlEditor({ csrfToken }: { csrfToken: string }) {
             <label><Input type="radio" name="settings-control-mode" checked={!enabled} onChange={() => selectMode(false)} /><span><strong>{st('Read only')}</strong><small>{t('Messwerte und Historie ansehen.')}</small></span></label>
             <label><Input type="radio" name="settings-control-mode" checked={enabled} onChange={() => selectMode(true)} /><span><strong>{st('Enable control')}</strong><small>{t('Befehle für berechtigte Konten.')}</small></span></label>
           </div></fieldset>
+          <DeviceProfile model={model} />
           {enabled && <>
-            <label className="settings-field">{st('Device profile')}<select value={profile} required onChange={event => setProfile(event.target.value)}><option value="">{st('Select a profile')}</option><option value="aquarea-l-wh-wdg">Panasonic WH-SDC0509L3E5 / WH-WDG05LE5</option></select></label>
             <div className="settings-confirmations">
               <label className="settings-confirm"><Input type="checkbox" checked={confirmProfile} onChange={event => setConfirmProfile(event.target.checked)} required /><span>{st('I verified that the heat pump and installation match this profile.')}</span></label>
               <label className="settings-confirm"><Input type="checkbox" checked={confirmWriters} onChange={event => setConfirmWriters(event.target.checked)} required /><span>{st('I checked other controllers and will avoid conflicting changes.')}</span></label>
               {config.source === 'mqtt' && <><p className="settings-help">{st('Control uses the configured broker credentials.')} {st(config.credentialsConfigured ? 'Credentials are configured.' : 'Configure broker credentials before enabling control.')}</p><label className="settings-confirm"><Input type="checkbox" checked={confirmCredentials} onChange={event => setConfirmCredentials(event.target.checked)} required /><span>{st('I authorize using the configured broker account for control.')}</span></label></>}
             </div>
-            <details><summary>{t('Hinweise zum Geräteprofil')}</summary><p className="settings-help">{st('The profile is based on the specified indoor and outdoor units. Verify the installed HeishaMon firmware and each command before use. Sterilization settings are experimental; room targets below 20 °C need separate verification.')}</p></details>
+            <details><summary>{t('Hinweise zum Geräteprofil')}</summary><p className="settings-help">{st('The model is detected from HeishaMon TOP92. Unknown models show the raw identifier. Model detection does not verify firmware or command compatibility. Verify each command before use.')}</p></details>
             <p className="settings-help">{t('Die Freigabe allein sendet keinen Anlagenbefehl. Relais-Toggles senden direkt; Wärmepumpenbefehle benötigen eine zusätzliche Bestätigung.')}</p>
           </>}
         </fieldset>

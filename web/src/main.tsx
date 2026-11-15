@@ -10,6 +10,7 @@ import { Button } from './components/ui/button';
 import { AccessGate, AccountMenu } from './Access';
 import { sessionFetch } from './Access';
 import { SettingsPanel } from './Settings';
+import type { HeatPumpModel } from './HeatPumpModel';
 import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
@@ -40,6 +41,7 @@ type Value = {
   sourceKind: string;
 };
 type Snapshot = {
+  heatPumpModel?: HeatPumpModel;
   instanceId: string;
   revision: number;
   generatedAtUtc: string;
@@ -348,7 +350,7 @@ function App() {
     <a href="#content" className="skip">{t("Zum Inhalt")}</a>
     <header className="app-header">
       <LanguagePicker /><ThemePicker />
-      <div className="header-state"><span>{t("Aquarea L")}</span><span className="header-mode">{live && mode?.quality === 'valid' ? localizeText(display(mode)) : localizeText('Betriebsart unbekannt')}</span></div>
+      <div className="header-state"><span>{snapshot?.heatPumpModel?.displayName ?? "Panasonic Aquarea"}</span><span className="header-mode">{live && mode?.quality === 'valid' ? localizeText(display(mode)) : localizeText('Betriebsart unbekannt')}</span></div>
       <div className="header-connection"><span><i className={deviceOnline ? 'dot online' : 'dot'} />{deviceOnline ? localizeText('HeishaMon online') : localizeText('HeishaMon: ') + (live && snapshot?.deviceAvailability === 'offline' ? localizeText('Offline') : localizeText('unbekannt'))}</span><small>{system?.source === 'simulator' ? localizeText('Verbindungsstatus simuliert') : localizeText('Verfügbarkeit laut LWT')}</small></div>
       <div className="header-age">{snapshot ? localizeText('Stand ') + localizeText(formatTime(snapshot.generatedAtUtc)) + localizeText(' · Berlin') : localizeText('Warte auf Daten')}<small>{liveControl ? localizeText('Anlagensteuerung') : curveControl ? localizeText('Heizkurvensteuerung') : liveTest ? localizeText('Begrenzter Live-Test · reale Anlage') : simulatorControl ? localizeText('Simulatorsteuerung verfügbar') : localizeText('Nur lesen')}</small></div>
     </header>
@@ -386,7 +388,7 @@ function App() {
         {simulatorControl || liveTest || liveControl ? <SimulatorControlPanel liveTest={!!liveTest} liveControl={liveControl} extendedEnabled={system?.capabilities?.includes("extendedCommands") ?? false} sterilizationEnabled={system?.capabilities?.includes("sterilizationCommands") ?? false} /> : <Unavailable>{t("Dieses Release liest ausschließlich Messwerte. Heizungssteuerung benötigt eine separate Freigabe.")}</Unavailable>}
       </div>}
       {tab === 'Ereignisse' && <><div className="event-status">{localizeText(card('activeError', 'compact', {}, undefined, 2))}</div><EventsPanel /></>}
-      {tab === 'Einstellungen' && <SettingsPanel enabled={system?.settingsEnabled ?? false} onSaved={name => setSystem(old => old ? {
+      {tab === 'Einstellungen' && <SettingsPanel model={snapshot?.heatPumpModel} enabled={system?.settingsEnabled ?? false} onSaved={name => setSystem(old => old ? {
         ...old,
         plantName: name
       } : old)} openHistory={() => setTab('Verlauf')} />}

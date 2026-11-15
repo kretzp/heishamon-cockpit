@@ -1,8 +1,20 @@
 # Supported devices and control requirements
 
-The aquarea-l-wh-wdg profile was derived from documentation for the Panasonic WH-SDC0509L3E5 indoor unit and WH-WDG05LE5 outdoor unit. The profile does not detect the model, wiring, configuration or firmware installed at a site. Verify those independently before enabling control.
+## Automatic model identification
 
-The [Panasonic operating instructions](https://tda.panasonic-europe-service.com/docs/2z69138055z3z42947z656ez706466z27za0e6e6ecec90670b69c9d765c1afb44ea3a0a7d1/tsn3/data/ALL/WHSDC0509L3E5/OI/998713/WEB-ACXF55-36270-EN.pdf) describe heating-curve settings for this family. Operating limits also depend on outside temperature and installation conditions. A profile selection cannot establish that every allowed value is safe for a particular installation.
+Cockpit reads HeishaMon TOP92 (`main/Heat_Pump_Model`) and displays the detected model under **Settings → Control & relays → Device profile**, replacing the manual dropdown. The same model appears in the application header. TOP92 is optional, so older devices or brokers without this topic can still provide telemetry. A retained identifier is usable for identification; it never establishes fresh telemetry for command guards.
+
+The bundled mapping contains the model facts (IDs 0–90) from [HeishaMon HeatPumpType.md at ad7804e](https://github.com/heishamon/HeishaMon/blob/ad7804eb02779f48ed8bf397861474ce608d8bbb/HeatPumpType.md), retrieved on 15 November 2026. HeishaMon derives the hexadecimal identifier from normal telegram bytes 129–138. Cockpit accepts whitespace/case variations and legacy numeric IDs. Unknown identifiers are displayed unchanged after trimming outer whitespace. Missing or invalid payloads show a waiting message; no L-series fallback is assumed. To update the mapping, review the upstream table and update `src/Cockpit.Domain/HeatPumpModels.cs` with its source revision, retaining existing IDs and tests.
+
+For example, `E2 D5 0B 08 95 02 D6 0E 66 95` identifies **WH-SDC0309K3E5 / WH-UDZ05KE5** (K series), fixing [issue #12](https://github.com/kretzp/heishamon-cockpit/issues/12). `E2 D5 0B 34 99 83 92 0C 27 98` identifies **WH-SDC0509L3E5 / WH-WDG05LE5**. Monoblocks display their outdoor model once.
+
+This is model identification, not an individual serial number. Upstream describes uniqueness of these bytes as an assumption. The mapping does not verify wiring, configuration, firmware or individual command compatibility.
+
+## Control requirements
+
+The original command ranges were derived from documentation for the Panasonic WH-SDC0509L3E5 indoor unit and WH-WDG05LE5 outdoor unit. Control can now be explicitly enabled for other HeishaMon-connected Aquarea models using the existing confirmation checkboxes; the detected model is informational and does not alter command ranges. Review the installed device and command semantics before enabling control.
+
+The [Panasonic operating instructions](https://tda.panasonic-europe-service.com/docs/2z69138055z3z42947z656ez706466z27za0e6e6ecec90670b69c9d765c1afb44ea3a0a7d1/tsn3/data/ALL/WHSDC0509L3E5/OI/998713/WEB-ACXF55-36270-EN.pdf) describe heating-curve settings for this family. Operating limits also depend on outside temperature and installation conditions. Model detection cannot establish that every allowed value is safe for a particular installation.
 
 The [HeishaMon v4.2.3 MQTT topic documentation](https://github.com/heishamon/HeishaMon/blob/v4.2.3/MQTT-Topics.md) lists sterilization temperature and duration settings as experimental. They are absent from the v4.2.0 topic documentation. The firmware currently installed at a site must be checked separately. The application does not detect firmware compatibility or block these settings on older firmware.
 

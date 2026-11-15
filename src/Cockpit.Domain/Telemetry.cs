@@ -15,6 +15,7 @@ public sealed record Snapshot(long Revision, Guid InstanceId, DateTimeOffset Gen
     bool BrokerConnected, Availability DeviceAvailability, Quality TelemetryFreshness,
     IReadOnlyList<TelemetryValue> Values)
 {
+    public HeatPumpModel HeatPumpModel => HeatPumpModels.Resolve(Values.FirstOrDefault(v => v.Key == "heatPumpModel")?.Value as string);
     public IReadOnlyList<TelemetryDiagnostic> Diagnostics { get; init; } = [];
 }
 
@@ -75,6 +76,7 @@ public static class Catalog
         new Metric("sterilizationMaxTime", Minute, "main/Sterilization_Max_Time", "counter", Optional: true, Top: 71),
         new Metric("relayOne", "enum", "gpio/relay/one/state", "relay", 1, Optional: true),
         new Metric("relayTwo", "enum", "gpio/relay/two/state", "relay", 1, Optional: true),
-        new Metric("quietMode", "enum", "main/Quiet_Mode_Level", "enum", 3, Optional: true, Top: 18)
+        new Metric("quietMode", "enum", "main/Quiet_Mode_Level", "enum", 3, Optional: true, Top: 18),
+        new Metric("heatPumpModel", "", "main/Heat_Pump_Model", "model", Optional: true, Top: 92)
     ]).ToArray());
 }

@@ -22,7 +22,7 @@ public sealed record CurveControlOptions
     public void Validate(MqttReadOptions read, DateTimeOffset now)
     {
         read.Validate();
-        if (!read.IsolatedTestBroker && !ProfileConfirmed) throw new ArgumentException("Heating curve requires confirmed L-series profile and installation settings.");
+        if (!read.IsolatedTestBroker && !ProfileConfirmed) throw new ArgumentException("Heating curve requires confirmed Aquarea profile and installation settings.");
         if (!Enabled || !Continuous && (ExpiresUtc is null || ExpiresUtc > now.AddHours(1)))
             throw new ArgumentException("Live test requires an explicit expiry no more than one hour ahead.");
         var anonymousAuthorized = Continuous && AllowAnonymousControl && string.IsNullOrEmpty(Username) && string.IsNullOrEmpty(Password) && string.IsNullOrEmpty(read.Username) && string.IsNullOrEmpty(read.Password);

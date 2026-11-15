@@ -9,7 +9,9 @@ public sealed record CurveValues(double XCold, double YCold, double XWarm, doubl
 public sealed record CurveField(string Property, string Key, string Label, string Topic, int Minimum, int Maximum, string Unit, string Part, int Top);
 public static class HeatingCurve
 {
-    public const string Profile = "aquarea-l-wh-wdg";
+    public const string Profile = "aquarea-heishamon";
+    public const string LegacyProfile = "aquarea-l-wh-wdg";
+    public static bool IsSupportedProfile(string? profile) => profile is Profile or LegacyProfile;
     public static IReadOnlyList<CurveField> Fields { get; } = Array.AsReadOnly<CurveField>([
         new("xCold","curveXCold","Außen niedrig","main/Z1_Heat_Curve_Outside_Low_Temp",-20,15,Catalog.Celsius,"curve",32),
         new("yCold","curveYCold","Vorlauf hoch","main/Z1_Heat_Curve_Target_High_Temp",20,75,Catalog.Celsius,"curve",29),

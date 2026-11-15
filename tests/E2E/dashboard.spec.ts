@@ -1052,13 +1052,14 @@ test('settings control mode keeps all explicit confirmations and updates MQTT lo
   await page.getByRole('tab', { name: 'Steuerung & Relais', exact: true }).click();
   const form = page.locator('#settings-control form').first();
   await form.getByRole('radio').nth(1).check();
-  await form.getByRole('combobox').selectOption('aquarea-l-wh-wdg');
+  await expect(form.getByRole('combobox')).toHaveCount(0);
+  await expect(form.getByRole('status').filter({ hasText: 'Panasonic WH-SDC0509L3E5 / WH-WDG05LE5' })).toBeVisible();
   await form.getByRole('button', { name: 'Steuerungseinstellungen speichern', exact: true }).click();
   expect(writes).toHaveLength(0);
   for (const checkbox of await form.getByRole('checkbox').all()) await checkbox.check();
   await form.getByRole('button', { name: 'Steuerungseinstellungen speichern', exact: true }).click();
   await expect.poll(() => writes.length).toBe(1);
-  expect(writes[0]).toMatchObject({ enabled: true, confirmProfile: true, confirmSharedCredentials: true, confirmNoOtherWriters: true });
+  expect(writes[0]).toMatchObject({ enabled: true, profile: 'aquarea-heishamon', confirmProfile: true, confirmSharedCredentials: true, confirmNoOtherWriters: true });
   await page.getByRole('tab', { name: 'MQTT-Verbindung', exact: true }).click();
   await expect(page.getByLabel('Broker-Adresse', { exact: true })).toBeDisabled();
 });
@@ -1083,4 +1084,27 @@ test('settings account editor keeps role version and disabled semantics', async 
   await editor.getByRole('button', { name: 'Speichern operator', exact: true }).click();
   await expect.poll(() => saved).toBeTruthy();
   expect(saved).toEqual({ role: 'writer', disabled: true, password: null, expectedVersion: 3 });
+});
+
+for (const [label, model] of [
+  ['known K-series', { rawIdentifier: 'E2 D5 0B 08 95 02 D6 0E 66 95', displayName: 'Panasonic WH-SDC0309K3E5 / WH-UDZ05KE5', known: true }],
+  ['unknown', { rawIdentifier: 'FF FF FF FF FF FF FF FF FF FF', displayName: 'FF FF FF FF FF FF FF FF FF FF', known: false }],
+  ['missing', { rawIdentifier: null, displayName: null, known: false }]
+] as const) test(`device profile displays ${label} model without a dropdown`, async ({ page }, info) => {
+  await mockAdminSettings(page);
+  await page.route('**/api/v1/snapshot', async route => {
+    const snapshot = await (await route.fetch()).json();
+    await route.fulfill({ json: { ...snapshot, revision: Number.MAX_SAFE_INTEGER, heatPumpModel: model } });
+  });
+  await page.goto('/');
+  await page.getByRole('navigation').getByRole('button', { name: 'Einstellungen', exact: true }).click();
+  await page.getByRole('tab', { name: 'Steuerung & Relais', exact: true }).click();
+  const form = page.locator('#settings-control form').first();
+  await expect(form.getByRole('combobox')).toHaveCount(0);
+  await expect(form.getByLabel('Geräteprofil', { exact: true })).toHaveText(model.displayName ?? 'Warte auf das Wärmepumpenmodell.');
+  await expect(form.getByRole('radio').first()).toBeChecked();
+  await form.getByRole('radio').nth(1).check();
+  await expect(form.getByRole('checkbox')).toHaveCount(2);
+  for (const checkbox of await form.getByRole('checkbox').all()) await expect(checkbox).not.toBeChecked();
+  await form.screenshot({ path: info.outputPath(`device-profile-${label}.png`) });
 });

@@ -8,7 +8,7 @@ public sealed class SimulatorSource(string scenario = "cycle", bool controlEnabl
 {
     private bool ControlEnabled => controlEnabled || dynamicControl?.Invoke() == true;
     public static readonly string[] Scenarios = ["cycle", "normal", "dallas", "unknown", "invalid", "retained", "stale", "offline", "disconnected", "reconnect", "no-error", "no-error-retained"];
-    private static readonly string[] Normal = ["34.5", "30.0", "7.5", "48.2", "50", "18.6", "42", "1", "4", "0", "0", "21.5", "0", "0", "850", "0", "0", "3400", "0", "0", "22", "2", "12345", "2345", "1.6", "?", "-5", "-10", "35", "15", "25", "5", "18", "29", "0", "1750", "650", "4.44", "10.24", "0", "65", "10", "0", "0", "0"];
+    private static readonly string[] Normal = ["34.5", "30.0", "7.5", "48.2", "50", "18.6", "42", "1", "4", "0", "0", "21.5", "0", "0", "850", "0", "0", "3400", "0", "0", "22", "2", "12345", "2345", "1.6", "?", "-5", "-10", "35", "15", "25", "5", "18", "29", "0", "1750", "650", "4.44", "10.24", "0", "65", "10", "0", "0", "0", "E2 D5 0B 34 99 83 92 0C 27 98"];
 
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, double> overrides = new();
     public void SetValue(string key, double value)

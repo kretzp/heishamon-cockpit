@@ -29,7 +29,7 @@ public static class InstallationSetup
             ? "Your MQTT broker allows anonymous access. Anyone who can reach it may be able to read data and send heat-pump commands. Do you accept these security risks and enable heat-pump control at your own risk?"
             : "Allow heat-pump control?";
         if (!ReadYesNo(question, input, output)) return false;
-        output.WriteLine("Control requires a compatible Panasonic WH-SDC0509L3E5 / WH-WDG05LE5 installation and verified firmware. See documentation/SUPPORTED-DEVICES.md.");
+        output.WriteLine("Control requires a compatible Panasonic Aquarea installation and verified HeishaMon firmware. See documentation/SUPPORTED-DEVICES.md.");
         var confirmed = ReadYesNo("Confirm the device and installation match this profile", input, output) &&
             ReadYesNo("Confirm you have checked other controllers for conflicting changes", input, output) &&
             (anonymous || ReadYesNo("Authorize the configured MQTT credentials for control", input, output));

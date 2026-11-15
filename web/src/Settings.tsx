@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { StorageNotice } from './History';
 import { Icon, type IconName } from './Icons';
 import { SettingsToggle, SettingsHeader, SettingsFooter } from './SettingsUi';
+import type { HeatPumpModel } from './HeatPumpModel';
 import { MqttEditor, ControlEditor, UserEditor } from './SettingsEditors';
 import './settings.css';
 type Area = 'general' | 'relays' | 'power';
@@ -48,10 +49,12 @@ const errors: Record<string, string> = {
   user_exists: 'This username already exists.'
 };
 export function SettingsPanel({
+  model,
   enabled,
   onSaved,
   openHistory
 }: {
+  model?: HeatPumpModel;
   enabled: boolean;
   onSaved: (name: string) => void;
   openHistory: () => void;
@@ -201,7 +204,7 @@ export function SettingsPanel({
         </section>
         {session?.role === 'admin' && <section id="settings-mqtt" role="tabpanel" aria-labelledby="settings-tab-mqtt" hidden={activeSection !== 'mqtt'}><MqttEditor csrfToken={session.csrfToken} /></section>}
         <section id="settings-control" role="tabpanel" aria-labelledby="settings-tab-control" hidden={activeSection !== 'control'}>
-          {session?.role === 'admin' && <ControlEditor csrfToken={session.csrfToken} />}
+          {session?.role === 'admin' && <ControlEditor csrfToken={session.csrfToken} model={model} />}
           {draft && config && <form className="panel settings-panel" onSubmit={e => { e.preventDefault(); void act(() => save('relays')); }}>
             <SettingsHeader title={t('Relais')} description={t('Zusätzliche Schalter in der Anlagenübersicht.')} />
             <div className="settings-panel-body"><SettingsToggle label={t('Relaisschaltung aktivieren')} description={t('Zeigt Relais 1 und 2 mit Toggle und Ein/Aus-Verlauf.')} checked={draft.enableRelaySwitching ?? false} disabled={!operator || busy} onChange={e => setDraft({ ...draft, enableRelaySwitching: e.target.checked })} /><p className="settings-help">{t('Zum Schalten sind eine aktive Steuerungsfreigabe und Schreibrechte nötig. Speichern verändert keinen Relaiszustand.')}</p>{retentionConfirmation('relays')}</div>

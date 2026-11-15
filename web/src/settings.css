@@ -86,3 +86,5 @@
 @media (prefers-reduced-motion: reduce) { .settings-redesign .settings-toggle-track, .settings-redesign .settings-toggle-track::after { transition: none; } }
 
 .settings-redesign .settings-retention { display: grid; gap: 8px; }
+
+.settings-model { display: block; font-weight: 600; overflow-wrap: anywhere; }
