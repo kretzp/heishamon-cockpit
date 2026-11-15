@@ -1,0 +1,66 @@
+.plant-model{display:grid;gap:20px;min-width:0}
+.plant-model .plant-actions,.plant-model .plant-section-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.plant-model .plant-actions>div{min-width:0}.plant-model .plant-actions strong{overflow-wrap:anywhere}.plant-model .plant-actions>div:last-child{display:flex;gap:10px;flex-wrap:wrap}
+.plant-model .plant-actions p,.plant-model .plant-note{font-size:.82rem;color:var(--muted);line-height:1.6;margin:6px 0 0}
+.plant-model .plant-config{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.plant-model .plant-config>p,.plant-model .plant-config-actions{grid-column:1/-1}.plant-model .plant-config-actions{display:flex;gap:10px}
+.plant-model label{display:flex;flex-direction:column;gap:6px;font-size:.85rem;min-width:0}.plant-model .plant-check{flex-direction:row;align-items:center;gap:10px}
+.plant-model input,.plant-model select{max-width:100%}.plant-model .plant-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.plant-model .plant-kpis article{min-width:0;padding:18px}.plant-model .plant-kpis span{display:block;font-size:.83rem;color:var(--muted)}.plant-model .plant-kpis strong{display:block;font-size:1.8rem;font-weight:600;font-variant-numeric:tabular-nums;margin-top:8px}
+.plant-model .plant-canvas{padding:20px 0}.plant-model .plant-section-heading{padding:0 22px}.plant-model .plant-section-heading h2{margin:0}.plant-model .plant-section-heading>span{color:var(--primary);background:var(--blue-soft);padding:5px 12px;border-radius:8px}
+.plant-model .plant-diagram-scroll{overflow:auto;margin-top:18px;padding:0 12px}.plant-model .plant-diagram{display:block;width:100%;min-width:850px;height:auto}
+.plant-model .plant-diagram text{font-family:inherit;fill:var(--foreground)}.plant-model .section-label{font-size:10px;letter-spacing:1px;fill:var(--muted)}
+.plant-model .component-title{font-size:12px;font-weight:600}.plant-model .tiny{font-size:10px;letter-spacing:.4px}.plant-model .muted-svg{font-size:12px;fill:var(--muted)}.plant-model .reading{font-size:21px;font-weight:600;font-variant-numeric:tabular-nums}
+.plant-model .plant-diagram .hot-text{fill:var(--orange)}.plant-model .plant-diagram .cold-text{fill:var(--primary)}
+.plant-model .equipment{fill:var(--card);stroke:var(--input-border);stroke-width:1.6}.plant-model .pipe,.plant-model .flow{fill:none;stroke-linejoin:round;stroke-linecap:round}
+.plant-model .pipe{stroke-width:8;opacity:.24}.plant-model .hot{stroke:var(--orange)}.plant-model .cold{stroke:var(--primary)}
+.plant-model .flow{stroke-width:3;stroke-dasharray:2 17;animation:plant-flow var(--flow-duration,1.4s) linear infinite;animation-play-state:paused;opacity:0}
+.plant-model.water-active .flow:not(.housing-refrigerant-flow){animation-play-state:running;opacity:1}
+.plant-model .fan,.plant-model .pump{animation:plant-spin var(--fan-duration,2.5s) linear infinite;animation-play-state:paused}.plant-model .pump{animation-duration:var(--pump-duration,1.2s)}
+.plant-model.fan-active .fan,.plant-model.water-active .pump{animation-play-state:running}
+.plant-model .dhw-path{opacity:0!important}.plant-model.valve-tank .dhw-path{opacity:1!important}.plant-model.valve-tank .heating-path{opacity:0!important}
+.plant-model:not(.water-active) .flow:not(.housing-refrigerant-flow){opacity:0!important}.plant-model.mode-unknown .heating-path{opacity:0!important}
+.plant-model .housing-face{fill:var(--card);stroke:var(--input-border);stroke-width:1.3}.plant-model .housing-dark .housing-face{fill:color-mix(in srgb,var(--foreground) 17%,var(--card))}
+.plant-model .housing-blade{fill:var(--primary);opacity:.5}.plant-model .housing-grille{stroke:var(--input-border);stroke-width:.6;fill:none;pointer-events:none}.plant-model .housing-front-grille{stroke:var(--input-border);stroke-width:2;fill:none;pointer-events:none}
+.plant-model .housing-dark:has(.housing-front-grille) .housing-blade{opacity:.22}.plant-model .housing-seam{stroke:var(--border);stroke-width:1;fill:none}.plant-model .housing-display{fill:var(--foreground)}
+.plant-model .housing-water.pipe{stroke-width:5;opacity:.35}.plant-model .housing-water.flow{stroke-width:2;stroke-dasharray:2 10;animation-name:plant-transport}
+.plant-model .housing-refrigerant{stroke:var(--muted);stroke-width:1.5;stroke-dasharray:4 3;fill:none}.plant-model .housing-refrigerant-flow{stroke:var(--primary);stroke-width:2;stroke-dasharray:2 10;animation-name:plant-transport;animation-duration:var(--refrigerant-duration,1.5s)}
+.plant-model.refrigerant-active .housing-refrigerant-flow{opacity:1;animation-play-state:running}.plant-model:not(.refrigerant-active) .housing-refrigerant-flow{opacity:0!important}
+.plant-model .housing-exchanger{fill:var(--surface);stroke:var(--input-border);stroke-width:1.2}.plant-model .housing-pump-face{fill:var(--card);stroke:var(--primary);stroke-width:1.5}
+.plant-model.mode-cooling .housing-refrigerant-flow,.plant-model.mode-defrost .housing-refrigerant-flow{animation-direction:reverse}
+.plant-model.mode-cooling .hot,.plant-model.mode-defrost .hot{stroke:var(--primary)}.plant-model.mode-cooling .cold,.plant-model.mode-defrost .cold{stroke:var(--orange)}
+.plant-model.motion-off .flow,.plant-model.motion-off .fan,.plant-model.motion-off .pump{animation-play-state:paused!important}
+.plant-model .plant-components{display:flex;gap:8px;flex-wrap:wrap;padding:14px 22px}:root[data-theme] .plant-model button[aria-pressed=true]{background:var(--blue-soft);color:var(--primary)}
+.plant-model .plant-canvas>.plant-note{margin:8px 22px 0}.plant-model .plant-inspector{display:grid;grid-template-columns:minmax(140px,.6fr) minmax(240px,1.2fr) minmax(170px,.8fr);gap:24px;align-items:start}
+.plant-model .plant-detail{display:flex;justify-content:space-between;gap:16px;padding:9px 0;border-bottom:1px solid var(--border);font-size:.85rem}.plant-model .plant-detail:first-child{padding-top:0}.plant-model .plant-detail strong{font-variant-numeric:tabular-nums;text-align:right}
+.plant-model .plant-explorer .plant-section-heading{padding:0;margin-bottom:20px}.plant-model .plant-table-scroll{overflow:auto}.plant-model table{width:100%;border-collapse:collapse;font-size:.83rem;text-align:left}.plant-model td,.plant-model th{padding:12px;border-bottom:1px solid var(--border)}.plant-model th{color:var(--muted);font-weight:500}.plant-model td small{display:block;font-size:.72rem;color:var(--muted);overflow-wrap:anywhere;margin-top:4px}.plant-model td{font-variant-numeric:tabular-nums}
+@keyframes plant-flow{to{stroke-dashoffset:-38}}@keyframes plant-transport{to{stroke-dashoffset:-24}}@keyframes plant-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.plant-model .flow,.plant-model .fan,.plant-model .pump{animation:none!important}}
+@media(max-width:1050px){.plant-model .plant-inspector{grid-template-columns:1fr 2fr}.plant-model .plant-inspector>.plant-note{grid-column:1/-1}.plant-model .plant-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.plant-model .plant-config,.plant-model .plant-inspector{grid-template-columns:1fr}.plant-model .plant-kpis{gap:10px}.plant-model .plant-kpis strong{font-size:1.4rem}.plant-model .plant-section-heading{padding-inline:14px}.plant-model .plant-components{padding-inline:14px}.plant-model .plant-diagram-scroll{padding-inline:6px}.plant-model .plant-explorer input{width:100%}.plant-model .plant-explorer table{min-width:570px}}
+
+/* Static SVG anchors position equipment; only zero-centred local rotors rotate. */
+.plant-model .fan,.plant-model .pump{transform-box:view-box;transform-origin:0 0}
+.plant-model .plant-workbench{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;min-width:0;align-items:start}
+.plant-model .plant-canvas,.plant-model .plant-inspector{min-width:0}
+.plant-model .plant-inspector{display:block;padding:20px}
+.plant-model .plant-inspector .plant-components{padding:0 0 20px;gap:8px;border-bottom:1px solid var(--border);margin-bottom:20px}
+.plant-model .plant-inspector h2{margin-bottom:18px}.plant-model .plant-inspector>.plant-note{margin-top:20px}
+@media(min-width:1100px){
+  .plant-model{gap:12px}
+  .plant-model .plant-workbench{grid-template-columns:minmax(0,1fr) minmax(320px,.48fr)}
+  .plant-model .plant-diagram{min-width:0;height:clamp(320px,38vh,420px)}
+  .plant-model .plant-diagram-scroll{margin-top:10px}
+  .plant-model .plant-kpis article{padding:12px 18px}
+  .plant-model .plant-kpis strong{font-size:1.6rem;margin-top:4px}
+  .plant-model .plant-inspector .plant-components{display:grid;grid-template-columns:1fr;gap:6px}
+  .plant-model .plant-components button{text-align:left;justify-content:flex-start;width:100%}
+}
+
+/* Selection sits directly beneath the animation; readings stay in the right panel. */
+.plant-model .plant-canvas .plant-components{display:flex;flex-wrap:wrap;gap:8px;padding:16px 22px}
+.plant-model .plant-canvas .plant-components button{width:auto;text-align:center;justify-content:center}
+.plant-model .plant-component-readings{min-width:0}.plant-model .plant-component-readings h3{margin:0 0 14px;font-size:.95rem}
+.plant-model .plant-component-readings .plant-detail{display:flex;justify-content:space-between;gap:12px}
+.plant-model .plant-component-readings .plant-detail strong{text-align:right;overflow-wrap:anywhere}
+@media(max-width:650px){.plant-model .plant-canvas .plant-components{padding-inline:14px}}

@@ -1,6 +1,21 @@
 # Release notes
 
-## Unreleased
+## 0.9.7 — Animated Aquarea system model, 2026-11-15
+
+- Make Anlagenmodell the initial view, ahead of Overview. Select proportionate
+  outdoor and indoor housings automatically from all 91 legacy model IDs and
+  the confirmed local L-series signature. Unknown models use a neutral drawing.
+- Animate pumps, fans and pipe flow from valid live measurements, with distinct
+  heating, cooling, hot-water, defrost, circulation and idle states. Keep rotor
+  axes fixed during animation and telemetry updates.
+- Save one or two heating circuits, floor heating/radiators, storage and display
+  options per installation. Only administrators can edit them; saves require
+  CSRF protection and a matching settings revision.
+- Place component selectors beneath the compact desktop diagram and show
+  their measurements in the wider status panel to its right. Add a searchable
+  measurement explorer and translations for all supported languages.
+- Exclude local runtime data from published applications so development and
+  preview JSON files cannot enter installation packages.
 
 - Recognize the operator-confirmed signature `E2 D5 0B 34 99 83 92 0D 27 98`
   as **Panasonic WH-SDC0509L3E5 / WH-WDG05LE5**. Match this exact signature

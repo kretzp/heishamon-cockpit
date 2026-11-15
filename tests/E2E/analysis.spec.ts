@@ -1,3 +1,4 @@
+import { openOverview } from './coverage-fixture';
 import { test, expect, type Page } from './coverage-fixture';
 
 async function fixtures(page: Page) {
@@ -87,7 +88,7 @@ test('E2 backend validates analysis ranges and returns source and resolution', a
 
 test('E2 chart gesture zoom reloads and plain mouse wheel remains available for page scrolling', async ({ page }) => {
   const requests = await fixtures(page);
-  await page.goto('/'); await expect(page.locator('.history-chart svg')).toBeVisible();
+  await page.goto('/'); await openOverview(page); await expect(page.locator('.history-chart svg')).toBeVisible();
   await expect(page.locator('.history-chart path[stroke="#0964d8"][fill="none"]').first()).toHaveAttribute('d', /L/);
   await page.locator('.history-chart').scrollIntoViewIfNeeded();
   const box = await page.locator('.history-chart').boundingBox();
@@ -106,7 +107,7 @@ test('E2 chart gesture zoom reloads and plain mouse wheel remains available for 
 test('E2 optional analysis failure preserves existing charts and reports the limitation', async ({ page }) => {
   await fixtures(page);
   await page.route('**/api/v1/history/pairs?*', r => r.fulfill({ status: 503, json: { title: 'Paaranalyse gestört' } }));
-  await page.goto('/');
+  await page.goto('/'); await openOverview(page);
   await expect(page.getByRole('alert').filter({ hasText: 'Paaranalyse nicht verfügbar' })).toBeVisible();
   await expect(page.locator('.history-chart svg')).toBeVisible();
   await page.getByLabel('Spreizungsband', { exact: true }).check();

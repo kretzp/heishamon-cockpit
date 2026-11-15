@@ -28,3 +28,8 @@ export const test = base.extend<{ collectCoverage: void }>({
     }
   }, { auto: true }]
 });
+
+// Explicit subject navigation for legacy overview tests; the product starts on Anlagenmodell.
+export async function openOverview(page: import('../../web/node_modules/@playwright/test').Page) {
+  await page.getByRole('navigation').getByRole('button', { name: /^(Übersicht|Overview|Vue d’ensemble|Resumen|Panoramica|Visão geral)$/ }).click();
+}

@@ -22,6 +22,9 @@ const stage = join(dir, 'payload'); mkdirSync(stage);
 run('npm', ['ci'], join(root, 'web'));
 run('npm', ['run', 'build'], join(root, 'web'));
 run('dotnet', ['publish', 'src/Cockpit.Web/Cockpit.Web.csproj', '-c', 'Release', '-r', rid, '--self-contained', 'true', '-o', join(stage, 'app'), '-p:RestoreLockedMode=true', `-p:NuGetLockFilePath=packages.${rid}.lock.json`, '-m:1', '-p:BuildInParallel=false']);
+for (const privatePath of ['data', 'appsettings.Local.json']) {
+  if (existsSync(join(stage, 'app', privatePath))) throw Error(`Local installation data must not enter packages: ${privatePath}`);
+}
 copyFileSync(join(root, 'tools', 'cockpit_mcp.py'), join(stage, 'app', 'cockpit_mcp.py'));
 for (const notice of ['LICENSE', 'COPYRIGHT']) copyFileSync(join(root, notice), join(stage, 'app', notice));
 copyFileSync(join(root, 'THIRD-PARTY-NOTICES.md'), join(stage, 'app', 'THIRD-PARTY-NOTICES.md'));

@@ -1,9 +1,10 @@
+import { openOverview } from './coverage-fixture';
 import { test, expect } from './coverage-fixture';
 
 test('three themes persist, keep telemetry readable and support keyboard selection', async ({ page }, info) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/');
+  await page.goto('/'); await openOverview(page);
   await expect(page.getByRole('article', { name: 'Vorlauf', exact: true })).toContainText('34,50');
   for (const [label, theme, background] of [
     ['Hell', 'light', 'rgb(255, 255, 255)'], ['Dunkel', 'dark', 'rgb(24, 34, 49)'], ['Nordisch', 'nordic', 'rgb(248, 250, 251)'],
@@ -32,7 +33,7 @@ test('three themes persist, keep telemetry readable and support keyboard selecti
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
     await page.screenshot({ path: info.outputPath(`theme-${theme}.png`), fullPage: true });
     await page.screenshot({ path: info.outputPath(`theme-${theme}-preview.png`) });
-    await page.reload();
+    await page.reload(); await openOverview(page);
     await expect(page.getByRole('button', { name: label, exact: true })).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByRole('article', { name: 'Vorlauf', exact: true })).toContainText('34,50');
   }
@@ -106,7 +107,7 @@ test('text spacing reflows headings and period buttons at 320 pixels in all lang
   await page.goto('/');
   for (const language of ['de', 'en', 'fr', 'es', 'it', 'pt']) {
     await page.getByTestId('language-picker').selectOption(language);
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 7; i++) {
       await page.getByRole('navigation').getByRole('button').nth(i).click();
       await page.evaluate(() => {
         for (const el of document.querySelectorAll<HTMLElement>('*')) {

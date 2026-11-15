@@ -1,0 +1,740 @@
+// Local visual profiles for HeatPumpModels.cs; parity is checked by housings.test.cjs.
+// Family evidence and limitations: KONZEPT.md. No live device data.
+window.aquareaModels = [
+  {
+    "id": 0,
+    "signature": "E2 CF 0B 13 33 32 D1 0C 16 33",
+    "name": "Panasonic WH-MDC05H3E5",
+    "family": "mono-low",
+    "generation": "H",
+    "type": "none"
+  },
+  {
+    "id": 1,
+    "signature": "E2 CF 0B 14 33 42 D1 0B 17 33",
+    "name": "Panasonic WH-MDC07H3E5",
+    "family": "mono-low",
+    "generation": "H",
+    "type": "none"
+  },
+  {
+    "id": 2,
+    "signature": "E2 CF 0D 77 09 12 D0 0B 05 11",
+    "name": "Panasonic WH-SXC09H3E5 / WH-UX09HE5",
+    "family": "split-tall",
+    "generation": "H",
+    "type": "wall"
+  },
+  {
+    "id": 3,
+    "signature": "E2 CF 0C 88 05 12 D0 0B 97 05",
+    "name": "Panasonic WH-SDC09H3E8 / WH-UD09HE8",
+    "family": "split-tall",
+    "generation": "H",
+    "type": "wall"
+  },
+  {
+    "id": 4,
+    "signature": "E2 CF 0D 85 05 12 D0 0C 94 05",
+    "name": "Panasonic WH-SXC09H3E8 / WH-UX09HE8",
+    "family": "split-tall",
+    "generation": "H",
+    "type": "wall"
+  },
+  {
+    "id": 5,
+    "signature": "E2 CF 0D 86 05 12 D0 0C 95 05",
+    "name": "Panasonic WH-SXC12H9E8 / WH-UX12HE8",
+    "family": "split-tall",
+    "generation": "H",
+    "type": "wall"
+  },
+  {
+    "id": 6,
+    "signature": "E2 CF 0D 87 05 12 D0 0C 96 05",
+    "name": "Panasonic WH-SXC16H9E8 / WH-UX16HE8",
+    "family": "split-tall",
+    "generation": "H",
+    "type": "wall"
+  },
+  {
+    "id": 7,
+    "signature": "E2 CE 0D 71 81 72 CE 0C 92 81",
+    "name": "Panasonic WH-SDC05H3E5 / WH-UD05HE5",
+    "family": "split-small",
+    "generation": "H",
+    "type": "wall"
+  },
+  {
+    "id": 8,
+    "signature": "62 D2 0B 43 54 42 D2 0B 72 66",
+    "name": "Panasonic WH-SDC0709J3E5 / WH-UD09JE5",
+    "family": "split-medium",
+    "generation": "J",
+    "type": "wall"
+  },
+  {
+    "id": 9,
+    "signature": "C2 D3 0B 33 65 B2 D3 0B 94 65",
+    "name": "Panasonic WH-MDC05J3E5",
+    "family": "mono-low",
+    "generation": "J",
+    "type": "none"
+  },
+  {
+    "id": 10,
+    "signature": "E2 CF 0B 15 33 42 D1 0B 18 33",
+    "name": "Panasonic WH-MDC09H3E5",
+    "family": "mono-low",
+    "generation": "H",
+    "type": "none"
+  },
+  {
+    "id": 11,
+    "signature": "E2 CF 0B 41 34 82 D1 0B 31 35",
+    "name": "Panasonic WH-MXC09H3E5",
+    "family": "mono-tall",
+    "generation": "H",
+    "type": "none"
+  },
+  {
+    "id": 12,
+    "signature": "62 D2 0B 45 54 42 D2 0B 47 55",
+    "name": "Panasonic WH-ADC0309J3E5 / WH-UD09JE5",
+    "family": "split-medium",
+    "generation": "J",
+    "type": "aio"
+  },
+  {
+    "id": 13,
+    "signature": "E2 CF 0C 74 09 12 D0 0D 95 05",
+    "name": "Panasonic WH-ADC0916H9E8 / WH-UX12HE8",
+    "family": "split-tall",
+    "generation": "H",
+    "type": "aio"
+  },
+  {
+    "id": 14,
+    "signature": "E2 CF 0B 82 05 12 D0 0C 91 05",
+    "name": "Panasonic WH-SQC09H3E8 / WH-UQ09HE8",
+    "family": "quiet-wide",
+    "generation": "H",
+    "type": "wall"
+  },
+  {
+    "id": 15,
+    "signature": "E2 CF 0C 55 14 12 D0 0B 15 08",
+    "name": "Panasonic WH-SDC09H3E5 / WH-UD09HE5",
+    "family": "split-medium",
+    "generation": "H",
+    "type": "wall"
+  },
+  {
+    "id": 16,
+    "signature": "E2 CF 0C 43 00 12 D0 0B 15 08",
+    "name": "Panasonic WH-ADC0309H3E5 / WH-UD09HE5",
+    "family": "split-medium",
+    "generation": "H",
+    "type": "aio"
+  },
+  {
+    "id": 17,
+    "signature": "62 D2 0B 45 54 32 D2 0C 45 55",
+    "name": "Panasonic WH-ADC0309J3E5 / WH-UD05JE5",
+    "family": "split-small",
+    "generation": "J",
+    "type": "aio"
+  },
+  {
+    "id": 18,
+    "signature": "62 D2 0B 43 54 42 D2 0C 46 55",
+    "name": "Panasonic WH-SDC0709J3E5 / WH-UD07JE5",
+    "family": "split-medium",
+    "generation": "J",
+    "type": "wall"
+  },
+  {
+    "id": 19,
+    "signature": "E2 CF 0C 54 14 12 D0 0B 14 08",
+    "name": "Panasonic WH-SDC07H3E5-1 / WH-UD07HE5-1",
+    "family": "split-medium",
+    "generation": "H",
+    "type": "wall"
+  },
+  {
+    "id": 20,
+    "signature": "C2 D3 0B 34 65 B2 D3 0B 95 65",
+    "name": "Panasonic WH-MDC07J3E5",
+    "family": "mono-low",
+    "generation": "J",
+    "type": "none"
+  },
+  {
+    "id": 21,
+    "signature": "C2 D3 0B 35 65 B2 D3 0B 96 65",
+    "name": "Panasonic WH-MDC09J3E5",
+    "family": "mono-low",
+    "generation": "J",
+    "type": "none"
+  },
+  {
+    "id": 22,
+    "signature": "62 D2 0B 41 54 32 D2 0C 45 55",
+    "name": "Panasonic WH-SDC0305J3E5 / WH-UD05JE5",
+    "family": "split-small",
+    "generation": "J",
+    "type": "wall"
+  },
+  {
+    "id": 23,
+    "signature": "32 D4 0B 87 84 73 90 0C 84 84",
+    "name": "Panasonic WH-MXC09J3E8",
+    "family": "mono-tall",
+    "generation": "J",
+    "type": "none"
+  },
+  {
+    "id": 24,
+    "signature": "32 D4 0B 88 84 73 90 0C 85 84",
+    "name": "Panasonic WH-MXC12J9E8",
+    "family": "mono-tall",
+    "generation": "J",
+    "type": "none"
+  },
+  {
+    "id": 25,
+    "signature": "E2 CF 0B 75 09 12 D0 0C 06 11",
+    "name": "Panasonic WH-ADC1216H6E5 / WH-UD12HE5",
+    "family": "split-tall",
+    "generation": "H",
+    "type": "aio"
+  },
+  {
+    "id": 26,
+    "signature": "42 D4 0B 83 71 42 D2 0C 46 55",
+    "name": "Panasonic WH-ADC0309J3E5C / WH-UD07JE5",
+    "family": "split-medium",
+    "generation": "J",
+    "type": "aio"
+  },
+  {
+    "id": 27,
+    "signature": "C2 D3 0C 34 65 B2 D3 0B 95 65",
+    "name": "Panasonic WH-MDC07J3E5",
+    "family": "mono-low",
+    "generation": "J",
+    "type": "none"
+  },
+  {
+    "id": 28,
+    "signature": "C2 D3 0C 33 65 B2 D3 0B 94 65",
+    "name": "Panasonic WH-MDC05J3E5",
+    "family": "mono-low",
+    "generation": "J",
+    "type": "none"
+  },
+  {
+    "id": 29,
+    "signature": "E2 CF 0B 83 05 12 D0 0D 92 05",
+    "name": "Panasonic WH-SQC12H9E8 / WH-UQ12HE8",
+    "family": "quiet-wide",
+    "generation": "H",
+    "type": "wall"
+  },
+  {
+    "id": 30,
+    "signature": "E2 CF 0C 78 09 12 D0 0B 06 11",
+    "name": "Panasonic WH-SXC12H6E5 / WH-UX12HE5",
+    "family": "split-tall",
+    "generation": "H",
+    "type": "wall"
+  },
+  {
+    "id": 31,
+    "signature": "C2 D3 0C 35 65 B2 D3 0B 96 65",
+    "name": "Panasonic WH-MDC09J3E5",
+    "family": "mono-low",
+    "generation": "J",
+    "type": "none"
+  },
+  {
+    "id": 32,
+    "signature": "32 D4 0B 99 77 62 90 0B 01 78",
+    "name": "Panasonic WH-MXC09J3E5",
+    "family": "mono-tall",
+    "generation": "J",
+    "type": "none"
+  },
+  {
+    "id": 33,
+    "signature": "42 D4 0B 15 76 12 D0 0B 10 11",
+    "name": "Panasonic WH-ADC1216H6E5C / WH-UD12HE5",
+    "family": "split-tall",
+    "generation": "H",
+    "type": "aio"
+  },
+  {
+    "id": 34,
+    "signature": "E2 D5 0C 29 99 83 92 0C 28 98",
+    "name": "Panasonic WH-ADC0509L3E5 / WH-WDG07LE5",
+    "family": "l",
+    "generation": "L",
+    "type": "aio"
+  },
+  {
+    "id": 35,
+    "signature": "E2 CF 0D 85 05 12 D0 0E 94 05",
+    "name": "Panasonic WH-SXC09H3E8 / WH-UX09HE8",
+    "family": "split-tall",
+    "generation": "H",
+    "type": "wall"
+  },
+  {
+    "id": 36,
+    "signature": "E2 D5 0D 36 99 02 D6 0F 67 95",
+    "name": "Panasonic WH-ADC0309K3E5AN / WH-UDZ07KE5",
+    "family": "k-medium",
+    "generation": "K",
+    "type": "aio"
+  },
+  {
+    "id": 37,
+    "signature": "E2 D5 0B 08 95 02 D6 0E 66 95",
+    "name": "Panasonic WH-SDC0309K3E5 / WH-UDZ05KE5",
+    "family": "k-medium",
+    "generation": "K",
+    "type": "wall"
+  },
+  {
+    "id": 38,
+    "signature": "E2 D5 0B 34 99 83 92 0C 29 98",
+    "name": "Panasonic WH-SDC0509L3E5 / WH-WDG09LE5",
+    "family": "l",
+    "generation": "L",
+    "type": "wall"
+  },
+  {
+    "id": 39,
+    "signature": "E2 CF 0C 89 05 12 D0 0C 98 05",
+    "name": "Panasonic WH-SDC12H9E8 / WH-UD12HE8",
+    "family": "split-tall",
+    "generation": "H",
+    "type": "wall"
+  },
+  {
+    "id": 40,
+    "signature": "E2 D5 0B 08 95 02 D6 0E 67 95",
+    "name": "Panasonic WH-SDC0309K3E5 / WH-UDZ07KE5",
+    "family": "k-medium",
+    "generation": "K",
+    "type": "wall"
+  },
+  {
+    "id": 41,
+    "signature": "E2 CF 0C 74 09 12 D0 0C 96 05",
+    "name": "Panasonic WH-ADC0916H9E8 / WH-UX16HE8",
+    "family": "split-tall",
+    "generation": "H",
+    "type": "aio"
+  },
+  {
+    "id": 42,
+    "signature": "E2 CF 0C 74 09 12 D0 0E 95 05",
+    "name": "Panasonic WH-ADC0912H9E8 / WH-UX12HE8",
+    "family": "split-tall",
+    "generation": "H",
+    "type": "aio"
+  },
+  {
+    "id": 43,
+    "signature": "32 D4 0B 89 84 73 90 0C 86 84",
+    "name": "Panasonic WH-MXC16J9E8",
+    "family": "mono-tall",
+    "generation": "J",
+    "type": "none"
+  },
+  {
+    "id": 44,
+    "signature": "32 D4 0B 00 78 62 90 0B 02 78",
+    "name": "Panasonic WH-MXC12J6E5",
+    "family": "mono-tall",
+    "generation": "J",
+    "type": "none"
+  },
+  {
+    "id": 45,
+    "signature": "E2 CF 0B 82 05 12 D0 0D 91 05",
+    "name": "Panasonic WH-SQC09H3E8 / WH-UQ09HE8",
+    "family": "quiet-wide",
+    "generation": "H",
+    "type": "wall"
+  },
+  {
+    "id": 46,
+    "signature": "E2 D5 0D 99 94 02 D6 0D 68 95",
+    "name": "Panasonic WH-ADC0309K3E5 / WH-UDZ09KE5",
+    "family": "k-medium",
+    "generation": "K",
+    "type": "aio"
+  },
+  {
+    "id": 47,
+    "signature": "E2 CF 0C 74 09 12 D0 0C 95 05",
+    "name": "Panasonic WH-ADC0916H9E8 / WH-UX12HE8",
+    "family": "split-tall",
+    "generation": "H",
+    "type": "aio"
+  },
+  {
+    "id": 48,
+    "signature": "E2 D5 0B 34 99 83 92 0C 28 98",
+    "name": "Panasonic WH-SDC0509L3E5 / WH-WDG07LE5",
+    "family": "l",
+    "generation": "L",
+    "type": "wall"
+  },
+  {
+    "id": 49,
+    "signature": "E2 CF 0D 77 09 12 D0 0C 05 11",
+    "name": "Panasonic WH-SXC09H3E5 / WH-UX09HE5",
+    "family": "split-tall",
+    "generation": "H",
+    "type": "wall"
+  },
+  {
+    "id": 50,
+    "signature": "E2 CF 0B 44 34 12 D0 0C 34 35",
+    "name": "Panasonic WH-MXC12H9E8",
+    "family": "mono-tall",
+    "generation": "H",
+    "type": "none"
+  },
+  {
+    "id": 51,
+    "signature": "E2 D5 0C 67 00 83 92 0C 27 98",
+    "name": "Panasonic WH-ADC0509L3E5AN / WH-WDG05LE5",
+    "family": "l",
+    "generation": "L",
+    "type": "aio"
+  },
+  {
+    "id": 52,
+    "signature": "E2 D5 0B 34 99 83 92 0C 27 98",
+    "name": "Panasonic WH-SDC0509L3E5 / WH-WDG05LE5",
+    "family": "l",
+    "generation": "L",
+    "type": "wall"
+  },
+  {
+    "id": 53,
+    "signature": "42 D4 0B 83 71 32 D2 0C 44 55",
+    "name": "Panasonic WH-ADC0309J3E5C / WH-UD03JE5",
+    "family": "split-small",
+    "generation": "J",
+    "type": "aio"
+  },
+  {
+    "id": 54,
+    "signature": "E2 CF 0C 74 09 12 D0 0E 94 05",
+    "name": "Panasonic WH-ADC0916H9E8 / WH-UX09HE8",
+    "family": "split-tall",
+    "generation": "H",
+    "type": "aio"
+  },
+  {
+    "id": 55,
+    "signature": "12 D7 0D 98 11 33 94 0C 83 10",
+    "name": "Panasonic WH-ADC0316M9E8AN2 / WH-WXG09ME8",
+    "family": "m",
+    "generation": "M",
+    "type": "aio"
+  },
+  {
+    "id": 56,
+    "signature": "E2 D5 0B 08 95 02 D6 0F 67 95",
+    "name": "Panasonic WH-SDC0309K3E5 / WH-UDZ07KE5",
+    "family": "k-medium",
+    "generation": "K",
+    "type": "wall"
+  },
+  {
+    "id": 57,
+    "signature": "E2 D5 0D 36 99 02 D6 10 66 95",
+    "name": "Panasonic WH-ADC0309K3E5AN / WH-UDZ05KE5",
+    "family": "k-medium",
+    "generation": "K",
+    "type": "aio"
+  },
+  {
+    "id": 58,
+    "signature": "E2 D5 0F 99 94 02 D6 10 68 95",
+    "name": "Panasonic WH-ADC0309K3E5 / WH-UDZ09KE5",
+    "family": "k-medium",
+    "generation": "K",
+    "type": "aio"
+  },
+  {
+    "id": 59,
+    "signature": "E2 D5 0C 67 00 83 92 0C 28 98",
+    "name": "Panasonic WH-ADC0509L3E5AN / WH-WDG07LE5",
+    "family": "l",
+    "generation": "L",
+    "type": "aio"
+  },
+  {
+    "id": 60,
+    "signature": "E2 CF 0D 86 05 12 D0 0E 95 05",
+    "name": "Panasonic WH-SXC12H9E8 / WH-UX12HE8",
+    "family": "split-tall",
+    "generation": "H",
+    "type": "wall"
+  },
+  {
+    "id": 61,
+    "signature": "12 D7 0C 98 14 35 94 0D 83 10",
+    "name": "Panasonic WH-SDC0316M9E8 / WH-WXG09ME8",
+    "family": "m",
+    "generation": "M",
+    "type": "wall"
+  },
+  {
+    "id": 62,
+    "signature": "E2 D5 0C 08 95 02 D6 10 67 95",
+    "name": "Panasonic WH-SDC0309K3E5 / WH-UDZ07KE5",
+    "family": "k-medium",
+    "generation": "K",
+    "type": "wall"
+  },
+  {
+    "id": 63,
+    "signature": "C2 D3 0D 35 65 B2 D3 0B 96 65",
+    "name": "Panasonic WH-MDC09J3E5-1",
+    "family": "mono-low",
+    "generation": "J",
+    "type": "none"
+  },
+  {
+    "id": 64,
+    "signature": "E2 D5 0C 29 99 83 92 0C 29 98",
+    "name": "Panasonic WH-ADC0509L3E5 / WH-WDG09LE5",
+    "family": "l",
+    "generation": "L",
+    "type": "aio"
+  },
+  {
+    "id": 65,
+    "signature": "62 D2 0B 45 54 42 D2 0B 72 66",
+    "name": "Panasonic WH-ADC0309J3E5 / WH-UD09JE5-1",
+    "family": "split-medium",
+    "generation": "J",
+    "type": "aio"
+  },
+  {
+    "id": 66,
+    "signature": "E2 CF 0B 82 09 12 D0 0B 10 11",
+    "name": "Panasonic WH-SDC12H6E5 / WH-UD12HE5",
+    "family": "split-tall",
+    "generation": "H",
+    "type": "wall"
+  },
+  {
+    "id": 67,
+    "signature": "42 D4 0B 83 71 32 D2 0C 45 55",
+    "name": "Panasonic WH-ADC0309J3E5C / WH-UD05JE5",
+    "family": "split-small",
+    "generation": "J",
+    "type": "aio"
+  },
+  {
+    "id": 68,
+    "signature": "12 D7 0B 47 19 37 94 0E 83 10",
+    "name": "Panasonic WH-ADC0316M9E83 / WH-WXG09ME8",
+    "family": "m",
+    "generation": "M",
+    "type": "aio"
+  },
+  {
+    "id": 69,
+    "signature": "E2 D5 0D 00 09 43 D6 0E 07 09",
+    "name": "Panasonic WH-SDC09K3E8 / WH-UDZ09KE8",
+    "family": "k-tall",
+    "generation": "K",
+    "type": "wall"
+  },
+  {
+    "id": 70,
+    "signature": "E2 CF 0B 84 05 12 D0 0B 93 05",
+    "name": "Panasonic WH-SQC16H9E8 / WH-UQ16HE8",
+    "family": "quiet-wide",
+    "generation": "H",
+    "type": "wall"
+  },
+  {
+    "id": 71,
+    "signature": "E2 D5 0B 35 99 83 92 0D 29 98",
+    "name": "Panasonic WH-SDC0509L6E5 / WH-WDG09LE5",
+    "family": "l",
+    "generation": "L",
+    "type": "wall"
+  },
+  {
+    "id": 72,
+    "signature": "12 D7 0B 98 14 35 94 0D 83 10",
+    "name": "Panasonic WH-SDC0316M9E8 / WH-WXG09ME8",
+    "family": "m",
+    "generation": "M",
+    "type": "wall"
+  },
+  {
+    "id": 73,
+    "signature": "E2 CF 0C 77 09 12 D0 0B 05 11",
+    "name": "Panasonic WH-SXC09H3E5 / WH-UX09HE5",
+    "family": "split-tall",
+    "generation": "H",
+    "type": "wall"
+  },
+  {
+    "id": 74,
+    "signature": "C2 D3 0D 33 65 B2 D3 0B 94 65",
+    "name": "Panasonic WH-MDC05J3E5",
+    "family": "mono-low",
+    "generation": "J",
+    "type": "none"
+  },
+  {
+    "id": 75,
+    "signature": "12 D7 0D 98 14 37 94 0E 84 10",
+    "name": "Panasonic WH-SDC0316M9E8 / WH-WXG12ME8",
+    "family": "m",
+    "generation": "M",
+    "type": "wall"
+  },
+  {
+    "id": 76,
+    "signature": "12 D7 0D 98 11 39 94 0F 84 10",
+    "name": "Panasonic WH-ADC0316M9E8AN2 / WH-WXG12ME8",
+    "family": "m",
+    "generation": "M",
+    "type": "aio"
+  },
+  {
+    "id": 77,
+    "signature": "12 D7 0D 85 11 37 94 0E 84 10",
+    "name": "Panasonic WH-WXG12ME8",
+    "family": "m",
+    "generation": "M",
+    "type": "none"
+  },
+  {
+    "id": 78,
+    "signature": "E2 D5 0B 34 99 83 92 0D 29 98",
+    "name": "Panasonic WH-SDC0509L3E5 / WH-WDG09LE5",
+    "family": "l",
+    "generation": "L",
+    "type": "wall"
+  },
+  {
+    "id": 79,
+    "signature": "E2 D5 0B 12 95 02 D6 0F 70 95",
+    "name": "Panasonic WH-SXC12K6E5 / WH-UXZ12KE5",
+    "family": "k-tall",
+    "generation": "K",
+    "type": "wall"
+  },
+  {
+    "id": 80,
+    "signature": "12 D7 0C 98 14 33 94 0C 83 10",
+    "name": "Panasonic WH-SDC0316M9E8 / WH-WXG09ME8",
+    "family": "m",
+    "generation": "M",
+    "type": "wall"
+  },
+  {
+    "id": 81,
+    "signature": "E2 D5 0D 99 94 02 D6 10 67 95",
+    "name": "Panasonic WH-ADC0309K3E5 / WH-UDZ07KE5",
+    "family": "k-medium",
+    "generation": "K",
+    "type": "aio"
+  },
+  {
+    "id": 82,
+    "signature": "E2 D5 0F 36 99 02 D6 10 68 95",
+    "name": "Panasonic WH-ADC0309K3E5AN / WH-UDZ09KE5",
+    "family": "k-medium",
+    "generation": "K",
+    "type": "aio"
+  },
+  {
+    "id": 83,
+    "signature": "42 D4 0B 83 71 42 D2 0B 72 66",
+    "name": "Panasonic WH-ADC0309J3E5C / WH-UD09JE5-1",
+    "family": "split-medium",
+    "generation": "J",
+    "type": "aio"
+  },
+  {
+    "id": 84,
+    "signature": "E2 D5 0D 13 95 43 D6 0D 71 95",
+    "name": "Panasonic WH-SXC09K3E8 / WH-UXZ09KE8",
+    "family": "k-tall",
+    "generation": "K",
+    "type": "wall"
+  },
+  {
+    "id": 85,
+    "signature": "E2 D5 0B 15 95 43 D6 0D 72 95",
+    "name": "Panasonic WH-SXC12K9E8 / WH-UXZ12KE8",
+    "family": "k-tall",
+    "generation": "K",
+    "type": "wall"
+  },
+  {
+    "id": 86,
+    "signature": "E2 D5 0C 00 09 43 D6 0D 07 09",
+    "name": "Panasonic WH-SDC09K3E8 / WH-UDZ09KE8",
+    "family": "k-tall",
+    "generation": "K",
+    "type": "wall"
+  },
+  {
+    "id": 87,
+    "signature": "12 D7 0D 98 14 39 94 0F 83 10",
+    "name": "Panasonic WH-SDC0316M9E8 / WH-WXG09ME8",
+    "family": "m",
+    "generation": "M",
+    "type": "wall"
+  },
+  {
+    "id": 88,
+    "signature": "E2 D5 0C 67 00 83 92 0D 29 98",
+    "name": "Panasonic WH-ADC0509L3E5AN / WH-WDG09LE5",
+    "family": "l",
+    "generation": "L",
+    "type": "aio"
+  },
+  {
+    "id": 89,
+    "signature": "12 D7 0C 98 14 35 94 0D 84 10",
+    "name": "Panasonic WH-SDC0316M9E8 / WH-WXG12ME8",
+    "family": "m",
+    "generation": "M",
+    "type": "wall"
+  },
+  {
+    "id": 90,
+    "signature": "E2 D5 0D 99 94 02 D6 0F 68 95",
+    "name": "Panasonic WH-ADC0309K3E5 / WH-UDZ09KE5",
+    "family": "k-medium",
+    "generation": "K",
+    "type": "aio"
+  },
+  {
+    "id": null,
+    "signature": "E2 D5 0B 34 99 83 92 0D 27 98",
+    "name": "Panasonic WH-SDC0509L3E5 / WH-WDG05LE5",
+    "family": "l",
+    "generation": "L",
+    "type": "wall"
+  }
+];

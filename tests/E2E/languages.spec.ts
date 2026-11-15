@@ -1,3 +1,4 @@
+import { openOverview } from './coverage-fixture';
 import { test, expect } from './coverage-fixture';
 
 const languages = [
@@ -13,7 +14,7 @@ const titles: Record<string, string> = { de: "HeishaMon Cockpit", en: "HeishaMon
 test('all six languages switch at runtime across views and persist with the selected theme', async ({ page }, info) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/');
+  await page.goto('/'); await openOverview(page);
   await expect(page.getByRole('article', { name: 'Vorlauf', exact: true })).toContainText('34,50');
   await page.getByRole('button', { name: 'Dunkel', exact: true }).click();
   for (const language of languages) {
@@ -33,7 +34,7 @@ test('all six languages switch at runtime across views and persist with the sele
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
     }
     await page.getByRole('button', { name: language.overview, exact: true }).click();
-    await page.reload();
+    await page.reload(); await openOverview(page);
     await expect(page.getByTestId('language-picker')).toHaveValue(language.code);
     await expect(page.getByRole('heading', { name: language.overview, exact: true })).toBeVisible();
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
@@ -113,7 +114,7 @@ test('language synchronizes between tabs while custom plant names remain unchang
 
 
 test('sorting names and announcements use complete translated sentences', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/'); await openOverview(page);
   await page.getByRole('button', { name: 'Kacheln anordnen', exact: true }).click();
   const cases = [
     ['de', 'Vorlauf verschieben', 'Vorlauf nach hinten', 'Vorlauf auf Position 2 von'],
@@ -152,7 +153,7 @@ test('empty simulator and live logs render grammatical translations without send
   for (const real of [false, true]) {
     live = real;
     await page.goto('/');
-    await page.getByRole('navigation').getByRole('button').nth(2).click();
+    await page.getByRole('navigation').getByRole('button').nth(3).click();
     for (const [code, simulator, actual] of [
       ['de', 'Noch keine Simulatorbefehle.', 'Noch keine Live-Befehle.'],
       ['en', 'No simulator commands yet.', 'No live commands yet.'],

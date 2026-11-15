@@ -1,6 +1,8 @@
+import { plantEntries } from './plantEntries.ts';
 // German source keys with English, French, Spanish, Italian and Portuguese UI translations.
 // Technical identifiers, user-entered text and persisted audit messages are not translated.
 export const catalog: Record<string, readonly [string, string, string, string, string]> = {
+  ...plantEntries,
   "Gespeicherte Aufbewahrung: {0} Tage. Die Verkürzung gilt nach dem Neustart.": ["Saved retention: {0} days. The reduction takes effect after restart.", "Conservation enregistrée : {0} jours. La réduction s’applique après redémarrage.", "Retención guardada: {0} días. La reducción se aplica tras reiniciar.", "Conservazione salvata: {0} giorni. La riduzione si applica dopo il riavvio.", "Retenção guardada: {0} dias. A redução aplica-se após reiniciar."],
   "Anlage & Daten": ["System & data", "Installation et données", "Instalación y datos", "Impianto e dati", "Instalação e dados"],
   "MQTT-Verbindung": ["MQTT connection", "Connexion MQTT", "Conexión MQTT", "Connessione MQTT", "Ligação MQTT"],

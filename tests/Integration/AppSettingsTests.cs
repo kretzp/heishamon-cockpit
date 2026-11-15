@@ -5,6 +5,19 @@ using Xunit;
 namespace Cockpit.Integration;
 public sealed class AppSettingsTests : IDisposable
 {
+    [Fact] public void PlantModelSurvivesRestartAndRejectsInvalidOrConflictingUpdates()
+    {
+        var store = new AppSettingsStore(FilePath, 700);
+        var options = new PlantModelOptions { Zones = 2, Zone1 = "radiator", Buffer = true };
+        var saved = store.Save(store.Read() with { PlantModel = options }, false);
+        Assert.Equal(options, new AppSettingsStore(FilePath, 700).Read().PlantModel);
+        Assert.Equal(0, saved.PowerGeneration);
+        Assert.Throws<CommandRejected>(() => store.Save(saved with { PlantModel = options with { Zones = 6 } }, false));
+        Assert.Throws<CommandRejected>(() => store.Save(saved with { PlantModel = options with { Zone1 = "anything" } }, false));
+        Assert.Throws<CommandRejected>(() => store.Save(saved with { PlantModel = options with { Speed = double.NaN } }, false));
+        Assert.Throws<CommandRejected>(() => store.Save(saved with { Revision = 0 }, false));
+        Assert.Equal(saved, store.Read());
+    }
     private readonly string directory = Path.Combine(Path.GetTempPath(), "cockpit-settings-" + Guid.NewGuid());
     private string FilePath => Path.Combine(directory, "settings.json");
     public void Dispose() { if (Directory.Exists(directory)) Directory.Delete(directory, true); }

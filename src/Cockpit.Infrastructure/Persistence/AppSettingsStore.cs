@@ -9,6 +9,7 @@ public sealed record AppSettings(string PlantName, int RetentionDays, long Revis
     public AlternativePowerOptions AlternativePower { get; init; } = new();
     public bool EnableRelaySwitching { get; init; }
     public long PowerGeneration { get; init; }
+    public PlantModelOptions PlantModel { get; init; } = new();
 }
 public sealed class AppSettingsStore
 {
@@ -28,6 +29,8 @@ public sealed class AppSettingsStore
     {
         if (value.AlternativePower is null) throw new CommandRejected(422, "invalid_power_settings");
         value.AlternativePower.Validate();
+        if (value.PlantModel is null) throw new CommandRejected(422, "invalid_plant_model");
+        value.PlantModel.Validate();
         if (string.IsNullOrWhiteSpace(value.PlantName) || value.PlantName.Length > 80
             || value.PlantName.Any(char.IsControl) || value.RetentionDays is < 1 or > 700 || value.Revision < 0 || value.PowerGeneration is < 0 or > 9007199254740991L)
             throw new CommandRejected(422, "invalid_settings");

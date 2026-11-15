@@ -1,3 +1,4 @@
+import { openOverview } from './coverage-fixture';
 import { test, expect, type Page } from './coverage-fixture';
 
 test('partial COP buckets show heating and hot water separately', async ({ page }) => {
@@ -21,7 +22,7 @@ test('partial COP buckets show heating and hot water separately', async ({ page 
 });
 
 test('overview shows the separate COP calculated from HeishaMon Extra power', async ({ page }, info) => {
-  await page.goto('/');
+  await page.goto('/'); await openOverview(page);
   const status = page.getByRole('region', { name: 'Anlagenstatus', exact: true });
   const cop = status.getByRole('article', { name: 'COP · HeishaMon', exact: true });
   await expect(cop).toBeVisible();
@@ -68,7 +69,7 @@ async function fixtures(page: Page, electricalSource = 'heishamon-extra') {
 for (const [source, label] of [['shelly-ac', 'Shelly · C + A'], ['alternative-mqtt', 'Alternative Leistungsdaten'], ['mixed', 'Gemischte Quellen im Zeitraum']]) {
   test(`daily energy follows recorded source ${source}`, async ({ page }) => {
     await fixtures(page, source);
-    await page.goto('/');
+    await page.goto('/'); await openOverview(page);
     await page.getByRole('button', { name: 'Verlauf', exact: true }).click();
     const daily = page.getByRole('region', { name: 'Tagesverbrauch', exact: true });
     await expect(daily.getByRole('heading', { name: 'Tagesverbrauch · erfasste elektrische Energie' })).toBeVisible();

@@ -1,7 +1,140 @@
+import { openOverview } from './coverage-fixture';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test, expect, chromium } from './coverage-fixture';
+
+test('desktop model balances readable animation and wider status', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'Desktop-specific layout');
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+  await expect(page.locator('.plant-model')).toHaveClass(/water-active/);
+  const buttons = await page.locator('.plant-canvas .plant-components').boundingBox();
+  const status = await page.locator('.plant-inspector').boundingBox();
+  const animation = await page.locator('.plant-diagram').boundingBox();
+  expect(animation!.height).toBeGreaterThanOrEqual(320);
+  expect(animation!.height).toBeLessThanOrEqual(420);
+  expect(buttons!.y).toBeGreaterThanOrEqual(animation!.y + animation!.height);
+  expect(status!.width).toBeGreaterThanOrEqual(320);
+  await page.screenshot({ path: info.outputPath('compact-desktop.png') });
+});
+
+test('plant rotors rotate around fixed local axes and inspector follows desktop layout', async ({ page }, info) => {
+  await page.goto('/');
+  const model = page.locator('.plant-model');
+  await expect(model).toHaveClass(/water-active/);
+  await expect(model.locator('.rotor-anchor')).toHaveCount(2);
+  const samples = await model.locator('.rotor-anchor').evaluateAll(anchors => anchors.map(anchor => {
+    const rotor = anchor.querySelector('.fan,.pump') as SVGGraphicsElement;
+    const fixed = anchor as SVGGraphicsElement;
+    const animation = rotor.getAnimations()[0];
+    const duration = Number(animation.effect!.getComputedTiming().duration);
+    animation.pause();
+    const center = new DOMPoint(0, 0).matrixTransform(fixed.getCTM()!);
+    const errors = [.05, .25, .5, .75, .95].map(phase => {
+      animation.currentTime = duration * phase;
+      const actual = new DOMPoint(0, 0).matrixTransform(rotor.getCTM()!);
+      return Math.hypot(center.x - actual.x, center.y - actual.y);
+    });
+    animation.play();
+    return { rotor: rotor.getAttribute('class'), errors };
+  }));
+  for (const sample of samples) for (const error of sample.errors) expect(error, sample.rotor!).toBeLessThan(.01);
+  const drawing = await page.locator('.plant-canvas').boundingBox();
+  const inspector = await page.locator('.plant-inspector').boundingBox();
+  if (info.project.name === 'desktop') {
+    expect(inspector!.x).toBeGreaterThanOrEqual(drawing!.x + drawing!.width);
+    expect(Math.abs(inspector!.y - drawing!.y)).toBeLessThan(2);
+  } else expect(inspector!.y).toBeGreaterThanOrEqual(drawing!.y + drawing!.height);
+  await page.locator('.plant-canvas').getByRole('button', { name: 'Hydraulik', exact: true }).click();
+  await expect(page.locator('.plant-inspector h2')).toHaveText('Anlagenstatus');
+  await expect(page.locator('.plant-component-readings h3')).toHaveText('Hydraulik');
+  if (info.project.name === 'desktop') {
+    const buttons = await page.locator('.plant-canvas .plant-components').boundingBox();
+    const animation = await page.locator('.plant-diagram-scroll').boundingBox();
+    expect(buttons!.y).toBeGreaterThanOrEqual(animation!.y + animation!.height);
+    const readings = await page.locator('.plant-component-readings').boundingBox();
+    expect(readings!.x).toBeGreaterThanOrEqual(buttons!.x + buttons!.width);
+  }
+  await expect(page.locator('.plant-inspector')).toContainText('18,6 l/min');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+  await page.screenshot({ path: info.outputPath('plant-model-inspector.png'), fullPage: true });
+});
+
+test('Anlagenmodell is the first and initial view with actual telemetry and automatic housing', async ({ page }, info) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/');
+  const navigation = page.getByRole('navigation');
+  await expect(navigation.getByRole('button').first()).toHaveText('Anlagenmodell');
+  await expect(navigation.getByRole('button', { name: 'Anlagenmodell', exact: true })).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('heading', { name: 'Anlagenmodell', exact: true })).toBeVisible();
+  await expect(page.locator('.plant-model #flow-value')).toHaveText('34,5 °C');
+  await expect(page.locator('.plant-model [data-family="l"]')).toBeVisible();
+  await expect(page.locator('.plant-model [data-pump-location="indoor"]')).toBeVisible();
+  await page.locator('.plant-model .pump').evaluate(el => el.setAttribute('data-continuity', 'same-node'));
+  await expect(page.locator('.plant-model')).toHaveClass(/water-active/);
+  await expect(page.getByRole('button', { name: 'Modell konfigurieren', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Animation pausieren', exact: true }).click();
+  await expect(page.locator('.plant-model .pump')).toHaveCSS('animation-play-state', 'paused');
+  await expect(page.locator('.plant-model .pump')).toHaveAttribute('data-continuity', 'same-node');
+  await page.getByRole('button', { name: 'Animation fortsetzen', exact: true }).click();
+  await expect(page.locator('.plant-model .pump')).toHaveCSS('animation-play-state', 'running');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+  await page.screenshot({ path: info.outputPath('plant-model.png'), fullPage: true });
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Anlagenmodell', exact: true })).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('installation model configuration is editable only for administrators and survives reload', async ({ page }) => {
+  let role = 'admin';
+  let writes = 0;
+  let stored = { zones: 1, zone1: 'floor', zone2: 'radiator', tank: true, buffer: false, sensors: true, motion: true, speed: 1 };
+  let revision = 0;
+  await page.route('**/api/v1/auth/session', route => route.fulfill({ json: { loginRequired: false, authenticated: true, role, csrfToken: 'test-csrf' } }));
+  await page.route('**/api/v1/settings/plant-model', async route => {
+    if (route.request().method() === 'POST') {
+      const input = route.request().postDataJSON();
+      expect(role).toBe('admin'); expect(input.revision).toBe(revision);
+      expect(route.request().headers()['x-csrf-token']).toBe('test-csrf');
+      stored = input.configuration; revision++; writes++;
+    }
+    await route.fulfill({ json: { configuration: stored, revision, editable: true } });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Modell konfigurieren', exact: true }).click();
+  const config = page.getByRole('region', { name: 'Modell konfigurieren', exact: true });
+  await config.getByLabel('Heizkreise', { exact: true }).selectOption('2');
+  await config.getByLabel('Heizkreis 1', { exact: true }).selectOption('radiator');
+  await config.getByLabel('Reihenpuffer anzeigen', { exact: true }).check();
+  await config.getByRole('button', { name: 'Speichern', exact: true }).click();
+  await expect(config).toHaveCount(0);
+  expect(writes).toBe(1);
+  await page.reload();
+  await expect(page.locator('#plant-zone2')).toBeVisible();
+  await expect(page.locator('#plant-buffer')).toBeVisible();
+  await expect(page.locator('#zone1-label')).toContainText('Heizkörper');
+  role = 'reader';
+  await page.reload();
+  await expect(page.locator('#plant-zone2')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Modell konfigurieren', exact: true })).toHaveCount(0);
+  expect(writes).toBe(1);
+});
+
+test('Anlagenmodell suppresses stale measurements and unknown model assumptions', async ({ page, request }) => {
+  const snapshot = await (await request.get('/api/v1/snapshot')).json();
+  await page.route('**/api/v1/snapshot', route => route.fulfill({ json: {
+    ...snapshot, revision: Number.MAX_SAFE_INTEGER,
+    heatPumpModel: { known: false, rawIdentifier: 'UNRECOGNIZED', displayName: 'UNRECOGNIZED' },
+    values: snapshot.values.map((v: { key: string }) => ({ ...v, quality: 'stale' }))
+  } }));
+  await page.goto('/');
+  await expect(page.locator('.plant-model #flow-value')).toHaveText('—');
+  await expect(page.locator('.plant-model [data-family="generic"]')).toBeVisible();
+  await expect(page.locator('.plant-model')).not.toHaveClass(/water-active|fan-active|refrigerant-active/);
+  await expect(page.locator('.plant-model [data-pump-location]')).toHaveCount(0);
+});
 
 async function mockAdminSettings(page: import('./coverage-fixture').Page) {
   await page.route('**/api/v1/auth/session', route => route.fulfill({ json: {
@@ -261,7 +394,7 @@ test('navigation stays reachable while scrolling', async ({ page }, info) => {
 test('simulated dashboard, readonly API and honest placeholders', async ({ page, request }, testInfo) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/');
+  await page.goto('/'); await openOverview(page);
   await expect(page.getByText('SIMULATION · Alle Messwerte und Verbindungszustände sind simuliert.')).toBeVisible();
   await expect(page.getByRole('article', { name: 'Vorlauf', exact: true })).toContainText('34,50');
   await expect(page.getByRole('article', { name: 'Spreizung', exact: true })).toContainText('4,5');
@@ -326,7 +459,9 @@ test('keyboard navigation has visible focus', async ({ page }) => {
     await expect(page.getByRole('button', { name, exact: true })).toBeFocused();
   }
   await page.keyboard.press('Tab');
-  await expect(page.getByRole('button', { name: 'Übersicht' })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Anlagenmodell', exact: true })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Übersicht', exact: true })).toBeFocused();
   const focusStyle = await page.getByRole('button', { name: 'Übersicht' }).evaluate(el => getComputedStyle(el).outlineStyle);
   expect(focusStyle).not.toBe('none');
   await page.keyboard.press('Tab');
@@ -337,7 +472,7 @@ test('keyboard navigation has visible focus', async ({ page }) => {
 test('transport loss makes values stale and reconnect fetches full snapshot', async ({ page, context }) => {
   let snapshotRequests = 0;
   page.on('request', r => { if (r.url().endsWith('/api/v1/snapshot')) snapshotRequests++; });
-  await page.goto('/');
+  await page.goto('/'); await openOverview(page);
   const flow = page.getByRole('article', { name: 'Vorlauf', exact: true });
   await expect(flow).toContainText('Aktuell');
   await expect.poll(() => snapshotRequests).toBeGreaterThan(0);
@@ -383,7 +518,7 @@ test('M2 history, CSV and events use bounded read-only APIs', async ({ page, req
   expect(events.items.length).toBeGreaterThan(0);
   expect(events.items.every((e: { kind: string }) => e.kind === 'system')).toBeTruthy();
   expect((await request.delete('/api/v1/events')).status()).toBe(405);
-  await page.goto('/');
+  await page.goto('/'); await openOverview(page);
   await page.getByRole('button', { name: 'Verlauf', exact: true }).click();
   await expect(page.locator('[data-history-kind="temperature"]').getByRole('button', { name: 'CSV exportieren' })).toBeEnabled();
   const download = page.waitForEvent('download');
@@ -399,7 +534,7 @@ test('M2 history, CSV and events use bounded read-only APIs', async ({ page, req
 
 test('storage failure remains visible while live readings continue', async ({ page }) => {
   await page.route('**/api/v1/storage', route => route.fulfill({ json: { state: 'failed', lastWriteUtc: null, sampleSeconds: 30, retentionDays: 700 } }));
-  await page.goto('/');
+  await page.goto('/'); await openOverview(page);
   await expect(page.getByRole('alert').filter({ hasText: 'Aufzeichnung gestört' })).toBeVisible();
   await expect(page.getByRole('article', { name: 'Vorlauf', exact: true })).toContainText('Aktuell');
 });
@@ -412,7 +547,7 @@ test('temperature chart does not connect a missing interval', async ({ page }) =
     { time: new Date(Date.parse(from) + 30000).toISOString(), value: null, quality: 'unknown', samples: 0 },
     { time: new Date(Date.parse(from) + 60000).toISOString(), value: 35, quality: 'valid', samples: 1 }
   ] }] } }); });
-  await page.goto('/');
+  await page.goto('/'); await openOverview(page);
   const path = page.locator('.history-chart path[stroke="#0964d8"][fill="none"]').first();
   await expect(path).toHaveAttribute('d', /M/);
   const d = await path.getAttribute('d');
@@ -431,7 +566,7 @@ test('state timelines show stable colors and enum labels inside duration bars', 
       series: keys.map(key => ({ key, unit: 'enum', source: 'simulator', aggregation: 'stableState',
         points: [0, 1, null, 1].map((value, i) => ({ time: `2026-09-20T10:${String(i * 15).padStart(2, '0')}:00Z`, value, quality: value === null ? 'unknown' : 'valid', samples: value === null ? 0 : 30 })) })) } });
   });
-  await page.goto('/');
+  await page.goto('/'); await openOverview(page);
   await page.getByRole('button', { name: 'Verlauf', exact: true }).click();
   await page.locator('[data-history-kind="state"][aria-label="Wärmepumpe"]').getByLabel('Von (UTC)').fill('2026-09-20T10:00');
   await page.locator('[data-history-kind="state"][aria-label="Wärmepumpe"]').getByLabel('Bis (UTC)').fill('2026-09-20T11:00');
@@ -468,7 +603,7 @@ test('ECharts renders the maximum history response and disposes charts on naviga
         points: Array.from({ length: 4000 }, (_, i) => ({ time: new Date(start + i * step).toISOString(), value: 20 + j * 5 + Math.sin(i / 100), quality: 'valid', samples: 1 })) })) } });
   });
   const started = Date.now();
-  await page.goto('/');
+  await page.goto('/'); await openOverview(page);
   await expect(page.locator('.history-chart svg')).toBeVisible();
   await expect(page.locator('.history-chart path[stroke="#0964d8"][fill="none"]').first()).toHaveAttribute('d', /L/);
   await info.attach('render-duration', { body: `${Date.now() - started} ms until visible; simulated 20,000 points`, contentType: 'text/plain' });
@@ -484,7 +619,7 @@ test('ECharts renders the maximum history response and disposes charts on naviga
 });
 
 test('overview omits controls and indoor target remains on control page', async ({ page }, testInfo) => {
-  await page.goto('/');
+  await page.goto('/'); await openOverview(page);
   await expect(page.locator('.control-panel, .mobile-current, .dhwTargetTemperature, .dhwHeatDelta')).toHaveCount(0);
   await expect(page.locator('.temperature-grid .dhwTemperature')).toBeVisible();
   await page.getByRole('button', { name: 'Steuerung', exact: true }).click();
@@ -506,7 +641,7 @@ test('temperature axes use multiples of five across negative, constant and wide 
   } }));
   for (const range of [[-7.3, 34.5], [20, 20], [-40, 100]]) {
     values = range;
-    await page.goto('/');
+    await page.goto('/'); await openOverview(page);
     const labels = page.locator('[data-history-kind="temperature"] .history-chart svg text').filter({ hasText: /^-?\d+,\d{2}$/ });
     await expect(labels.first()).toBeVisible();
     const ticks = (await labels.allTextContents()).map(label => Number(label.replace(',', '.')));
@@ -519,7 +654,7 @@ test('temperature axes use multiples of five across negative, constant and wide 
 });
 
 test('history presets and calendar work on overview and history', async ({ page }, testInfo) => {
-  await page.goto('/');
+  await page.goto('/'); await openOverview(page);
   for (const tab of ['Übersicht', 'Verlauf']) {
     await page.getByRole('button', { name: tab, exact: true }).click();
     for (const hours of [1, 4]) {
@@ -551,7 +686,7 @@ test('history presets and calendar work on overview and history', async ({ page 
 
 
 test('plant status shows counters valve pressure and distinct icons', async ({ page }, testInfo) => {
-  await page.goto('/');
+  await page.goto('/'); await openOverview(page);
   const panel = page.getByRole('region', { name: 'Anlagenstatus', exact: true });
   for (const [label, value] of [['Betriebsstunden', '12.345 h'], ['Betriebszähler', '2.345'], ['3-Wege-Ventil', 'Raumheizung'], ['Wasserdruck', '1,60 bar']]) {
     const card = panel.getByRole('article', { name: label, exact: true });
@@ -572,14 +707,14 @@ test('plant status shows counters valve pressure and distinct icons', async ({ p
 
 
 test('events display captured values on overview and events page', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/'); await openOverview(page);
   await expect(page.getByRole('article', { name: 'Wasserdruck', exact: true }).locator('.value')).toHaveText('1,60 bar');
   await page.route('**/api/v1/events*', route => route.fulfill({ json: { items: [
     { id: 3, time: '2026-09-19T10:00:00Z', kind: 'quality', key: 'waterPressure', message: 'Datenqualität: Valid · Wert: 1,60 bar', source: 'simulator' },
     { id: 2, time: '2026-09-19T10:00:00Z', kind: 'state', key: 'threeWayValveState', message: 'Beobachteter Zustand: Warmwasser (1)', source: 'simulator' },
     { id: 1, time: '2026-09-19T10:00:00Z', kind: 'quality', key: 'flowTemperature', message: 'Datenqualität: Unknown · Wert: —', source: 'simulator' }
   ], nextCursor: null } }));
-  await page.reload();
+  await page.reload(); await openOverview(page);
   for (const tab of ['Übersicht', 'Ereignisse']) {
     await page.getByRole('button', { name: tab, exact: true }).click();
     const events = page.getByRole('region', { name: 'Gespeicherte Ereignisse', exact: true });
@@ -601,7 +736,7 @@ test('pressure history has its own scale units gaps and independent time range',
       { key: 'waterPressure', unit: 'bar', source: 'simulator', aggregation: 'mean', points: [1.6, null, 1.65].map((value, i) => ({ time: new Date(start + i * 30000).toISOString(), value, quality: value === null ? 'unknown' : 'valid', samples: value === null ? 0 : 1 })) }
     ] } });
   });
-  await page.goto('/');
+  await page.goto('/'); await openOverview(page);
   await expect(page.getByRole('region', { name: 'Wasserdruckverlauf', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Verlauf', exact: true }).click();
   const panel = page.getByRole('region', { name: 'Wasserdruckverlauf', exact: true });
@@ -623,7 +758,7 @@ test('pressure history has its own scale units gaps and independent time range',
 
 
 test('M3d equal plant cards, warm water order and responsive layout', async ({ page }, info) => {
-  await page.goto('/');
+  await page.goto('/'); await openOverview(page);
   await expect(page.locator('.pumpSpeed .value')).toHaveText('1.750 U/min');
   await expect(page.locator('.fanSpeed .value')).toHaveText('650 U/min');
   await expect(page.locator('.compressorCurrent .value')).toHaveText('4,4 A');
@@ -659,7 +794,7 @@ test('M3d technical history uses selected metric, units, gaps and CSV', async ({
     const [value, unit] = values[key];
     await route.fulfill({ json: { from: q.get('from'), to: q.get('to'), bucketSeconds: 30, series: [{ key, unit, source: 'simulator', aggregation: 'mean', points: [value, null, value].map((value, i) => ({ time: new Date(Date.parse(q.get('from')!) + i * 30000).toISOString(), value, quality: value === null ? 'stale' : 'valid', samples: value === null ? 0 : 1 })) }] } });
   });
-  await page.goto('/'); await page.getByRole('button', { name: 'Verlauf', exact: true }).click();
+  await page.goto('/'); await openOverview(page); await page.getByRole('button', { name: 'Verlauf', exact: true }).click();
   const panel = page.getByRole('region', { name: 'Technische Anlagenwerte', exact: true });
   for (const [key, label, unit] of [['pumpSpeed', 'Pumpendrehzahl', 'U/min'], ['fanSpeed', 'Ventilatordrehzahl', 'U/min'], ['compressorCurrent', 'Verdichterstrom', 'A'], ['highPressure', 'Hochdruck', 'kgf/cm²']]) {
     await panel.getByRole('combobox', { name: 'Messwert', exact: true }).selectOption(key);
@@ -682,7 +817,7 @@ test('M3d zero and malformed values remain honest and widths stable', async ({ p
   await page.route('**/api/v1/snapshot', route => route.fulfill({ json: { ...snapshot, revision: Number.MAX_SAFE_INTEGER, values: snapshot.values.map((v: { key: string }) => technical.includes(v.key) ? { ...v, value: mode === 'zero' ? 0 : mode === 'invalid' ? 'NaN' : null, quality: mode === 'invalid' ? 'invalid' : mode === 'missing' ? 'unknown' : 'valid' } : v) } }));
   let widths: number[] = [];
   for (mode of ['zero', 'invalid', 'missing']) {
-    await page.goto('/');
+    await page.goto('/'); await openOverview(page);
     for (const key of technical) {
       const card = page.locator('.plant-grid .' + key);
       await expect(card).toContainText(mode === 'zero' ? 'Aktuell' : mode === 'invalid' ? 'Ungültig' : 'Unbekannt');
@@ -705,7 +840,7 @@ test('version and operating label come from system response', async ({ page, req
 
 
 test('power tiles show existing electrical and thermal readings including zero', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/'); await openOverview(page);
   for (const [key,label,value] of [['heatPowerConsumption','Heizen elektrisch','850 W'],['heatPowerProduction','Heizen thermisch','3.400 W'],['dhwPowerConsumption','Warmwasser elektrisch','0 W'],['dhwPowerProduction','Warmwasser thermisch','0 W']]) {
     const tile=page.locator('.plant-grid .'+key);
     await expect(tile.locator('h3')).toHaveText(label);
@@ -715,7 +850,7 @@ test('power tiles show existing electrical and thermal readings including zero',
 });
 
 test('card order supports keyboard, persistent reload and independent groups', async ({ page }) => {
-  await page.goto('/'); await page.getByRole('button',{name:'Kacheln anordnen',exact:true}).click();
+  await page.goto('/'); await openOverview(page); await page.getByRole('button',{name:'Kacheln anordnen',exact:true}).click();
   const handle=page.getByRole('button',{name:'Vorlauf verschieben',exact:true});
   await handle.focus();await page.keyboard.press('ArrowRight');
   await expect(page.locator('.temperature-grid > article').nth(1)).toHaveClass(/flowTemperature/);
@@ -727,7 +862,7 @@ test('card order supports keyboard, persistent reload and independent groups', a
   await expect(page.locator('.plant-grid > article').nth(powerIndex - 1)).toHaveClass(/heatPowerConsumption/);
   await page.getByRole('button',{name:'Fehlerstatus nach vorne',exact:true}).click();
   await expect(page.locator('.plant-details > article').nth(errorIndex - 1)).toHaveClass(/activeError/);
-  await page.reload();
+  await page.reload(); await openOverview(page);
   await expect(page.locator('.temperature-grid > article').nth(1)).toHaveClass(/flowTemperature/);
   await expect(page.locator('.plant-grid > article').nth(powerIndex - 1)).toHaveClass(/heatPowerConsumption/);
   await expect(page.locator('.plant-details > article').nth(errorIndex - 1)).toHaveClass(/activeError/);
@@ -736,7 +871,7 @@ test('card order supports keyboard, persistent reload and independent groups', a
 });
 
 test('mouse dragging commits on drop and Escape cancels', async ({ page }, info) => {
-  await page.setViewportSize({width:1280,height:1600});await page.goto('/');
+  await page.setViewportSize({width:1280,height:1600});await page.goto('/'); await openOverview(page);
   await page.getByRole('button',{name:'Kacheln anordnen',exact:true}).click();
   const source=page.getByRole('button',{name:'Vorlauf verschieben',exact:true});
   const destination=page.locator('.temperature-grid .returnTemperature');
@@ -754,7 +889,7 @@ test('mouse dragging commits on drop and Escape cancels', async ({ page }, info)
 
 test('invalid saved keys are removed and new cards are appended', async ({ page }) => {
   await page.addInitScript(()=>localStorage.setItem('heishamon-cockpit.overview-order.v1',JSON.stringify({temperatures:['dhwTemperature','unknown','dhwTemperature'],plant:['waterPressure']})));
-  await page.goto('/');
+  await page.goto('/'); await openOverview(page);
   await expect(page.locator('.temperature-grid > article').first()).toHaveClass(/dhwTemperature/);
   await expect(page.locator('.temperature-grid > article')).toHaveCount(6);
   await expect(page.locator('.plant-grid > article').first()).toHaveClass(/waterPressure/);
@@ -765,7 +900,7 @@ test('invalid saved keys are removed and new cards are appended', async ({ page 
 
 test('unavailable persistent storage reports session-only sorting', async ({ page }) => {
   await page.addInitScript(()=>{ Storage.prototype.setItem=()=>{throw new DOMException('blocked','QuotaExceededError');}; });
-  await page.goto('/');await page.getByRole('button',{name:'Kacheln anordnen',exact:true}).click();
+  await page.goto('/'); await openOverview(page);await page.getByRole('button',{name:'Kacheln anordnen',exact:true}).click();
   await page.getByRole('button',{name:'Vorlauf nach hinten',exact:true}).click();
   await expect(page.getByRole('alert')).toContainText('nur für diese Sitzung');
   await expect(page.locator('.temperature-grid > article').nth(1)).toHaveClass(/flowTemperature/);
@@ -774,7 +909,7 @@ test('unavailable persistent storage reports session-only sorting', async ({ pag
 
 test('touch dragging reorders cards on mobile', async ({ page, context }, info) => {
   test.skip(info.project.name!=='mobile','Touch device only');
-  await page.goto('/');await page.getByRole('button',{name:'Kacheln anordnen',exact:true}).click();
+  await page.goto('/'); await openOverview(page);await page.getByRole('button',{name:'Kacheln anordnen',exact:true}).click();
   const source=page.getByRole('button',{name:'Vorlauf verschieben',exact:true});
   await source.evaluate(el => el.scrollIntoView({block:'center'}));
   const destination = page.locator('.temperature-grid .returnTemperature');
@@ -790,7 +925,7 @@ test('touch dragging reorders cards on mobile', async ({ page, context }, info) 
   for(let i=1;i<=8;i++)await client.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+(tx-x)*i/8,y:y+(ty-y)*i/8}]});
   await client.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
   await expect(page.locator('.temperature-grid > article').nth(1)).toHaveClass(/flowTemperature/);
-  await page.reload();await expect(page.locator('.temperature-grid > article').nth(1)).toHaveClass(/flowTemperature/);
+  await page.reload(); await openOverview(page);await expect(page.locator('.temperature-grid > article').nth(1)).toHaveClass(/flowTemperature/);
 });
 
 test('saved order survives browser process restart', async ({ baseURL }, info) => {
@@ -798,19 +933,19 @@ test('saved order survives browser process restart', async ({ baseURL }, info) =
   const directory=mkdtempSync(join(tmpdir(),'cockpit-layout-'));
   let browserContext=await chromium.launchPersistentContext(directory,{headless:true,channel:'chromium'});
   try {
-    let page=await browserContext.newPage();await page.goto(baseURL!);
+    let page=await browserContext.newPage();await page.goto(baseURL!); await openOverview(page);
     await page.getByRole('button',{name:'Kacheln anordnen',exact:true}).click();
     await page.getByRole('button',{name:'Warmwasser nach vorne',exact:true}).click();
     await expect(page.locator('.temperature-grid > article').nth(4)).toHaveClass(/dhwTemperature/);
     await browserContext.close();
     browserContext=await chromium.launchPersistentContext(directory,{headless:true,channel:'chromium'});
-    page=await browserContext.newPage();await page.goto(baseURL!);
+    page=await browserContext.newPage();await page.goto(baseURL!); await openOverview(page);
     await expect(page.locator('.temperature-grid > article').nth(4)).toHaveClass(/dhwTemperature/);
   } finally {await browserContext.close();rmSync(directory,{recursive:true,force:true});}
 });
 
 test('control cards reorder independently and persist without moving the final panel', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/'); await openOverview(page);
   await page.getByRole('button', {name:'Kacheln anordnen',exact:true}).click();
   await page.getByRole('button', {name:'Vorlauf nach hinten',exact:true}).click();
   await page.getByRole('button', {name:'Steuerung',exact:true}).click();
@@ -829,7 +964,7 @@ test('control cards reorder independently and persist without moving the final p
   await expect(page.locator('.control-page > :last-child .sort-controls')).toHaveCount(0);
   await page.getByRole('button', {name:'Anordnung fertig',exact:true}).click();
   await expect(page.locator('.control-status-grid .sort-controls')).toHaveCount(0);
-  await page.reload();
+  await page.reload(); await openOverview(page);
   await expect(page.locator('.temperature-grid > article').nth(1)).toHaveClass(/flowTemperature/);
   await page.getByRole('button', {name:'Steuerung',exact:true}).click();
   await expect(cards.nth(1)).toHaveAttribute('data-sort-key','mode');
@@ -860,7 +995,7 @@ test('control cards support pointer dragging on desktop and touch', async ({ pag
 
 
 test('Vorlauf, Rücklauf und Spreizung zeigen exakt zwei Nachkommastellen', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/'); await openOverview(page);
   await expect(page.getByRole('article', { name: 'Vorlauf', exact: true }).locator('.value')).toHaveText('34,50 °C');
   await expect(page.getByRole('article', { name: 'Rücklauf', exact: true }).locator('.value')).toHaveText('30,00 °C');
   await expect(page.getByRole('article', { name: 'Spreizung', exact: true }).locator('.value')).toHaveText('4,50 K');
@@ -908,7 +1043,7 @@ test('alternative meter tiles reuse history dialogs and leave the HeishaMon COP 
         key, value, unit: key === 'alternativePowerEnabled' ? '' : 'W', quality: 'valid', receivedAtUtc: new Date().toISOString(), retained: false, sourceKind: 'simulator'
       }))] } });
   });
-  await page.goto('/');
+  await page.goto('/'); await openOverview(page);
   const panel = page.getByRole('region', { name: 'Anlagenstatus', exact: true });
   await expect(panel.getByRole('article', { name: 'COP · HeishaMon', exact: true })).toContainText('Aus HeishaMon-Extra-Leistung berechnet');
   const hp = panel.getByRole('article', { name: 'Wärmepumpe elektrisch', exact: true });

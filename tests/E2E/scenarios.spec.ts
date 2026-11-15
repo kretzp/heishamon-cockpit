@@ -1,8 +1,9 @@
+import { openOverview } from './coverage-fixture';
 import { test, expect } from './coverage-fixture';
 
 test('simulator fault scenario is represented honestly', async ({ page }) => {
   const scenario = process.env.COCKPIT_TEST_SCENARIO;
-  await page.goto('/');
+  await page.goto('/'); await openOverview(page);
   if (scenario === 'no-error' || scenario === 'no-error-retained') {
     const retained = scenario === 'no-error-retained';
     for (const tab of ['Übersicht', 'Ereignisse']) {

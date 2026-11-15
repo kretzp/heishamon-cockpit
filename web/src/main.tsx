@@ -28,6 +28,7 @@ import { SimulatorControlPanel } from './SimulatorControl';
 import { HeatingCurvePanel } from './HeatingCurve';
 import { DallasOneWirePanel, isDallasValue, dallasLabel } from './DallasOneWire';
 import { HistoryPanel, EventsPanel, StorageNotice } from './History';
+import { PlantModel } from './plant/PlantModel';
 const MetricChartDialog = lazy(() => import('./charts/MetricChartDialog'));
 type Quality = 'unknown' | 'valid' | 'stale' | 'invalid';
 type Value = {
@@ -106,8 +107,8 @@ const qualities: Record<Quality, string> = {
   invalid: 'Ungültig'
 };
 const modes = ['Heizen', 'Kühlen', 'Auto (Heizen)', 'Warmwasser', 'Heizen + Warmwasser', 'Kühlen + Warmwasser', 'Auto (Heizen) + Warmwasser', 'Auto (Kühlen)', 'Auto (Kühlen) + Warmwasser'];
-const tabs = ['Übersicht', 'Verlauf', 'Steuerung', 'Heizkurve', 'Dallas-1-Wire', 'Ereignisse', 'Einstellungen'];
-const tabIcons: IconName[] = ['home', 'chart', 'sliders', 'chart', 'chart', 'bell', 'settings'];
+const tabs = ['Anlagenmodell', 'Übersicht', 'Verlauf', 'Steuerung', 'Heizkurve', 'Dallas-1-Wire', 'Ereignisse', 'Einstellungen'];
+const tabIcons: IconName[] = ['pump', 'home', 'chart', 'sliders', 'chart', 'chart', 'bell', 'settings'];
 const temperatureKeys = ['flowTemperature', 'returnTemperature', 'temperatureSpread', 'outsideTemperature', 'indoorTemperature', 'dhwTemperature'];
 const powerKeys = ['heatPowerConsumption', 'heatPowerProduction', 'dhwPowerConsumption', 'dhwPowerProduction'];
 const detailKeys = ['heatpumpState', 'internalHeaterState', 'heatingControlMode', 'quietMode', 'activeError'];
@@ -190,7 +191,7 @@ function App() {
   }
   const [editingOrder, setEditingOrder] = useState(false);
   const [chartKey, setChartKey] = useState<string | null>(null);
-  const [tab, setTab] = useState('Übersicht');
+  const [tab, setTab] = useState('Anlagenmodell');
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [system, setSystem] = useState<System | null>(null);
   const [canSwitchRelays, setCanSwitchRelays] = useState(false);
@@ -366,6 +367,7 @@ function App() {
       {!live && <div className="warning" role="alert">{t("Liveverbindung zum Backend unterbrochen oder noch nicht hergestellt. Angezeigte Werte sind nicht aktuell.")}</div>}
       {live && (!snapshot?.brokerConnected || snapshot.deviceAvailability === 'offline') && <p className="warning" role="alert">{t("Verbindungsausfall der Datenquelle. Letzte Werte sind veraltet.")}</p>}
       {tab === 'Heizkurve' && <HeatingCurvePanel values={snapshot?.values ?? []} live={live} enabled={curveControl} source={system?.source ?? ''} />}
+      {tab === 'Anlagenmodell' && <PlantModel snapshot={snapshot} live={live} now={now} labels={labels} />}
       {tab === 'Dallas-1-Wire' && <DallasOneWirePanel values={dallasValues} live={live} now={now} brokerConnected={snapshot?.brokerConnected ?? false} deviceAvailability={snapshot?.deviceAvailability ?? 'unknown'} openChart={setChartKey} editing={editingOrder} />}
       {(tab === 'Übersicht' || tab === 'Steuerung' || tab === 'Dallas-1-Wire') && <>
         {editingOrder && <p id="sort-instructions">{t("Reihenfolge wird in diesem Browser gespeichert. Am Griff ziehen oder dessen Pfeiltasten verwenden. Alternativ mit den Pfeilbuttons verschieben. Sortieren innerhalb der jeweiligen Gruppe; Escape bricht das Ziehen ab.")}</p>}

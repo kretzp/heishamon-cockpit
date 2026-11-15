@@ -195,6 +195,7 @@ if (loginRequired) app.Use(async (context, next) => {
     await next(context);
 });
 app.MapSettings(settingsEnabled, historyPolicy, source);
+app.MapPlantModelSettings(authenticationEnabled);
 if (dynamicControl is not null || liveControl || controlEnabled)
     app.MapPost("/api/v1/commands/relays/{relay}", async (string relay, RelayInput input, RelayService relays) =>
         Results.Ok(new { confirmed = await relays.SwitchAsync(relay, input.Value) }))

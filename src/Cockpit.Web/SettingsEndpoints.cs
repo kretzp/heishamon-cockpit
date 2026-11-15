@@ -16,7 +16,25 @@ public static class SettingsEndpoints
             if (input.RetentionDays < active.RetentionDays && !input.ConfirmReduction)
                 throw new Cockpit.Domain.CommandRejected(422, "retention_confirmation_required");
             return Task.FromResult(Results.Ok(settings.Save(new(input.PlantName, input.RetentionDays, input.Revision)
-            { AlternativePower = input.AlternativePower ?? settings.Read().AlternativePower, EnableRelaySwitching = input.EnableRelaySwitching ?? settings.Read().EnableRelaySwitching }, input.ConfirmReduction)));
+            { AlternativePower = input.AlternativePower ?? settings.Read().AlternativePower, EnableRelaySwitching = input.EnableRelaySwitching ?? settings.Read().EnableRelaySwitching, PlantModel = settings.Read().PlantModel }, input.ConfirmReduction)));
         })).RequireAuthorization("admin").RequireRateLimiting("commands");
     }
+
+    public static void MapPlantModelSettings(this WebApplication app, bool authenticationEnabled)
+    {
+        app.MapGet("/api/v1/settings/plant-model", (AppSettingsStore settings) => {
+            var current = settings.Read();
+            return Results.Ok(new { configuration = current.PlantModel, revision = current.Revision, editable = authenticationEnabled });
+        });
+        if (!authenticationEnabled) return;
+        app.MapPost("/api/v1/settings/plant-model", (PlantModelInput input, AppSettingsStore settings) => {
+            if (input.Configuration is null) throw new Cockpit.Domain.CommandRejected(422, "invalid_plant_model");
+            var current = settings.Read();
+            if (input.Revision != current.Revision) throw new Cockpit.Domain.CommandRejected(409, "settings_conflict");
+            var saved = settings.Save(current with { PlantModel = input.Configuration, Revision = input.Revision }, false);
+            return Results.Ok(new { configuration = saved.PlantModel, revision = saved.Revision, editable = true });
+        }).RequireAuthorization("admin").RequireRateLimiting("commands");
+    }
 }
+
+public sealed record PlantModelInput(PlantModelOptions? Configuration, long Revision);
