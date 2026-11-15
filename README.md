@@ -13,6 +13,9 @@ The animated Aquarea system model shows the detected outdoor and indoor units,
 hydraulic connections and live measurements. The screenshot below shows a preview
 with simulated readings.
 
+See the [System model guide](documentation/systemmodel.md) for configuration,
+measurement handling and diagram limitations.
+
 Inspired by [heatpump-hydraulic-card](https://github.com/Sturmi77/heatpump-hydraulic-card)
 by [Sturmi77](https://github.com/Sturmi77).
 
