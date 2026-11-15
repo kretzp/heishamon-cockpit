@@ -21,6 +21,8 @@
   translations for all supported languages.
 - Exclude local runtime data from published applications so development and
   preview JSON files cannot enter installation packages.
+- Show flow temperature, return temperature, temperature difference and water
+  pressure with exactly two decimal places throughout the System model view.
 
 - Recognize the operator-confirmed signature `E2 D5 0B 34 99 83 92 0D 27 98`
   as **Panasonic WH-SDC0509L3E5 / WH-WDG05LE5**. Match this exact signature

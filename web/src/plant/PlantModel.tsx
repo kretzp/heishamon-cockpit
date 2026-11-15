@@ -63,7 +63,8 @@ export function PlantModel({ snapshot, live, now, labels }: Props) {
     const v = values.find(value => value.key === key);
     const n = number(key);
     if (n === null) return '—';
-    return `${n.toLocaleString(getLocale(), { maximumFractionDigits: ['fanSpeed', 'pumpSpeed', 'compressorFrequency'].includes(key) ? 0 : 1 })}${v?.unit && v.unit !== 'enum' ? ` ${v.unit}` : ''}`;
+    const fixedPrecision = ['flowTemperature', 'returnTemperature', 'temperatureSpread', 'waterPressure'].includes(key) ? 2 : undefined;
+    return `${n.toLocaleString(getLocale(), { minimumFractionDigits: fixedPrecision, maximumFractionDigits: fixedPrecision ?? (['fanSpeed', 'pumpSpeed', 'compressorFrequency'].includes(key) ? 0 : 1) })}${v?.unit && v.unit !== 'enum' ? ` ${v.unit}` : ''}`;
   };
   const label = (v: PlantValue) => v.alias || t(labels[v.key] ?? plantMetricLabels[v.key] ?? v.key);
   const display = (v: PlantValue) => {

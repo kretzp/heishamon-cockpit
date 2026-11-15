@@ -14,6 +14,8 @@ Only signed-in administrators can save changes. Readers and operators see the sh
 
 ## Measurements and animation
 
+Flow temperature, return temperature, temperature difference and water pressure are displayed with exactly two decimal places throughout the System model view, including the diagram, component inspector and measurement explorer. Number formatting follows the selected interface language.
+
 Pump animation follows valid water-flow readings, fan animation follows fan speed, and refrigerant animation follows compressor frequency. Current activity is derived from compressor operation, valve position, defrost state and the selected operating mode. Selecting a mode alone does not indicate active heating. Pump circulation and fan run-on may remain visible independently of the compressor.
 
 Invalid, unknown, stale, historical or retained readings, and readings that are no longer current after a connection loss, are not displayed as current measurements and do not drive animation. COP comes from the existing validated backend calculation. Electrical and thermal power are shown for the operating mode that is actually active. Missing measurements are not simulated.

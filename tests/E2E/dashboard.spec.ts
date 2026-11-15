@@ -57,6 +57,8 @@ test('plant rotors rotate around fixed local axes and inspector follows desktop 
     expect(readings!.x).toBeGreaterThanOrEqual(buttons!.x + buttons!.width);
   }
   await expect(page.locator('.plant-inspector')).toContainText('18,6 l/min');
+  await expect(page.locator('.plant-inspector')).toContainText('1,60 bar');
+  await expect(page.locator('.plant-inspector')).toContainText('4,50 K');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
   await page.screenshot({ path: info.outputPath('plant-model-inspector.png'), fullPage: true });
 });
@@ -69,7 +71,8 @@ test('Anlagenmodell is the first and initial view with actual telemetry and auto
   await expect(navigation.getByRole('button').first()).toHaveText('Anlagenmodell');
   await expect(navigation.getByRole('button', { name: 'Anlagenmodell', exact: true })).toHaveAttribute('aria-current', 'page');
   await expect(page.getByRole('heading', { name: 'Anlagenmodell', exact: true })).toBeVisible();
-  await expect(page.locator('.plant-model #flow-value')).toHaveText('34,5 °C');
+  await expect(page.locator('.plant-model #flow-value')).toHaveText('34,50 °C');
+  await expect(page.locator('.plant-model #return-value')).toHaveText('30,00 °C');
   await expect(page.locator('.plant-model [data-family="l"]')).toBeVisible();
   await expect(page.locator('.plant-model [data-pump-location="indoor"]')).toBeVisible();
   await page.locator('.plant-model .pump').evaluate(el => el.setAttribute('data-continuity', 'same-node'));
