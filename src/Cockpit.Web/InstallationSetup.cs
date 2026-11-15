@@ -49,6 +49,24 @@ public static class InstallationSetup
         while (true) { var key = Console.ReadKey(true); if (key.Key == ConsoleKey.Enter) break; if (key.Key == ConsoleKey.Backspace) { if (value.Length > 0) value.Length--; } else if (!char.IsControl(key.KeyChar)) value.Append(key.KeyChar); }
         Console.WriteLine(); return value.ToString();
     }
+    public static string ReadAdministratorPassword(Func<string, string> readSecret, TextWriter output)
+    {
+        while (true)
+        {
+            var password = readSecret("Administrator password (12–128 characters)");
+            if (password.Length is < 12 or > 128)
+            {
+                output.WriteLine("Administrator password must contain 12–128 characters. Please try again.");
+                continue;
+            }
+            if (password != readSecret("Repeat administrator password"))
+            {
+                output.WriteLine("Passwords do not match. Please try again.");
+                continue;
+            }
+            return password;
+        }
+    }
     public static void Run(string root, string usersPath, MqttSettingsStore mqtt)
     {
         var localConfig = Path.Combine(root, "appsettings.Local.json");
@@ -56,8 +74,7 @@ public static class InstallationSetup
             throw new InvalidOperationException("Existing configuration or accounts found; installation will not overwrite them.");
         Console.WriteLine("Configure a new HeishaMon Cockpit installation. No broker connection will be opened.");
         var username = Prompt("Administrator username");
-        var password = Secret("Administrator password (12–128 characters)");
-        if (password != Secret("Repeat administrator password")) throw new InvalidOperationException("Passwords do not match; nothing was configured.");
+        var password = ReadAdministratorPassword(Secret, Console.Out);
         var host = Prompt("MQTT broker host");
         if (!int.TryParse(Prompt("MQTT broker port", "1883"), out var port)) throw new InvalidOperationException("Invalid broker port.");
         var prefix = Prompt("HeishaMon topic base", "panasonic_heat_pump");
