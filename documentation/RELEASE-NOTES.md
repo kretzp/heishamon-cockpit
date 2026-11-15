@@ -1,9 +1,53 @@
 # Release notes
 
-## Unreleased
+## 0.9.6 — Reliable setup and automatic model identification, 2026-11-15
 
-- Fix #12: detect the heat-pump model from HeishaMon TOP92 instead of showing a fixed L-series profile. Settings now show the detected indoor/outdoor model names, or the raw identifier for unknown models, without a dropdown. The header uses the same model.
-- Allow explicit control opt-in using the existing confirmation checkboxes without selecting the old L-series profile. Existing saved control setups remain compatible; model detection itself does not enable control.
+- Fix [#10](https://github.com/kretzp/heishamon-cockpit/issues/10): initial
+  installation with anonymous MQTT no longer aborts at control authorization.
+  A separate question explains anonymous-access security risks and asks the
+  operator to accept them and enable control at their own risk. `yes`/`y`
+  permits control only after the device and conflicting-controller confirmations;
+  `no`/`n` or Enter completes installation read-only. Declining a later control
+  confirmation also continues read-only.
+- Save anonymous-control consent explicitly and honor it in runtime control
+  authorization. Existing configurations default this consent to false;
+  anonymous broker access alone does not authorize control. Credentialed
+  authorization and the credential requirements of bounded live tests remain
+  in place.
+- Validate the initial administrator password immediately. A password outside
+  the 12–128-character range or a mismatched repeat triggers another prompt
+  before continuing to MQTT configuration. End-of-input cancels setup.
+- Document configuration-only retries with `./Cockpit.Web --setup-installation`
+  on Linux/Pi or `.\Cockpit.Web.exe --setup-installation` on Windows. Unfinished
+  initial setup can be repeated using the existing binary without rebuilding
+  or opening an MQTT connection. Existing accounts and configuration are not
+  overwritten; successful installations use the web Settings for changes.
+- Fix [#12](https://github.com/kretzp/heishamon-cockpit/issues/12): identify the
+  heat-pump model from HeishaMon TOP92 (`main/Heat_Pump_Model`) instead of
+  displaying a fixed L-series model. Settings and the application header show
+  the detected indoor/outdoor models. Unknown identifiers remain visible as
+  raw values; missing or invalid identifiers do not fall back to an L-series
+  model. Support hexadecimal identifiers and legacy numeric model IDs.
+- Treat model identification as optional metadata. Missing TOP92 does not
+  degrade measurement freshness or block other telemetry. Retained identifiers
+  can identify a model but do not establish fresh measurements for commands;
+  model identifiers are excluded from numeric history queries.
+- Replace the manual L-series profile dropdown with the detected model and
+  retain explicit control confirmations for HeishaMon-connected Aquarea models.
+  Existing saved L-series control profiles remain compatible. Detection itself
+  does not enable control, change command ranges, or verify firmware and
+  individual command compatibility.
+- Fix a race in the isolated MQTT heating-curve integration test. Wait for new
+  receipts of unchanged fields as well as matching values before acknowledging
+  each readback. Add a partial-readback regression and a per-step assertion;
+  production control behavior and timeout limits are unchanged.
+- Update release version metadata and regenerate the affected dependency
+  lockfiles for Windows x64, Linux x64 and Linux ARM64. No database schema
+  migration is required; existing history, accounts and broker settings remain
+  compatible.
+
+See [configuration retries](LINUX-INSTALL.md#repeat-configuration-without-rebuilding),
+[control setup](CONTROL-SETUP.md) and [model identification and limits](SUPPORTED-DEVICES.md).
 
 ## 0.9.5 — Settings layout and usability, 2026-11-12
 
