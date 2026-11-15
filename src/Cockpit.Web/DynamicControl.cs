@@ -15,7 +15,9 @@ public sealed class DynamicControl(string source, ControlSetupStore settings, Mq
     public bool Active {
         get {
             var current = settings.Read();
-            return current.Enabled && current.BrokerBinding == ControlSetupStore.Binding(source, mqtt.Read().Options);
+            var read = mqtt.Read().Options;
+            return current.Enabled && current.BrokerBinding == ControlSetupStore.Binding(source, read) &&
+                (source != "mqtt" || current.AnonymousControlAccepted || !string.IsNullOrWhiteSpace(read.Username) && !string.IsNullOrEmpty(read.Password));
         }
     }
     public bool Connected { get { lock (stateGate) return Active && (source == "simulator" || writerRevision == settings.Read().Revision && writer?.Connected == true); } }
@@ -60,7 +62,7 @@ public sealed class DynamicControl(string source, ControlSetupStore settings, Mq
                     lastRevision = current.Revision;
                     if (Active) {
                         var read = mqtt.Read().Options;
-                        var options = new CurveControlOptions { Enabled = true, Continuous = true, ScalarCommands = true, SterilizationEnabled = true, ExtendedControlsEnabled = true, ProfileConfirmed = true, ConnectionEnabled = true, AllowSharedCredentials = true, Username = read.Username, Password = read.Password };
+                        var options = new CurveControlOptions { Enabled = true, Continuous = true, ScalarCommands = true, SterilizationEnabled = true, ExtendedControlsEnabled = true, ProfileConfirmed = true, ConnectionEnabled = true, AllowSharedCredentials = true, AllowAnonymousControl = current.AnonymousControlAccepted, Username = read.Username, Password = read.Password };
                         var next = new MqttCurveTransport(read, options);
                         lock (stateGate) { writer = next; writerRevision = current.Revision; }
                         cancellation = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);

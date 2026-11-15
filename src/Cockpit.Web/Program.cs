@@ -61,7 +61,8 @@ if (curveOptions.Enabled && source == "mqtt") curveOptions.Validate(readOptions,
 var externalLiveControl = builder.Configuration.GetValue<bool>("LiveControl:Enabled");
 var externalMode = externalLiveControl || controlEnabled || liveTest.Enabled || curveOptions.Enabled;
 var dynamicMode = !externalMode && builder.Configuration.GetValue("Access:RequireLogin", true);
-var confirmedControl = !externalMode && pendingControl.Enabled && pendingControl.BrokerBinding == ControlSetupStore.Binding(source, readOptions);
+var confirmedControl = !externalMode && pendingControl.Enabled && pendingControl.BrokerBinding == ControlSetupStore.Binding(source, readOptions) &&
+    (source != "mqtt" || pendingControl.AnonymousControlAccepted || !string.IsNullOrWhiteSpace(readOptions.Username) && !string.IsNullOrEmpty(readOptions.Password));
 var liveControl = externalLiveControl || confirmedControl && !dynamicMode;
 if (confirmedControl && source == "simulator") scenario = "normal";
 if (liveControl) {
@@ -70,7 +71,7 @@ if (liveControl) {
     if (source == "mqtt" && !confirmedControl && (!builder.Configuration.GetValue<bool>("LiveControl:ProfileConfirmed") || !builder.Configuration.GetValue<bool>("LiveControl:AllowSharedCredentials")))
         throw new ArgumentException("LiveControl requires confirmed profile and shared credential opt-in.");
     curveOptions = new CurveControlOptions { Enabled=true, Continuous=true, ScalarCommands=true, SterilizationEnabled=true, ExtendedControlsEnabled=true, ProfileConfirmed=true, ConnectionEnabled=confirmedControl || builder.Configuration.GetValue<bool>("LiveControl:Armed"),
-        AllowSharedCredentials=true, Username=readOptions.Username, Password=readOptions.Password };
+        AllowSharedCredentials=true, AllowAnonymousControl=confirmedControl && pendingControl.AnonymousControlAccepted, Username=readOptions.Username, Password=readOptions.Password };
     if (source == "mqtt") curveOptions.Validate(readOptions,DateTimeOffset.UtcNow);
 }
 var commandsEnabled = controlEnabled || liveTest.Enabled || curveOptions.Enabled;

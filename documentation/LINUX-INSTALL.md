@@ -49,7 +49,20 @@ The default destination is `~/.local/share/heishamon-cockpit`. If an existing `~
 sh installation/install-linux.sh "$HOME/.local/share/heishamon-cockpit-manual"
 ```
 
-An existing destination is never overwritten. If setup fails after it has created the installation directory, inspect that directory and choose another path for a retry.
+An existing destination is never overwritten. If setup fails after creating the installation directory, inspect that directory and see the configuration-only retry below.
+
+## Repeat configuration without rebuilding
+
+If initial setup failed before saving accounts or configuration (including the older installer's "Control requires MQTT credentials" error), rerun only the configuration wizard from the installation directory:
+
+```sh
+cd "$HOME/.local/share/heishamon-cockpit"
+./Cockpit.Web --setup-installation
+```
+
+Use your actual installation directory if different. This uses the already built application, does not build again and does not connect to MQTT. On older versions, answer **no to "Allow heat-pump control?"** when using anonymous MQTT; declining a later confirmation cancels setup on those versions.
+
+The wizard refuses to overwrite existing accounts or configuration. After successful installation, change MQTT and control settings in the web interface; do not delete existing settings or accounts to rerun setup. A configuration-only retry does not resume the package installer's optional service stage. To repeat the complete package installation without rebuilding, run the retained `artifacts/build.<id>/extracted/install.sh` from the source checkout with a new absolute destination.
 
 ## Setup prompts
 
@@ -57,7 +70,13 @@ Yes/no questions accept `yes`/`y` and `no`/`n` regardless of case; Enter default
 
 Enter a new administrator name and password (at least 12 characters). Then enter the real MQTT broker host, port (default `1883`), HeishaMon topic base (default `panasonic_heat_pump`), TLS choice (default `no`), and, if applicable, broker username and password. Enter the topic base without `/main/`, `/extra/`, a trailing slash or wildcards. Passwords are entered without echo. Select the web interface port (default `5080`) and whether to allow heat-pump control (default `no`). The application remains stopped unless service installation is explicitly selected at the final prompt; choosing yes starts it and connects to MQTT.
 
-The installer creates an empty SQLite account database, broker configuration and a self-signed local HTTPS certificate. No previous measurements or accounts are imported. The initial MQTT mode is read-only unless control is explicitly enabled and the required confirmations are supplied during setup. Control requires configured MQTT credentials.
+The installer creates an empty SQLite account database, broker configuration and a self-signed local HTTPS certificate. No previous measurements or accounts are imported. The initial MQTT mode is read-only unless control is explicitly enabled and all required confirmations are supplied during setup. Declining a control confirmation continues setup read-only.
+
+With an empty MQTT username, setup asks:
+
+> Your MQTT broker allows anonymous access. Anyone who can reach it may be able to read data and send heat-pump commands. Do you accept these security risks and enable heat-pump control at your own risk? (yes/y/no/n) [no]:
+
+Answering `yes`/`y` permits anonymous control only after confirming the device profile and checking other controllers. Answering `no`/`n` or pressing Enter completes installation read-only. Anonymous-risk consent is saved explicitly for this broker configuration. Setup does not verify whether the broker actually accepts anonymous access. The web control settings require credentials when enabling control there; anonymous consent is available during initial setup.
 
 ## Optional service installation
 

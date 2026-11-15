@@ -23,6 +23,20 @@ public static class InstallationSetup
 
     private static bool Confirm(string label) => ReadYesNo(label, Console.In, Console.Out);
 
+    public static bool ReadControlConsent(bool anonymous, TextReader input, TextWriter output)
+    {
+        var question = anonymous
+            ? "Your MQTT broker allows anonymous access. Anyone who can reach it may be able to read data and send heat-pump commands. Do you accept these security risks and enable heat-pump control at your own risk?"
+            : "Allow heat-pump control?";
+        if (!ReadYesNo(question, input, output)) return false;
+        output.WriteLine("Control requires a compatible Panasonic WH-SDC0509L3E5 / WH-WDG05LE5 installation and verified firmware. See documentation/SUPPORTED-DEVICES.md.");
+        var confirmed = ReadYesNo("Confirm the device and installation match this profile", input, output) &&
+            ReadYesNo("Confirm you have checked other controllers for conflicting changes", input, output) &&
+            (anonymous || ReadYesNo("Authorize the configured MQTT credentials for control", input, output));
+        if (!confirmed) output.WriteLine("Control was not authorized. Installation will continue read-only.");
+        return confirmed;
+    }
+
     private static string Prompt(string label, string? fallback = null)
     {
         Console.Write(fallback is null ? $"{label}: " : $"{label} [{fallback}]: ");
@@ -52,15 +66,8 @@ public static class InstallationSetup
         var brokerPassword = brokerUser.Length == 0 ? null : Secret("MQTT password");
         if (!int.TryParse(Prompt("Web interface port", "5080"), out var webPort) || webPort is < 1024 or > 65535)
             throw new InvalidOperationException("Web interface port must be between 1024 and 65535.");
-        var allowControl = Confirm("Allow heat-pump control?");
-        if (allowControl)
-        {
-            Console.WriteLine("Control requires a compatible Panasonic WH-SDC0509L3E5 / WH-WDG05LE5 installation, verified firmware and broker credentials. See documentation/SUPPORTED-DEVICES.md.");
-            if (!Confirm("Confirm the device and installation match this profile") ||
-                !Confirm("Confirm you have checked other controllers for conflicting changes") ||
-                !Confirm("Authorize the configured MQTT credentials for control"))
-                throw new InvalidOperationException("Control confirmations are required; nothing was configured.");
-        }
+        var anonymous = brokerUser.Length == 0;
+        var allowControl = ReadControlConsent(anonymous, Console.In, Console.Out);
         var brokerInput = new MqttSettingsInput(host, port, prefix, tls, brokerUser.Length == 0 ? "clear" : "replace", brokerUser, brokerPassword, 0);
         var options = new Cockpit.Infrastructure.MqttReadOptions { Host = host, Port = port, Prefix = prefix, UseTls = tls, LiveReadOnly = true, Username = brokerUser.Length == 0 ? null : brokerUser, Password = brokerPassword };
         options.Validate();
@@ -68,8 +75,6 @@ public static class InstallationSetup
             throw new InvalidOperationException("Invalid administrator username or password; nothing was configured.");
         if (brokerUser.Length > 0 && (brokerUser.Length > 256 || brokerUser.Any(char.IsControl) || string.IsNullOrEmpty(brokerPassword) || brokerPassword.Length > 1024))
             throw new InvalidOperationException("Invalid broker credentials; nothing was configured.");
-        if (allowControl && (string.IsNullOrWhiteSpace(brokerUser) || string.IsNullOrEmpty(brokerPassword)))
-            throw new InvalidOperationException("Control requires MQTT credentials; nothing was configured.");
         var dataDir = Path.Combine(root, "data"); Directory.CreateDirectory(dataDir);
         using var rsa = RSA.Create(3072);
         var request = new CertificateRequest("CN=localhost", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
@@ -92,7 +97,7 @@ public static class InstallationSetup
         mqtt.Save(brokerInput);
         if (allowControl)
             new ControlSetupStore(Path.Combine(dataDir, "mqtt.db.control.json"))
-                .Save(new(true, Cockpit.Domain.HeatingCurve.Profile, true, true, true, 0), "mqtt", options, false);
+                .Save(new(true, Cockpit.Domain.HeatingCurve.Profile, true, !anonymous, true, 0, anonymous), "mqtt", options, false);
         using (var file = new FileStream(localConfig, FileMode.CreateNew, FileAccess.Write, FileShare.None))
             JsonSerializer.Serialize(file, new { Source = "mqtt", LocalPort = webPort, Access = new { RequireLogin = true, LocalHttps = true, ListenAddress = "0.0.0.0" }, Settings = new { Enabled = true } });
         Console.WriteLine($"Setup complete. Start the application explicitly and open https://localhost:{webPort}/.");

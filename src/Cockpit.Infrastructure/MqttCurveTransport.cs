@@ -16,6 +16,7 @@ public sealed record CurveControlOptions
     public bool ProfileConfirmed { get; init; }
     public DateTimeOffset? ExpiresUtc { get; init; }
     public bool AllowSharedCredentials { get; init; }
+    public bool AllowAnonymousControl { get; init; }
     public string? Username { get; init; }
     public string? Password { get; init; }
     public void Validate(MqttReadOptions read, DateTimeOffset now)
@@ -24,7 +25,8 @@ public sealed record CurveControlOptions
         if (!read.IsolatedTestBroker && !ProfileConfirmed) throw new ArgumentException("Heating curve requires confirmed L-series profile and installation settings.");
         if (!Enabled || !Continuous && (ExpiresUtc is null || ExpiresUtc > now.AddHours(1)))
             throw new ArgumentException("Live test requires an explicit expiry no more than one hour ahead.");
-        if (string.IsNullOrWhiteSpace(Username) || string.IsNullOrEmpty(Password) || (!AllowSharedCredentials && Username == read.Username))
+        var anonymousAuthorized = Continuous && AllowAnonymousControl && string.IsNullOrEmpty(Username) && string.IsNullOrEmpty(Password) && string.IsNullOrEmpty(read.Username) && string.IsNullOrEmpty(read.Password);
+        if (!anonymousAuthorized && (string.IsNullOrWhiteSpace(Username) || string.IsNullOrEmpty(Password) || (!AllowSharedCredentials && Username == read.Username)))
             throw new ArgumentException("Live test requires credentials; shared credentials require explicit opt-in.");
     }
 }
@@ -54,8 +56,8 @@ public sealed class MqttCurveTransport : ICurveTransport, ICommandTransport, IDi
         if (!options.ConnectionEnabled) return;
         var builder = new MqttClientOptionsBuilder().WithTcpServer(read.Host,read.Port)
             .WithClientId("cockpit-curve-write-"+Guid.NewGuid().ToString("N"))
-            .WithCleanSession().WithTimeout(TimeSpan.FromSeconds(5))
-            .WithCredentials(options.Username,options.Password);
+            .WithCleanSession().WithTimeout(TimeSpan.FromSeconds(5));
+        if (!string.IsNullOrEmpty(options.Username)) builder.WithCredentials(options.Username,options.Password);
         if (read.UseTls == true) builder.WithTlsOptions(tls => tls.UseTls());
         var connection = builder.Build();
         try

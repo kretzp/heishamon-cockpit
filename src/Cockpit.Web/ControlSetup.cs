@@ -4,8 +4,8 @@ using System.Text.Json;
 using Cockpit.Domain;
 using Cockpit.Infrastructure;
 
-public sealed record ControlSetup(bool Enabled = false, string? Profile = null, string? BrokerBinding = null, long Revision = 0);
-public sealed record ControlSetupInput(bool Enabled, string? Profile, bool ConfirmProfile, bool ConfirmSharedCredentials, bool ConfirmNoOtherWriters, long Revision);
+public sealed record ControlSetup(bool Enabled = false, string? Profile = null, string? BrokerBinding = null, long Revision = 0, bool AnonymousControlAccepted = false);
+public sealed record ControlSetupInput(bool Enabled, string? Profile, bool ConfirmProfile, bool ConfirmSharedCredentials, bool ConfirmNoOtherWriters, long Revision, bool ConfirmAnonymousRisk = false);
 
 public sealed class ControlSetupStore
 {
@@ -30,9 +30,11 @@ public sealed class ControlSetupStore
         {
             if (externalMode) throw new CommandRejected(409, "control_external_mode");
             if (input.Revision != current.Revision) throw new CommandRejected(409, "control_conflict");
-            if (input.Enabled && (input.Profile != HeatingCurve.Profile || !input.ConfirmProfile || !input.ConfirmNoOtherWriters || source == "mqtt" && (!input.ConfirmSharedCredentials || string.IsNullOrWhiteSpace(options.Username) || string.IsNullOrEmpty(options.Password))))
+            var anonymous = string.IsNullOrEmpty(options.Username) && string.IsNullOrEmpty(options.Password);
+            var brokerAuthorized = anonymous ? input.ConfirmAnonymousRisk : input.ConfirmSharedCredentials && !string.IsNullOrWhiteSpace(options.Username) && !string.IsNullOrEmpty(options.Password);
+            if (input.Enabled && (input.Profile != HeatingCurve.Profile || !input.ConfirmProfile || !input.ConfirmNoOtherWriters || source == "mqtt" && !brokerAuthorized))
                 throw new CommandRejected(422, "control_confirmation_required");
-            var next = new ControlSetup(input.Enabled, input.Enabled ? HeatingCurve.Profile : null, input.Enabled ? Binding(source, options) : null, checked(current.Revision + 1));
+            var next = new ControlSetup(input.Enabled, input.Enabled ? HeatingCurve.Profile : null, input.Enabled ? Binding(source, options) : null, checked(current.Revision + 1), input.Enabled && source == "mqtt" && anonymous && input.ConfirmAnonymousRisk);
             var temp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
             try
             {
