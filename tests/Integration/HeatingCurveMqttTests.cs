@@ -14,6 +14,36 @@ namespace Cockpit.Integration;
 public sealed class HeatingCurveMqttTests
 {
     private sealed class Clock:TimeProvider { public DateTimeOffset Now=DateTimeOffset.UtcNow;public override DateTimeOffset GetUtcNow()=>Now; }
+    [Fact]
+    public void ReadbackWaitsForNewReceiptsOfUnchangedFields()
+    {
+        var clock = new Clock();
+        var store = new TelemetryStore(SourceKind.Mqtt, new(360, 10), clock);
+        store.SetConnection(true);
+        store.Receive("LWT", "Online");
+        var original = new CurveValues(-10, 35, 15, 25, 5, 18);
+        for (var i = 0; i < HeatingCurve.Fields.Count; i++)
+            store.Receive(HeatingCurve.Fields[i].Topic, original.Numbers[i].ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+        clock.Now = clock.Now.AddSeconds(10);
+        var observed = original with { YCold = 36 };
+        store.Receive(HeatingCurve.Fields[1].Topic, "36");
+        Assert.Equal(observed, HeatingCurve.Read(store.Read()));
+        Assert.False(ReadbackReceived(store.Read(), observed, clock.Now));
+
+        for (var i = 0; i < HeatingCurve.Fields.Count; i++)
+        {
+            if (i == 1) continue;
+            store.Receive(HeatingCurve.Fields[i].Topic, observed.Numbers[i].ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+        Assert.True(ReadbackReceived(store.Read(), observed, clock.Now));
+    }
+
+    private static bool ReadbackReceived(Snapshot snapshot, CurveValues expected, DateTimeOffset receivedSince) =>
+        HeatingCurve.Read(snapshot) == expected && HeatingCurve.Fields.All(field => {
+            var value = snapshot.Values.Single(v => v.Key == field.Key);
+            return value.Quality == Quality.Valid && !value.Retained && value.ReceivedAtUtc >= receivedSince;
+        });
     [Fact] public void LiveActivationRequiresProfileCredentialsAndExpiry() {
         var read=new MqttReadOptions {LiveReadOnly=true,UseTls=false,Username="reader"};
         var options=new CurveControlOptions {Enabled=true,Username="writer",Password="isolated-fixture",ExpiresUtc=DateTimeOffset.UtcNow.AddMinutes(30)};
@@ -50,7 +80,10 @@ public sealed class HeatingCurveMqttTests
                     await service.TickAsync();await Until(()=>messages.Count==(part=="curve"?1:part=="delta"?2:3));
                     Assert.Equal(CurveState.Running,service.Get(r.Id).State);clock.Now=clock.Now.AddSeconds(10);
                     observed=part switch{"curve"=>observed with{YCold=desired.YCold},"delta"=>observed with{HeatDelta=desired.HeatDelta},_=>desired};
-                    await Fresh(observed);await Until(()=>HeatingCurve.Read(store.Read())==observed);await service.TickAsync();
+                    // Values can already match while unchanged fields still have old receipt
+                    // timestamps. Wait for the whole batch before acknowledging this part.
+                    await Fresh(observed);await Until(()=>ReadbackReceived(store.Read(),observed,clock.Now));await service.TickAsync();
+                    Assert.Equal(CurvePartState.ObservedMatchingState, service.Get(r.Id).Parts.Single(p => p.Name == part).State);
                 }
                 Assert.Equal(CurveState.ObservedMatchingState,service.Get(r.Id).State);
                 var epoch=writer.ConnectionEpoch;await broker.StopAsync();await Until(()=>!writer.Connected);await broker.StartAsync();await Until(()=>writer.Connected&&writer.ConnectionEpoch>epoch);Assert.Equal(3,messages.Count);
