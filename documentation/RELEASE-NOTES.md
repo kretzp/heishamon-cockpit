@@ -1,5 +1,12 @@
 # Release notes
 
+## Unreleased
+
+- Recognize the operator-confirmed signature `E2 D5 0B 34 99 83 92 0D 27 98`
+  as **Panasonic WH-SDC0509L3E5 / WH-WDG05LE5**. Match this exact signature
+  without assigning an unofficial numeric model ID or matching other unknown
+  revisions. Existing model IDs, control permissions and history remain unchanged.
+
 ## 0.9.6 — Reliable setup and automatic model identification, 2026-11-15
 
 - Fix [#10](https://github.com/kretzp/heishamon-cockpit/issues/10): initial

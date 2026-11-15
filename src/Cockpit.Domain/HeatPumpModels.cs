@@ -4,7 +4,7 @@ public sealed record HeatPumpModel(string? RawIdentifier, string? DisplayName, b
 
 public static class HeatPumpModels
 {
-    private sealed record Model(int LegacyId, string Identifier, string Name);
+    private sealed record Model(int? LegacyId, string Identifier, string Name);
     // Model facts from HeishaMon HeatPumpType.md, revision ad7804eb02779f48ed8bf397861474ce608d8bbb.
     // https://github.com/heishamon/HeishaMon/blob/ad7804eb02779f48ed8bf397861474ce608d8bbb/HeatPumpType.md
     private static readonly Model[] Models =
@@ -100,6 +100,8 @@ public static class HeatPumpModels
         new(88, "E2 D5 0C 67 00 83 92 0D 29 98", "Panasonic WH-ADC0509L3E5AN / WH-WDG09LE5"),
         new(89, "12 D7 0C 98 14 35 94 0D 84 10", "Panasonic WH-SDC0316M9E8 / WH-WXG12ME8"),
         new(90, "E2 D5 0D 99 94 02 D6 0F 68 95", "Panasonic WH-ADC0309K3E5 / WH-UDZ09KE5"),
+        // Operator-confirmed signature, 2026-11-15. No upstream numeric ID assigned.
+        new(null, "E2 D5 0B 34 99 83 92 0D 27 98", "Panasonic WH-SDC0509L3E5 / WH-WDG05LE5"),
     ];
 
     public static HeatPumpModel Resolve(string? identifier)
@@ -108,7 +110,7 @@ public static class HeatPumpModels
         var raw = identifier.Trim();
         var normalized = string.Join(" ", raw.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)).ToUpperInvariant();
         var model = Models.FirstOrDefault(m => m.Identifier == normalized
-            || m.LegacyId.ToString(System.Globalization.CultureInfo.InvariantCulture) == raw);
+            || m.LegacyId?.ToString(System.Globalization.CultureInfo.InvariantCulture) == raw);
         return new(raw, model?.Name ?? raw, model is not null);
     }
 }

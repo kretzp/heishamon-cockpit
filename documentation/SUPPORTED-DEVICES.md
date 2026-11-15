@@ -10,6 +10,8 @@ For example, `E2 D5 0B 08 95 02 D6 0E 66 95` identifies **WH-SDC0309K3E5 / WH-UD
 
 This is model identification, not an individual serial number. Upstream describes uniqueness of these bytes as an assumption. The mapping does not verify wiring, configuration, firmware or individual command compatibility.
 
+In addition to the upstream table, the operator confirmed `E2 D5 0B 34 99 83 92 0D 27 98` as **WH-SDC0509L3E5 / WH-WDG05LE5** on 15 November 2026. Cockpit recognizes this exact signature as a local supplemental entry, without assigning an upstream numeric ID. Other unlisted revision variants continue to display their raw identifiers.
+
 ## Control requirements
 
 The original command ranges were derived from documentation for the Panasonic WH-SDC0509L3E5 indoor unit and WH-WDG05LE5 outdoor unit. Control can now be explicitly enabled for other HeishaMon-connected Aquarea models using the existing confirmation checkboxes; the detected model is informational and does not alter command ranges. Review the installed device and command semantics before enabling control.
