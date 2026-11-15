@@ -7,6 +7,17 @@ This is an independent companion application for HeishaMon, with historical char
 
 Windows x64, Linux x64 and Raspberry Pi ARM64 installation targets are available. See [compatibility](documentation/COMPATIBILITY.md) for tested systems and limitations, and [release notes](documentation/RELEASE-NOTES.md) for the initial feature set.
 
+## System model
+
+The animated Aquarea system model shows the detected outdoor and indoor units,
+hydraulic connections and live measurements. The screenshot below shows a preview
+with simulated readings.
+
+Inspired by [heatpump-hydraulic-card](https://github.com/Sturmi77/heatpump-hydraulic-card)
+by [Sturmi77](https://github.com/Sturmi77).
+
+![Aquarea system model with animated hydraulics, temperature readings and system status](documentation/images/system-model.png)
+
 ## Features
 
 - Live measurements and connection status from HeishaMon MQTT topics.
