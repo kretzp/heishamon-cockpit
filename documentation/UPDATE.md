@@ -4,6 +4,63 @@ Use the updater matching the target OS. It builds the **current local checkout**
 
 These are application updates. They do not rerun account/MQTT setup, recreate the service, reset control opt-in or change its automatic-start setting. Do not use the fresh-install scripts or the service helper's Delete option to update application files.
 
+## Select the source version before updating
+
+The **source checkout** is the Git directory containing `installation/`, `src/` and `.git`. It is separate from the installed application directory containing `Cockpit.Web` (or `Cockpit.Web.exe`) and `data/`. Run the Git commands in the source checkout, then use the updater for your OS below.
+
+Git remembers the repository URL as a remote named `origin`. A local branch normally tracks a corresponding remote branch. `git pull --ff-only` updates that tracked branch; it does **not** switch a fix branch to `master`. The updater builds whichever version is currently checked out.
+
+### Existing checkout already on master
+
+Change into your source directory and check its branch and local changes:
+
+```sh
+git branch --show-current
+git status --short
+```
+
+If the branch is `master` and the status is empty, update it:
+
+```sh
+git pull --ff-only
+```
+
+### Existing checkout on another branch, or master is not available yet
+
+This also covers a `--single-branch` clone of `10-installation-aborts-linux-method-1`. In your source directory, first run `git status --short`. If it lists changes, save or commit your work before switching branches.
+
+```sh
+git remote set-branches --add origin master
+git fetch origin
+git switch master
+git branch --set-upstream-to=origin/master master
+git pull --ff-only
+```
+
+The first command includes `master` in future fetches, even for a single-branch clone. `git switch master` switches to an existing local `master`, or creates it from `origin/master` when there is no local branch yet. The upstream command explicitly makes subsequent pulls follow `origin/master`.
+
+If Git reports divergent history or refuses the switch or fast-forward, stop and resolve that message before running the updater; do not reset or discard your changes. You can use a fresh source checkout instead.
+
+### No source checkout available, or use a fresh checkout
+
+Clone `master` into a new directory. On Linux or Raspberry Pi:
+
+```sh
+git clone --single-branch --branch master https://github.com/kretzp/heishamon-cockpit.git "$HOME/heishamon-cockpit-master-source"
+cd "$HOME/heishamon-cockpit-master-source"
+```
+
+On Windows PowerShell:
+
+```powershell
+git clone --single-branch --branch master https://github.com/kretzp/heishamon-cockpit.git "$HOME\heishamon-cockpit-master-source"
+Set-Location "$HOME\heishamon-cockpit-master-source"
+```
+
+Choose a different directory name if that destination already exists. This creates only a source checkout. Run the updater below to update your **existing installation**; do not run the fresh installer. If service detection is unavailable, pass your existing installation's absolute path as documented below.
+
+`master` includes the merged installer fix and may contain changes newer than the latest release. Once this checkout tracks `origin/master`, future updates only need `git pull --ff-only` followed by the OS-specific updater.
+
 ## Windows x64
 
 In 64-bit PowerShell, change into the source checkout:
