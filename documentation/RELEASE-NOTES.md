@@ -1,5 +1,21 @@
 # Release notes
 
+## 1.0.1 — Pump-speed circulation and mobile system model, 2026-11-17
+
+- Determine circulation from valid, current pump speed instead of water flow.
+  With the compressor stopped, positive rpm indicates Circulation and zero rpm
+  indicates Standby. Unavailable or invalid pump speed leaves the activity Unknown;
+  water flow is never used as a fallback.
+- Drive pump rotation and water-flow animation tempo from pump speed. Keep water
+  flow visible as a measurement, including when it disagrees with pump speed.
+- Add an Off activity for a heat pump reporting `heatpumpState = 0`. Defrosting
+  retains priority, and valid pump run-on remains animated while the unit is Off.
+- Fit the complete system diagram to mobile and tablet widths without horizontal
+  scrolling. Preserve the existing desktop diagram layout and sizing.
+- Extend regression coverage for pump-speed quality, conflicting flow readings,
+  Off activity, animation timing and complete mobile diagram visibility.
+- Update the English System model guide. No database migration is required.
+
 ## 1.0.0 — Animated Aquarea system model, 2026-11-15
 
 - The animated system model was inspired by

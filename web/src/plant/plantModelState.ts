@@ -25,15 +25,18 @@ export function derivePlantState(snapshot: PlantSnapshot | null, live: boolean) 
   const frequency = number('compressorFrequency'), flow = number('waterFlow'), fan = number('fanSpeed');
   const defrost = number('defrostState'), valve = number('threeWayValveState'), mode = number('operatingMode');
   const on = number('heatpumpState');
+  const rawPumpSpeed = number('pumpSpeed');
+  const pumpSpeed = rawPumpSpeed !== null && rawPumpSpeed >= 0 ? rawPumpSpeed : null;
   const running = connected && on === 1 && frequency !== null && frequency > 0;
-  let activity: 'unknown' | 'idle' | 'circulate' | 'heating' | 'dhw' | 'cooling' | 'defrost' = 'unknown';
+  let activity: 'unknown' | 'off' | 'idle' | 'circulate' | 'heating' | 'dhw' | 'cooling' | 'defrost' = 'unknown';
   if (connected && defrost === 1) activity = 'defrost';
-  else if (connected && frequency === 0) activity = flow !== null && flow > 0 ? 'circulate' : 'idle';
+  else if (connected && on === 0) activity = 'off';
+  else if (connected && frequency === 0) activity = pumpSpeed === null ? 'unknown' : pumpSpeed > 0 ? 'circulate' : 'idle';
   else if (running && defrost === 0 && valve === 1 && mode !== null && [3, 4, 5, 6, 8].includes(mode)) activity = 'dhw';
   else if (running && defrost === 0 && valve === 0 && mode !== null && [1, 5, 7, 8].includes(mode)) activity = 'cooling';
   else if (running && defrost === 0 && valve === 0 && mode !== null && [0, 2, 4, 6].includes(mode)) activity = 'heating';
-  return { activity, connected, frequency, flow, fan, valve,
-    pumpRunning: connected && flow !== null && flow > 0,
+  return { activity, connected, frequency, flow, pumpSpeed, fan, valve,
+    pumpRunning: connected && pumpSpeed !== null && pumpSpeed > 0,
     fanRunning: connected && fan !== null && fan > 0 && defrost === 0,
     refrigerantRunning: running && activity !== 'unknown' };
 }

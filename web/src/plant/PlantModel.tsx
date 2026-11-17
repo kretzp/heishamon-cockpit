@@ -12,7 +12,7 @@ import './plant-model.css';
 
 type Saved = { configuration: PlantConfiguration; revision: number; editable: boolean };
 type Props = { snapshot: (PlantSnapshot & { heatPumpModel?: HeatPumpModel }) | null; live: boolean; now: number; labels: Record<string, string> };
-const activityLabels = { unknown: 'Unbekannt', idle: 'Bereitschaft', circulate: 'Umwälzung', heating: 'Heizen', dhw: 'Warmwasser', cooling: 'Kühlen', defrost: 'Abtauung' };
+const activityLabels = { unknown: 'Unbekannt', off: 'Aus', idle: 'Bereitschaft', circulate: 'Umwälzung', heating: 'Heizen', dhw: 'Warmwasser', cooling: 'Kühlen', defrost: 'Abtauung' };
 const components = ['Außeneinheit', 'Hydraulik', 'Warmwasser', 'Heizkreise', 'Kältekreis'] as const;
 const detailKeys: Record<typeof components[number], string[]> = {
   Außeneinheit: ['compressorFrequency', 'fanSpeed', 'compressorCurrent', 'operationsHours', 'operationsCounter', 'activeError'],
@@ -94,7 +94,7 @@ export function PlantModel({ snapshot, live, now, labels }: Props) {
     finally { setSaving(false); }
   }
   const update = <K extends keyof PlantConfiguration>(key: K, value: PlantConfiguration[K]) => setDraft(old => ({ ...old, [key]: value }));
-  const style = { '--refrigerant-duration': `${48 / Math.max(plant.frequency ?? 0, 1) / config.speed}s`, '--flow-duration': `${29 / Math.max(plant.flow ?? 0, 1) / config.speed}s`, '--pump-duration': `${24 / Math.max(plant.flow ?? 0, 1) / config.speed}s`, '--fan-duration': `${1050 / Math.max(plant.fan ?? 0, 1) / config.speed}s` } as CSSProperties;
+  const style = { '--refrigerant-duration': `${48 / Math.max(plant.frequency ?? 0, 1) / config.speed}s`, '--flow-duration': `${2900 / Math.max(plant.pumpSpeed ?? 0, 1) / config.speed}s`, '--pump-duration': `${2400 / Math.max(plant.pumpSpeed ?? 0, 1) / config.speed}s`, '--fan-duration': `${1050 / Math.max(plant.fan ?? 0, 1) / config.speed}s` } as CSSProperties;
   const className = ['plant-model', `mode-${plant.activity}`, plant.valve === 1 ? 'valve-tank' : '', plant.pumpRunning ? 'water-active' : '', plant.fanRunning ? 'fan-active' : '', plant.refrigerantRunning ? 'refrigerant-active' : '', paused || !config.motion ? 'motion-off' : ''].join(' ');
   const selected = detailKeys[component].flatMap(key => { const value = values.find(v => v.key === key); return value ? [value] : []; });
   const filtered = values.filter(v => `${label(v)} ${v.key} ${v.sourceTopic ?? ''}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()));

@@ -64,3 +64,6 @@
 .plant-model .plant-component-readings .plant-detail{display:flex;justify-content:space-between;gap:12px}
 .plant-model .plant-component-readings .plant-detail strong{text-align:right;overflow-wrap:anywhere}
 @media(max-width:650px){.plant-model .plant-canvas .plant-components{padding-inline:14px}}
+
+/* Fit the complete diagram on phones and tablets; preserve desktop sizing. */
+@media(max-width:1099px){.plant-model .plant-diagram{min-width:0;width:100%;height:auto}}
