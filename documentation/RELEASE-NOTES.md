@@ -15,6 +15,11 @@
 - Extend regression coverage for pump-speed quality, conflicting flow readings,
   Off activity, animation timing and complete mobile diagram visibility.
 - Update the English System model guide. No database migration is required.
+- Fix a timing race in the stale-session E2E regression: finish startup session
+  reads before delaying access checks, so cancelled component requests cannot
+  cause a timeout. Preserve the check that an older successful session response
+  cannot restore access after a newer unauthorized response. This changes tests
+  only; installed applications do not require another update.
 
 ## 1.0.0 — Animated Aquarea system model, 2026-11-15
 
