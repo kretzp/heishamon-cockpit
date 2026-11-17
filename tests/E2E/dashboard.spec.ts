@@ -271,6 +271,12 @@ test('an older session response cannot restore access after a newer unauthorized
   await mockAdminSettings(page);
   await page.goto('/');
   await expect(page.getByRole('navigation')).toBeVisible();
+  // Finish startup auth reads before intercepting AccessGate's focus checks.
+  // Leaving the model also cancels its component-owned session request; holding
+  // that request would test an unmount abort instead of a stale access result.
+  await openOverview(page);
+  await expect(page.locator('.plant-model')).toHaveCount(0);
+  await expect(page.locator('.header-connection')).toContainText('HeishaMon online');
   let requests = 0;
   let releaseOlder!: () => void;
   let olderArrived!: () => void;
