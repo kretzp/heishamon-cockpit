@@ -100,8 +100,12 @@ public static class HeatPumpModels
         new(88, "E2 D5 0C 67 00 83 92 0D 29 98", "Panasonic WH-ADC0509L3E5AN / WH-WDG09LE5"),
         new(89, "12 D7 0C 98 14 35 94 0D 84 10", "Panasonic WH-SDC0316M9E8 / WH-WXG12ME8"),
         new(90, "E2 D5 0D 99 94 02 D6 0F 68 95", "Panasonic WH-ADC0309K3E5 / WH-UDZ09KE5"),
-        // Operator-confirmed signature, 2026-11-15. No upstream numeric ID assigned.
-        new(null, "E2 D5 0B 34 99 83 92 0D 27 98", "Panasonic WH-SDC0509L3E5 / WH-WDG05LE5"),
+        // Additional model facts supplied by the operator, 2026-11-18 (IDs 91–95).
+        new(91, "E2 D5 0B 34 99 83 92 0D 27 98", "Panasonic WH-SDC0509L3E5 / WH-WDG05LE5"),
+        new(92, "12 D7 0E 85 11 39 94 0F 85 10", "Panasonic WH-WXG16ME8"),
+        new(93, "E2 D5 0D 15 95 43 D6 0E 72 95", "Panasonic WH-SXC12K9E8 / WH-UXZ12KE8"),
+        new(94, "E2 D5 0C 29 99 83 92 0D 29 98", "Panasonic WH-ADC0509L3E5 / WH-WDG09LE5"),
+        new(95, "E2 D5 0D 08 95 02 D6 10 67 95", "Panasonic WH-SDC0309K3E5 / WH-UDZ07KE5"),
     ];
 
     public static HeatPumpModel Resolve(string? identifier)

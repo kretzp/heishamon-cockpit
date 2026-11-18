@@ -730,11 +730,43 @@ window.aquareaModels = [
     "type": "aio"
   },
   {
-    "id": null,
+    "id": 91,
     "signature": "E2 D5 0B 34 99 83 92 0D 27 98",
     "name": "Panasonic WH-SDC0509L3E5 / WH-WDG05LE5",
     "family": "l",
     "generation": "L",
+    "type": "wall"
+  },
+  {
+    "id": 92,
+    "signature": "12 D7 0E 85 11 39 94 0F 85 10",
+    "name": "Panasonic WH-WXG16ME8",
+    "family": "m",
+    "generation": "M",
+    "type": "none"
+  },
+  {
+    "id": 93,
+    "signature": "E2 D5 0D 15 95 43 D6 0E 72 95",
+    "name": "Panasonic WH-SXC12K9E8 / WH-UXZ12KE8",
+    "family": "k-tall",
+    "generation": "K",
+    "type": "wall"
+  },
+  {
+    "id": 94,
+    "signature": "E2 D5 0C 29 99 83 92 0D 29 98",
+    "name": "Panasonic WH-ADC0509L3E5 / WH-WDG09LE5",
+    "family": "l",
+    "generation": "L",
+    "type": "aio"
+  },
+  {
+    "id": 95,
+    "signature": "E2 D5 0D 08 95 02 D6 10 67 95",
+    "name": "Panasonic WH-SDC0309K3E5 / WH-UDZ07KE5",
+    "family": "k-medium",
+    "generation": "K",
     "type": "wall"
   }
 ];

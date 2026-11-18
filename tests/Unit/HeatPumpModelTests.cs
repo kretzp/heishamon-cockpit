@@ -26,6 +26,22 @@ public sealed class HeatPumpModelTests
         Assert.Equal(Quality.Stale, store.Read().Values.Single(v => v.Key == "heatPumpModel").Quality);
     }
 
+    [Theory]
+    [InlineData("91", "E2 D5 0B 34 99 83 92 0D 27 98", "Panasonic WH-SDC0509L3E5 / WH-WDG05LE5")]
+    [InlineData("92", "12 D7 0E 85 11 39 94 0F 85 10", "Panasonic WH-WXG16ME8")]
+    [InlineData("93", "E2 D5 0D 15 95 43 D6 0E 72 95", "Panasonic WH-SXC12K9E8 / WH-UXZ12KE8")]
+    [InlineData("94", "E2 D5 0C 29 99 83 92 0D 29 98", "Panasonic WH-ADC0509L3E5 / WH-WDG09LE5")]
+    [InlineData("95", "E2 D5 0D 08 95 02 D6 10 67 95", "Panasonic WH-SDC0309K3E5 / WH-UDZ07KE5")]
+    public void ResolvesAdditionalModelsByNumericIdAndSignature(string id, string signature, string expected)
+    {
+        foreach (var identifier in new[] { id, signature, signature.ToLowerInvariant().Replace(" ", "  ") })
+        {
+            var model = HeatPumpModels.Resolve(identifier);
+            Assert.True(model.Known);
+            Assert.Equal(expected, model.DisplayName);
+        }
+    }
+
     [Fact]
     public void MissingModelNeverDefaultsToAnLSeriesAndResetClearsTheModel()
     {
@@ -39,9 +55,9 @@ public sealed class HeatPumpModelTests
 
     [Theory]
     [InlineData("-1")]
-    [InlineData("91")]
+    [InlineData("96")]
     [InlineData("E2 D5 0B 34 99 83 92 0D 28 98")]
-    public void LocalSignatureDoesNotAssignNumericIdsOrMatchOtherVariants(string raw)
+    public void UnknownIdentifiersDoNotMatchOtherVariants(string raw)
     {
         var model = HeatPumpModels.Resolve(raw);
         Assert.False(model.Known);

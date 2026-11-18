@@ -10,7 +10,15 @@ For example, `E2 D5 0B 08 95 02 D6 0E 66 95` identifies **WH-SDC0309K3E5 / WH-UD
 
 This is model identification, not an individual serial number. Upstream describes uniqueness of these bytes as an assumption. The mapping does not verify wiring, configuration, firmware or individual command compatibility.
 
-In addition to the upstream table, the operator confirmed `E2 D5 0B 34 99 83 92 0D 27 98` as **WH-SDC0509L3E5 / WH-WDG05LE5** on 15 November 2026. Cockpit recognizes this exact signature as a local supplemental entry, without assigning an upstream numeric ID. Other unlisted revision variants continue to display their raw identifiers.
+In addition to the upstream table, the operator supplied IDs 91–95 on 18 November 2026. ID 91 assigns a numeric ID to the exact signature previously confirmed locally on 15 November 2026. Existing IDs remain unchanged. Other unlisted revision variants continue to display their raw identifiers.
+
+| ID | Bytes 129–138 | IDU | ODU | KIT | Power (kW) | Phases | Type |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 91 | E2 D5 0B 34 99 83 92 0D 27 98 | WH-SDC0509L3E5 | WH-WDG05LE5 | KIT-WC05L3E5 | 5 | 1ph | HP - split L-series 3kW elec heating - revised model |
+| 92 | 12 D7 0E 85 11 39 94 0F 85 10 | Monoblock | WH-WXG16ME8 | Monoblock | 16 | 3ph | T-CAP |
+| 93 | E2 D5 0D 15 95 43 D6 0E 72 95 | WH-SXC12K9E8 | WH-UXZ12KE8 | KIT-WXC12K9E8 | 12 | 3ph | T-CAP - split K-series R32 |
+| 94 | E2 D5 0C 29 99 83 92 0D 29 98 | WH-ADC0509L3E5 | WH-WDG09LE5 | KIT-ADC09L3E5 | 9 | 1ph | HP - All-In-One L-series - revised model |
+| 95 | E2 D5 0D 08 95 02 D6 10 67 95 | WH-SDC0309K3E5 | WH-UDZ07KE5 | KIT-WC07K3E5 | 7 | 1ph | HP - split K-series 3kW elec heating |
 
 ## Control requirements
 

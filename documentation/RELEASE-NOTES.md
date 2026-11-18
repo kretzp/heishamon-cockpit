@@ -1,5 +1,18 @@
 # Release notes
 
+## 1.0.2 — Additional heat pump models, 2026-11-18
+
+- Add model IDs 91–95, including the revised 5 kW L-series split,
+  16 kW M-series T-CAP monoblock, 12 kW K-series T-CAP split,
+  revised 9 kW L-series All-in-One and 7 kW K-series split.
+- Assign ID 91 to the previously recognized local L-series signature while
+  preserving existing model IDs and hexadecimal identification.
+- Add matching housing profiles to the system model and hydraulic prototype and document
+  the indoor/outdoor units, kit names, power ratings and phases.
+- Extend regression coverage for numeric IDs, exact signatures and formatting
+  variations. Unknown model revisions continue to display their raw identifiers.
+- No database migration is required.
+
 ## 1.0.1 — Pump-speed circulation and mobile system model, 2026-11-17
 
 - Determine circulation from valid, current pump speed instead of water flow.

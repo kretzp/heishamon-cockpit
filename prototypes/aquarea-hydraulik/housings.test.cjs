@@ -102,7 +102,7 @@ test('prototype switches housing from simulated telemetry and preserves scenario
   const context = { window: {}, setInterval() {}, document: { getElementById: id => nodes[id], createElement: () => new Element(), querySelectorAll: () => [], querySelector: () => new Element(), body: new Element(), documentElement: new Element(), hidden: false } };
   vm.createContext(context);
   for (const file of ['aquarea-models.js', 'housings.js', 'catalog.js', 'model.js']) vm.runInContext(fs.readFileSync(path.join(__dirname, file), 'utf8'), context);
-  assert.equal(nodes['model-demo'].children.length, 93);
+  assert.equal(nodes['model-demo'].children.length, context.window.AquareaHousings.models.length + 1);
   for (const model of context.window.AquareaHousings.models) {
     nodes['model-identifier'].value = model.id === null ? model.signature : String(model.id);
     nodes['model-identifier'].listeners.input();
