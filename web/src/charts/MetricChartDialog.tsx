@@ -1,5 +1,4 @@
 import { exportFilename } from './exportFilename';
-import { LanguagePicker } from '../i18n/Language';
 import { chartLocales } from './chartLocale';
 import { t, text as localizeText, getLocale } from "../i18n/core";
 import { useLanguage } from "../i18n/Language";
@@ -118,10 +117,12 @@ function ConfigurableChart({
 export default function MetricChartDialog({
   metricKey,
   label,
+  fromPlantModel,
   onClose
 }: {
   metricKey: string;
   label: string;
+  fromPlantModel: boolean;
   onClose: () => void;
 }) {
   const language = useLanguage();
@@ -146,6 +147,7 @@ export default function MetricChartDialog({
   const [to, setTo] = useState(new Date(range.to).toISOString().slice(0, 16));
   const [refresh, setRefresh] = useState(0);
   const isError = metricKey === 'activeError';
+  const isModel = metricKey === 'heatPumpModel';
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     dialog.current!.showModal();
@@ -157,7 +159,7 @@ export default function MetricChartDialog({
     };
   }, []);
   useEffect(() => {
-    if (isError) return;
+    if (isError || isModel) return;
     const controller = new AbortController();
     setLoading(true);
     setData(null);
@@ -192,7 +194,7 @@ export default function MetricChartDialog({
       }
     })();
     return () => controller.abort();
-  }, [metricKey, range, refresh, isError]);
+  }, [metricKey, range, refresh, isError, isModel]);
   const option = useMemo(() => data?.series.length ? metricOptions(data, label, preferences) : null, [data, label, preferences, language]);
   function save(next: Preferences) {
     setPreferences(next);
@@ -228,9 +230,9 @@ export default function MetricChartDialog({
   }
   const states = data?.series[0]?.aggregation !== 'mean';
   return <dialog ref={dialog} className="metric-dialog" aria-labelledby="metric-dialog-title" onCancel={onClose}>
-    <header><LanguagePicker /><div><p className="field-note">{t(isDallas ? 'Dallas-1-Wire · Messwertdetails' : 'Übersicht · Messwertdetails')}</p><h2 id="metric-dialog-title">{displayLabel}{t(" – Diagramm")}</h2></div><Button autoFocus onClick={onClose} aria-label={t("Diagramm schließen")}>{t("Schließen ✕")}</Button></header>
-    {isError ? <><p>{t("Fehlercodes sind Textwerte und werden als gespeicherte Ereignisse angezeigt, nicht als erfundene Zahlenkurve.")}</p><EventsPanel initialKind="error" /></> : <>
-      <div className="toolbar"><label>{t("Zeitraum")}<select defaultValue="6" onChange={e => {
+    <header><div><p className="field-note">{t(fromPlantModel ? 'Anlagenmodell · Messwertdetails' : isDallas ? 'Dallas-1-Wire · Messwertdetails' : 'Übersicht · Messwertdetails')}</p><h2 id="metric-dialog-title">{displayLabel}{t(" – Diagramm")}</h2></div><Button autoFocus onClick={onClose} aria-label={t("Diagramm schließen")}>{t("Schließen ✕")}</Button></header>
+    {isModel ? <p>{t('Für die Modellkennung gibt es keinen Messwertverlauf.')}</p> : isError ? <><p>{t("Fehlercodes sind Textwerte und werden als gespeicherte Ereignisse angezeigt, nicht als erfundene Zahlenkurve.")}</p><EventsPanel initialKind="error" /></> : <>
+      <div className="toolbar range-toolbar"><label>{t("Zeitraum")}<select defaultValue="6" onChange={e => {
             const end = Date.now();
             choose({
               from: end - Number(e.target.value) * 3600000,

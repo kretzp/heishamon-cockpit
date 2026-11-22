@@ -210,6 +210,29 @@ test('quiet mode appears in overview order, opens by keyboard and follows operat
     .toHaveText(['Betriebsart', 'Flüstermodus', 'Heizstab']);
 });
 
+test('date fields and range actions align in tile charts and history', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'Narrow viewports wrap the range controls.');
+  await page.goto('/');
+  await openOverview(page);
+  await page.locator('.temperature-grid .metric-chart-open').first().click();
+  const dialog = page.getByRole('dialog');
+  const chartRange = dialog.locator('.range-toolbar');
+  const historyRange = page.locator('.history-panel .range-toolbar').first();
+  const bottomEdges = (elements: Element[]) => elements.map(element => element.getBoundingClientRect().bottom);
+
+  await expect(chartRange.getByRole('button')).toHaveCount(3);
+  const chartBottoms = await chartRange.locator('input, button').evaluateAll(bottomEdges);
+  expect(chartBottoms).toHaveLength(5);
+  expect(Math.max(...chartBottoms) - Math.min(...chartBottoms)).toBeLessThan(1);
+
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Verlauf', exact: true }).click();
+  await expect(historyRange).toBeVisible();
+  const historyBottoms = await historyRange.locator('input, button').evaluateAll(bottomEdges);
+  expect(historyBottoms).toHaveLength(3);
+  expect(Math.max(...historyBottoms) - Math.min(...historyBottoms)).toBeLessThan(1);
+});
+
 test('five overview status tiles share a desktop row without overflow and remain readable on mobile', async ({ page }) => {
   await page.goto('/'); await openOverview(page);
   const cards = page.locator('.plant-details > article');

@@ -1,7 +1,7 @@
 .metric-dialog { width: min(1160px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); box-sizing: border-box; border: 1px solid #c8d5e5; border-radius: 16px; padding: 24px; color: #24364d; background: #fff; overflow: auto; }
 .metric-dialog::backdrop { background: #12253abb; }
 .metric-dialog > header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
-.metric-dialog > header > div:not(.language-picker) { flex: 1 1 180px; min-width: 0; overflow-wrap: anywhere; }
+.metric-dialog > header > div { flex: 1 1 180px; min-width: 0; overflow-wrap: anywhere; }
 .metric-dialog h2 { margin: 0 0 16px; }
 .metric-dialog .toolbar { flex-wrap: wrap; }
 .metric-dialog details { margin: 20px 0; }

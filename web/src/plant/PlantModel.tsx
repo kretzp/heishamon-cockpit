@@ -1,4 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react';
+import { Button } from '../components/ui/button';
 import { stateLabel } from '../charts/chartFormat';
 import { plantMetricLabels } from './plantMetricLabels';
 import { sessionFetch } from '../Access';
@@ -11,7 +12,7 @@ import { derivePlantState, readConfiguration, readNumber, type PlantConfiguratio
 import './plant-model.css';
 
 type Saved = { configuration: PlantConfiguration; revision: number; editable: boolean };
-type Props = { snapshot: (PlantSnapshot & { heatPumpModel?: HeatPumpModel }) | null; live: boolean; now: number; labels: Record<string, string> };
+type Props = { snapshot: (PlantSnapshot & { heatPumpModel?: HeatPumpModel }) | null; live: boolean; now: number; labels: Record<string, string>; openChart: (key: string) => void };
 const activityLabels = { unknown: 'Unbekannt', off: 'Aus', idle: 'Bereitschaft', circulate: 'Umwälzung', heating: 'Heizen', dhw: 'Warmwasser', cooling: 'Kühlen', defrost: 'Abtauung' };
 const components = ['Außeneinheit', 'Hydraulik', 'Warmwasser', 'Heizkreise', 'Kältekreis'] as const;
 const detailKeys: Record<typeof components[number], string[]> = {
@@ -22,7 +23,7 @@ const detailKeys: Record<typeof components[number], string[]> = {
   Kältekreis: ['highPressure', 'compressorCurrent']
 };
 
-export function PlantModel({ snapshot, live, now, labels }: Props) {
+export function PlantModel({ snapshot, live, now, labels, openChart }: Props) {
   useLanguage();
   const [saved, setSaved] = useState<Saved | null>(null);
   const [draft, setDraft] = useState(readConfiguration(null));
@@ -67,6 +68,8 @@ export function PlantModel({ snapshot, live, now, labels }: Props) {
     return `${n.toLocaleString(getLocale(), { minimumFractionDigits: fixedPrecision, maximumFractionDigits: fixedPrecision ?? (['fanSpeed', 'pumpSpeed', 'compressorFrequency'].includes(key) ? 0 : 1) })}${v?.unit && v.unit !== 'enum' ? ` ${v.unit}` : ''}`;
   };
   const label = (v: PlantValue) => v.alias || t(labels[v.key] ?? plantMetricLabels[v.key] ?? v.key);
+  const chartButton = (key: string, name: string) => <Button type="button" className="metric-chart-open"
+    aria-label={t('{0} – Diagramm öffnen', [name])} onClick={() => openChart(key)} />;
   const display = (v: PlantValue) => {
     if (!plant.connected || v.quality !== 'valid' || v.retained) return '—';
     if (v.unit === 'enum' && typeof v.value === 'number') return stateLabel(v.key, v.value) ?? String(v.value);
@@ -114,7 +117,14 @@ export function PlantModel({ snapshot, live, now, labels }: Props) {
       <div className="plant-config-actions"><button type="button" disabled={saving} onClick={() => void save()}>{t(saving ? 'Wird gespeichert …' : 'Speichern')}</button><button type="button" disabled={saving} onClick={() => setEditing(false)}>{t('Abbrechen')}</button></div>
     </section>}
     <section className="plant-kpis" aria-label={t('Leistungsübersicht')}>
-      {[[plant.activity === 'cooling' ? 'Kälteleistung' : 'Thermische Leistung', power('Production')], ['Elektrische Leistung', power('Consumption')], ['COP · HeishaMon', reading('heishamonCop')], ['Spreizung', reading('temperatureSpread')]].map(([name, value]) => <article className="panel" key={name}><span>{t(name)}</span><strong>{value}</strong></article>)}
+      {[
+        [`${prefix ?? 'heat'}PowerProduction`, plant.activity === 'cooling' ? 'Kälteleistung' : 'Thermische Leistung', power('Production')],
+        [`${prefix ?? 'heat'}PowerConsumption`, 'Elektrische Leistung', power('Consumption')],
+        ['heishamonCop', 'COP · HeishaMon', reading('heishamonCop')],
+        ['temperatureSpread', 'Spreizung', reading('temperatureSpread')]
+      ].map(([key, name, value]) => <article className="panel" key={key}>
+        <span>{t(name)}</span><strong>{value}</strong>{chartButton(key, t(name))}
+      </article>)}
     </section>
     <div className="plant-workbench"><section className="panel plant-canvas"><div className="plant-section-heading"><h2>{t('Hydraulik & Energiefluss')}</h2><span>{t(activityLabels[plant.activity])}</span></div>
       <div className="plant-diagram-scroll" role="region" aria-label={t("Hydraulik & Energiefluss")} tabIndex={0}><PlantDiagram profile={profile} config={config} plant={plant} reading={reading} /></div>
@@ -122,9 +132,9 @@ export function PlantModel({ snapshot, live, now, labels }: Props) {
       <p className="plant-note">{t('Gemeinsamer Gerätemaßstab. Leitungsführung und Bauteilpositionen sind schematisch.')} {t('Gestrichelte Verbindung: Kältemittel (H/J/K).')}</p>
     </section>
     <aside className="panel plant-inspector" aria-label={t("Anlagenstatus")}><h2>{t("Anlagenstatus")}</h2>
-<div className="plant-component-readings"><h3>{t(component)}</h3><div>{selected.map(v => <div className="plant-detail" key={v.key}><span>{label(v)}</span><strong>{display(v)}</strong></div>)}</div></div><p className="plant-note">{t('Es werden nur verfügbare Messwerte angezeigt.')} {t('Ungültige, veraltete oder historische Werte treiben keine Animation an.')}</p></aside></div>
+<div className="plant-component-readings"><h3>{t(component)}</h3><div>{selected.map(v => <div className="plant-detail" key={v.key}><span>{label(v)}</span><strong>{display(v)}</strong>{chartButton(v.key, label(v))}</div>)}</div></div><p className="plant-note">{t('Es werden nur verfügbare Messwerte angezeigt.')} {t('Ungültige, veraltete oder historische Werte treiben keine Animation an.')}</p></aside></div>
     <section className="panel plant-explorer"><div className="plant-section-heading"><h2>{t('Messwert-Explorer')} · {filtered.length}</h2><label>{t('Messwerte suchen')}<input type="search" value={query} onChange={e => setQuery(e.target.value)} /></label></div>
-      <div className="plant-table-scroll"><table><thead><tr><th>{t('Messwert')}</th><th>{t('Wert')}</th><th>{t('Datenqualität')}</th><th>{t('Empfangen')}</th></tr></thead><tbody>{filtered.map(v => <tr key={v.key}><td><span>{label(v)}</span><small>{v.sourceTopic ?? v.key}</small></td><td>{display(v)}</td><td>{t(!plant.connected || v.retained ? 'Veraltet' : ({ valid: 'Aktuell', stale: 'Veraltet', invalid: 'Ungültig', unknown: 'Unbekannt' }[v.quality]))}</td><td>{v.receivedAtUtc ? t('vor {0} s', [Math.max(0, Math.floor((now - Date.parse(v.receivedAtUtc)) / 1000))]) : '—'}</td></tr>)}</tbody></table></div>
+      <div className="plant-table-scroll"><table><thead><tr><th>{t('Messwert')}</th><th>{t('Wert')}</th><th>{t('Datenqualität')}</th><th>{t('Empfangen')}</th></tr></thead><tbody>{filtered.map(v => <tr key={v.key}><td><span>{label(v)}</span><small>{v.sourceTopic ?? v.key}</small>{chartButton(v.key, label(v))}</td><td>{display(v)}</td><td>{t(!plant.connected || v.retained ? 'Veraltet' : ({ valid: 'Aktuell', stale: 'Veraltet', invalid: 'Ungültig', unknown: 'Unbekannt' }[v.quality]))}</td><td>{v.receivedAtUtc ? t('vor {0} s', [Math.max(0, Math.floor((now - Date.parse(v.receivedAtUtc)) / 1000))]) : '-'}</td></tr>)}</tbody></table></div>
     </section>
   </div>;
 }

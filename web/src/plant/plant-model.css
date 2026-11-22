@@ -7,6 +7,12 @@
 .plant-model label{display:flex;flex-direction:column;gap:6px;font-size:.85rem;min-width:0}.plant-model .plant-check{flex-direction:row;align-items:center;gap:10px}
 .plant-model input,.plant-model select{max-width:100%}.plant-model .plant-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
 .plant-model .plant-kpis article{min-width:0;padding:18px}.plant-model .plant-kpis span{display:block;font-size:.83rem;color:var(--muted)}.plant-model .plant-kpis strong{display:block;font-size:1.8rem;font-weight:600;font-variant-numeric:tabular-nums;margin-top:8px}
+.plant-model .plant-kpis article,
+.plant-model .plant-detail,
+.plant-model .plant-explorer tbody tr { position: relative; }
+.plant-model .plant-detail .metric-chart-open,
+.plant-model .plant-explorer .metric-chart-open { min-height: 0; }
+.plant-model .plant-explorer .metric-chart-open:focus-visible { outline-offset: -3px; }
 .plant-model .plant-canvas{padding:20px 0}.plant-model .plant-section-heading{padding:0 22px}.plant-model .plant-section-heading h2{margin:0}.plant-model .plant-section-heading>span{color:var(--primary);background:var(--blue-soft);padding:5px 12px;border-radius:8px}
 .plant-model .plant-diagram-scroll{overflow:auto;margin-top:18px;padding:0 12px}.plant-model .plant-diagram{display:block;width:100%;min-width:850px;height:auto}
 .plant-model .plant-diagram text{font-family:inherit;fill:var(--foreground)}.plant-model .section-label{font-size:12px;letter-spacing:1px;fill:var(--muted)}

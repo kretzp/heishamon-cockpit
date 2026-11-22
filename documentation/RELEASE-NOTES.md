@@ -1,5 +1,21 @@
 # Release notes
 
+## 1.0.3 — System model charts and layout refinements, 2026-11-22
+
+- Open measurement charts directly from the System model power overview,
+  component status and measurement explorer, with the existing time ranges,
+  chart settings and CSV export. Power charts follow heating, hot-water and
+  cooling operation.
+- Preserve measurement aliases and show the System model context in chart
+  details. Explain that model identifiers have no measurement history.
+- Simplify the chart header by removing the duplicate language selector.
+- Align date fields and range actions in measurement charts and history.
+- Refine the hydraulic diagram with straight supply and return connections,
+  aligned home and heating circuits, and clearer pipe and label placement.
+- Extend desktop, mobile and language regression coverage for chart access,
+  operating modes, diagram geometry and range-control alignment.
+- No database migration is required.
+
 ## 1.0.2 — Additional heat pump models, 2026-11-18
 
 - Add model IDs 91–95, including the revised 5 kW L-series split,

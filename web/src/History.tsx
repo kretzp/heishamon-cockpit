@@ -281,7 +281,7 @@ function HistorySection({
             to
           }, false);
         }}>{h < 48 ? localizeText(h) + localizeText(' h') : localizeText(h / 24) + localizeText(' Tage')}</Button>))}</div><Button onClick={() => setRefresh(r => r + 1)}>{t("Aktualisieren")}</Button></div>
-    <form className="toolbar" onSubmit={e => {
+    <form className="toolbar range-toolbar" onSubmit={e => {
       e.preventDefault();
       const next = boundedRange(Date.parse(fromInput + 'Z'), Date.parse(toInput + 'Z'));
       if (next) choose(next);else setError('Bitte einen gültigen Zeitraum bis 700 Tage wählen.');

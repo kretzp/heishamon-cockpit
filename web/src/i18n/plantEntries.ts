@@ -1,4 +1,18 @@
 export const plantEntries: Record<string, readonly [string,string,string,string,string]> = {
+  "Anlagenmodell · Messwertdetails": [
+    "System model · Reading details",
+    "Modèle de l'installation · Détails de mesure",
+    "Modelo de la instalación · Detalles de medición",
+    "Modello impianto · Dettagli della misura",
+    "Modelo da instalação · Detalhes da medição"
+  ],
+  "Für die Modellkennung gibt es keinen Messwertverlauf.": [
+    "There is no reading history for the model identifier.",
+    "L'identifiant du modèle n'a pas d'historique de mesure.",
+    "El identificador del modelo no tiene historial de mediciones.",
+    "L'identificativo del modello non ha uno storico delle misure.",
+    "O identificador do modelo não tem histórico de medições."
+  ],
   "Anlagenmodell": [
     "System model",
     "Modèle de l’installation",

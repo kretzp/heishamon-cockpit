@@ -75,8 +75,8 @@ export const housingProfilesSource = 'Cockpit.Domain/HeatPumpModels.cs';
     const edge = owner.x + owner.width;
     const hydraulicSplit = ['l', 'm'].includes(profile.family);
     const waterStart = module && hydraulicSplit ? outdoor.x + outdoor.width * .82 : heatX;
-    const hot = `M${waterStart} ${supplyY} H${edge + 3} V205 H285`;
-    const cold = `M285 325 H${edge + 6} V${returnY} H${waterStart}`;
+    const hot = `M${waterStart} ${supplyY} H${edge + 17} V205 H300`;
+    const cold = `M300 325 H${edge + 20} V${returnY} H${waterStart}`;
     let svg = `<g class="housing-circuit">${waterPath(hot, 'hot')}${waterPath(cold, 'cold')}`;
     // H/J/K are refrigerant split systems: their inter-unit link is not heating water.
     if (module && !hydraulicSplit) {

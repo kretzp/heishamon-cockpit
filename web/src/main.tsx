@@ -29,6 +29,7 @@ import { HeatingCurvePanel } from './HeatingCurve';
 import { DallasOneWirePanel, isDallasValue, dallasLabel } from './DallasOneWire';
 import { HistoryPanel, EventsPanel, StorageNotice } from './History';
 import { PlantModel } from './plant/PlantModel';
+import { plantMetricLabels } from './plant/plantMetricLabels';
 const MetricChartDialog = lazy(() => import('./charts/MetricChartDialog'));
 type Quality = 'unknown' | 'valid' | 'stale' | 'invalid';
 type Value = {
@@ -200,7 +201,10 @@ function App() {
   const dallasValues = snapshot?.values.filter(isDallasValue) ?? [];
   const hasDallasValues = dallasValues.length > 0;
   const selectedDallas = dallasValues.find(value => value.key === chartKey);
-  const chartLabel = selectedDallas ? `${dallasLabel(selectedDallas)} · ${selectedDallas.key.slice('ds18b20_'.length)}` : localizeText(labels[chartKey ?? '']);
+  const plantChart = tab === 'Anlagenmodell';
+  const chartAlias = plantChart && chartKey ? snapshot?.values.find(value => value.key === chartKey)?.alias : undefined;
+  const chartLabel = selectedDallas ? `${dallasLabel(selectedDallas)} · ${selectedDallas.key.slice('ds18b20_'.length)}`
+    : chartAlias || localizeText(labels[chartKey ?? ''] ?? plantMetricLabels[chartKey ?? ''] ?? chartKey ?? '');
   useEffect(() => {
     if (!hasDallasValues && tab === 'Dallas-1-Wire') setTab('Übersicht');
   }, [hasDallasValues, tab]);
@@ -360,14 +364,14 @@ function App() {
           setEditingOrder(false);
         }} aria-current={tab === name ? 'page' : undefined}><Icon name={tabIcons[i]} />{localizeText(name)}</Button>))}<AccountMenu /></nav><p className="sidebar-note"><Icon name="lock" /> {liveControl ? localizeText('Anlagensteuerung') : curveControl ? localizeText('Heizkurvensteuerung') : liveTest ? localizeText('Begrenzter Live-Test') : simulatorControl ? localizeText('Simulatorbetrieb') : localizeText('Lesender Betrieb')}</p></aside>
     <main id="content" tabIndex={-1}>
-      {chartKey && <Suspense fallback={<p role="status">{t("Diagramm wird geöffnet …")}</p>}><MetricChartDialog key={chartKey} metricKey={chartKey} label={chartLabel} onClose={() => setChartKey(null)} /></Suspense>}
+      {chartKey && <Suspense fallback={<p role="status">{t("Diagramm wird geöffnet …")}</p>}><MetricChartDialog key={chartKey} metricKey={chartKey} label={chartLabel} fromPlantModel={plantChart} onClose={() => setChartKey(null)} /></Suspense>}
       <div className="page-heading"><div className="page-heading-row"><h1 className="page-title">{localizeText(tab)}</h1>{(tab === 'Übersicht' || tab === 'Steuerung' || tab === 'Dallas-1-Wire') && <Button aria-pressed={editingOrder} onClick={() => setEditingOrder(!editingOrder)}>{editingOrder ? localizeText('Anordnung fertig') : localizeText('Kacheln anordnen')}</Button>}</div><p>{t("Version ")}{localizeText(system?.appVersion) ?? localizeText('—')} · {system ? system.source === 'simulator' ? localizeText('Simulatordaten') : system.readOnly ? localizeText('Lokaler Lesebetrieb') : localizeText('Lokaler Bedienbetrieb') : localizeText('Datenquelle wird geladen …')}</p></div>
       <div className="simulation" role="status"><Icon name="info" />{system?.source === 'simulator' ? localizeText('SIMULATION · Alle Messwerte und Verbindungszustände sind simuliert.') : system?.source === 'mqtt' ? liveControl ? localizeText('MQTT · Heizkurve und Warmwassersteuerung verfügbar') : curveControl ? localizeText('MQTT · Heizkurvensteuerung verfügbar') : localizeText('MQTT · Lesender Betrieb') : localizeText('Datenquelle wird geladen …')}</div>
       <StorageNotice />
       {!live && <div className="warning" role="alert">{t("Liveverbindung zum Backend unterbrochen oder noch nicht hergestellt. Angezeigte Werte sind nicht aktuell.")}</div>}
       {live && (!snapshot?.brokerConnected || snapshot.deviceAvailability === 'offline') && <p className="warning" role="alert">{t("Verbindungsausfall der Datenquelle. Letzte Werte sind veraltet.")}</p>}
       {tab === 'Heizkurve' && <HeatingCurvePanel values={snapshot?.values ?? []} live={live} enabled={curveControl} source={system?.source ?? ''} />}
-      {tab === 'Anlagenmodell' && <PlantModel snapshot={snapshot} live={live} now={now} labels={labels} />}
+      {tab === 'Anlagenmodell' && <PlantModel snapshot={snapshot} live={live} now={now} labels={labels} openChart={setChartKey} />}
       {tab === 'Dallas-1-Wire' && <DallasOneWirePanel values={dallasValues} live={live} now={now} brokerConnected={snapshot?.brokerConnected ?? false} deviceAvailability={snapshot?.deviceAvailability ?? 'unknown'} openChart={setChartKey} editing={editingOrder} />}
       {(tab === 'Übersicht' || tab === 'Steuerung' || tab === 'Dallas-1-Wire') && <>
         {editingOrder && <p id="sort-instructions">{t("Reihenfolge wird in diesem Browser gespeichert. Am Griff ziehen oder dessen Pfeiltasten verwenden. Alternativ mit den Pfeilbuttons verschieben. Sortieren innerhalb der jeweiligen Gruppe; Escape bricht das Ziehen ab.")}</p>}

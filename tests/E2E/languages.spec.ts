@@ -42,7 +42,7 @@ test('all six languages switch at runtime across views and persist with the sele
   expect(errors).toEqual([]);
 });
 
-test('switching languages keeps curve drafts and chart preferences and sends no plant commands', async ({ page }) => {
+test('switching languages keeps curve drafts and chart preferences and sends no plant commands', async ({ page, context }) => {
   const commands: string[] = [];
   page.on('request', request => { if (request.method() === 'POST' && /commands/.test(request.url())) commands.push(request.url()); });
   await page.goto('/');
@@ -61,7 +61,11 @@ test('switching languages keeps curve drafts and chart preferences and sends no 
   await expect(dialog).toBeVisible();
   await dialog.locator('details').first().locator('summary').click();
   await dialog.locator('input[type=color]').fill('#aa2244');
-  await dialog.getByTestId('language-picker').selectOption('en');
+  await expect(dialog.getByTestId('language-picker')).toHaveCount(0);
+  const other = await context.newPage();
+  await other.goto('/');
+  await other.getByTestId('language-picker').selectOption('en');
+  await other.close();
   await expect(dialog.getByRole('heading')).toContainText('Flow');
   await expect(dialog.locator('input[type=color]')).toHaveValue('#aa2244');
   await expect(dialog.getByRole('button', { name: 'Apply options' })).toBeVisible();
