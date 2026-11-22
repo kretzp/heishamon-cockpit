@@ -30,3 +30,8 @@
 **/.env*
 web/playwright-report
 web/test-results
+
+!documentation/
+!documentation/RELEASE-NOTES.md
+!documentation/release-notes/
+!documentation/release-notes/**

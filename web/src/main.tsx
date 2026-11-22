@@ -1,3 +1,5 @@
+import { derivePlantState } from './plant/plantModelState';
+import { AboutPanel } from './About';
 import { metricNumber, twoDecimalMetrics } from './charts/chartFormat';
 import { t, text as localizeText, getLocale } from "./i18n/core";
 import { readLanguage, setLanguage } from "./i18n/core";
@@ -108,8 +110,8 @@ const qualities: Record<Quality, string> = {
   invalid: 'Ungültig'
 };
 const modes = ['Heizen', 'Kühlen', 'Auto (Heizen)', 'Warmwasser', 'Heizen + Warmwasser', 'Kühlen + Warmwasser', 'Auto (Heizen) + Warmwasser', 'Auto (Kühlen)', 'Auto (Kühlen) + Warmwasser'];
-const tabs = ['Anlagenmodell', 'Übersicht', 'Verlauf', 'Steuerung', 'Heizkurve', 'Dallas-1-Wire', 'Ereignisse', 'Einstellungen'];
-const tabIcons: IconName[] = ['pump', 'home', 'chart', 'sliders', 'chart', 'chart', 'bell', 'settings'];
+const tabs = ['Anlagenmodell', 'Übersicht', 'Verlauf', 'Steuerung', 'Heizkurve', 'Dallas-1-Wire', 'Ereignisse', 'Einstellungen', 'Über…'];
+const tabIcons: IconName[] = ['pump', 'home', 'chart', 'sliders', 'chart', 'chart', 'bell', 'settings', 'info'];
 const temperatureKeys = ['flowTemperature', 'returnTemperature', 'temperatureSpread', 'outsideTemperature', 'indoorTemperature', 'dhwTemperature'];
 const powerKeys = ['heatPowerConsumption', 'heatPowerProduction', 'dhwPowerConsumption', 'dhwPowerProduction'];
 const detailKeys = ['heatpumpState', 'internalHeaterState', 'heatingControlMode', 'quietMode', 'activeError'];
@@ -282,6 +284,7 @@ function App() {
     };
   }, []);
   const live = transport && now - received.current < 5000;
+  const sterilizing = derivePlantState(snapshot, live).activity === 'sterilization';
   const currentValue = (key: string) => snapshot?.values.find(v => v.key === key);
   const liveControl = system?.capabilities?.includes('liveCommands') ?? false;
   const curveControl = system?.capabilities?.includes('heatingCurveCommands') ?? false;
@@ -316,6 +319,8 @@ function App() {
     const value = currentValue(key);
     const targetKey = tab === 'Übersicht' ? ({ dhwTemperature: 'dhwTargetTemperature', indoorTemperature: 'indoorTargetTemperature' } as Record<string, string>)[key] : undefined;
     const target = targetKey ? currentValue(targetKey) : undefined;
+    const sterilizationTarget = currentValue('sterilizationTemperature');
+    const sterilizationTargetText = sterilizationTarget && ['valid', 'stale'].includes(sterilizationTarget.quality) && typeof sterilizationTarget.value === 'number' && Number.isFinite(sterilizationTarget.value) ? `${display(sterilizationTarget)} °C` : '-';
     const targetQuality = !live && target?.quality === 'valid' ? 'stale' : target?.quality ?? 'unknown';
     const targetNumber = target && !['unknown', 'invalid'].includes(targetQuality) && typeof target.value === 'number' && Number.isFinite(target.value) ? display(target) : '—';
     const quality = !live && value?.quality === 'valid' ? 'stale' : value?.quality ?? 'unknown';
@@ -324,7 +329,7 @@ function App() {
     return <Card asChild key={key}><article {...attributes} className={['metric', attributes.className ?? '', key, quality, variant, key === 'activeError' && value?.value === 'no error' && quality === 'valid' ? 'error-free' : ''].join(' ')} key={key} aria-label={localizeText(accessibleLabel)}>
       {localizeText(controls)}{icon && <MetricIcon name={icon} />}
       <div className="metric-top"><Heading className="metric-heading">{key === 'outsideTemperature' ? localizeText('Außen') : key === 'compressorFrequency' ? localizeText('Verdichter') : localizeText(labels[key])}</Heading><Badge variant="secondary" className="quality">{localizeText(qualities[quality])}</Badge></div>
-      <p className={targetKey ? 'value with-target' : 'value'}>{value ? localizeText(display(value)) : key === 'activeError' ? localizeText('Fehlerstatus unbekannt') : localizeText('—')} <span>{value && !['enum', ''].includes(value.unit) && value.value !== null ? localizeText(value.unit) : localizeText('')}</span>{targetKey && <> / <span className="target-reading" title={localizeText(labels[targetKey])}>{localizeText(targetNumber)} <span>{targetNumber !== '—' ? localizeText('°C') : ''}</span></span></>}</p>
+      <p className={targetKey ? 'value with-target' : 'value'}>{value ? localizeText(display(value)) : key === 'activeError' ? localizeText('Fehlerstatus unbekannt') : localizeText('—')} <span>{value && !['enum', ''].includes(value.unit) && value.value !== null ? localizeText(value.unit) : localizeText('')}</span>{targetKey && <> / <span className="target-reading" title={localizeText(labels[targetKey])}>{localizeText(targetNumber)} <span>{targetNumber !== '—' ? localizeText('°C') : ''}</span></span></>}{sterilizing && targetKey === 'dhwTargetTemperature' && <span className="sterilization-target" title={t("Sterilisationstemperatur")}> · {t("Sterilisation")}: {sterilizationTargetText}</span>}</p>
       {targetKey && (targetQuality !== 'valid' || target?.retained) && <p className="note target-quality">{localizeText(labels[targetKey])}: {localizeText(qualities[targetQuality])}{target?.retained && <> · {t('Retained · historische Nachricht')}</>}</p>}
       <p className="age">{value?.receivedAtUtc ? <><time dateTime={value.receivedAtUtc}>{t("Empfangen ")}{localizeText(formatTime(value.receivedAtUtc))}</time><span className="age-elapsed">{t(" · vor {0} s", [Math.max(0, Math.floor((now - Date.parse(value.receivedAtUtc)) / 1000))])}</span></> : localizeText('Noch kein Messwert')}</p>
       {value?.retained && <p className="note">{t("Retained · historische Nachricht")}</p>}
@@ -355,7 +360,7 @@ function App() {
     <a href="#content" className="skip">{t("Zum Inhalt")}</a>
     <header className="app-header">
       <LanguagePicker /><ThemePicker />
-      <div className="header-state"><span>{snapshot?.heatPumpModel?.displayName ?? "Panasonic Aquarea"}</span><span className="header-mode">{live && mode?.quality === 'valid' ? localizeText(display(mode)) : localizeText('Betriebsart unbekannt')}</span></div>
+      <div className="header-state"><span>{snapshot?.heatPumpModel?.displayName ?? "Panasonic Aquarea"}</span><span className="header-mode">{sterilizing ? t('Sterilisation') : live && mode?.quality === 'valid' ? localizeText(display(mode)) : localizeText('Betriebsart unbekannt')}</span></div>
       <div className="header-connection"><span><i className={deviceOnline ? 'dot online' : 'dot'} />{deviceOnline ? localizeText('HeishaMon online') : localizeText('HeishaMon: ') + (live && snapshot?.deviceAvailability === 'offline' ? localizeText('Offline') : localizeText('unbekannt'))}</span><small>{system?.source === 'simulator' ? localizeText('Verbindungsstatus simuliert') : localizeText('Verfügbarkeit laut LWT')}</small></div>
       <div className="header-age">{snapshot ? localizeText('Stand ') + localizeText(formatTime(snapshot.generatedAtUtc)) + localizeText(' · Berlin') : localizeText('Warte auf Daten')}<small>{liveControl ? localizeText('Anlagensteuerung') : curveControl ? localizeText('Heizkurvensteuerung') : liveTest ? localizeText('Begrenzter Live-Test · reale Anlage') : simulatorControl ? localizeText('Simulatorsteuerung verfügbar') : localizeText('Nur lesen')}</small></div>
     </header>
@@ -394,6 +399,7 @@ function App() {
         {simulatorControl || liveTest || liveControl ? <SimulatorControlPanel liveTest={!!liveTest} liveControl={liveControl} extendedEnabled={system?.capabilities?.includes("extendedCommands") ?? false} sterilizationEnabled={system?.capabilities?.includes("sterilizationCommands") ?? false} /> : <Unavailable>{t("Dieses Release liest ausschließlich Messwerte. Heizungssteuerung benötigt eine separate Freigabe.")}</Unavailable>}
       </div>}
       {tab === 'Ereignisse' && <><div className="event-status">{localizeText(card('activeError', 'compact', {}, undefined, 2))}</div><EventsPanel /></>}
+      {tab === 'Über…' && <AboutPanel version={system?.appVersion} />}
       {tab === 'Einstellungen' && <SettingsPanel model={snapshot?.heatPumpModel} enabled={system?.settingsEnabled ?? false} onSaved={name => setSystem(old => old ? {
         ...old,
         plantName: name

@@ -8,6 +8,20 @@ namespace Cockpit.Integration;
 
 public sealed class EfficiencyTests : IDisposable
 {
+    [Fact] public async Task ChangedThresholdReclassifiesPreviouslyRecordedDays()
+    {
+        using var store = Open(); await store.InitializeAsync(default);
+        var day = new DateOnly(2026, 1, 10);
+        await Seed(EnergyCalendar.Midnight(day), 2401);
+        var result = await store.EnergyAsync(2026, 10, EnergyCalendar.Midnight(day.AddDays(2)), default);
+        var settings = new AppSettingsStore(Path.Combine(folder, "settings.json"), 700);
+        var before = result.WithCompletenessHours(settings.Read().DailyCompletenessHours).Days.Single(d => d.Date == "2026-01-10");
+        Assert.Equal("complete", before.Status);
+        settings.Save(settings.Read() with { DailyCompletenessHours = 21 }, false);
+        var after = result.WithCompletenessHours(new AppSettingsStore(Path.Combine(folder, "settings.json"), 700).Read().DailyCompletenessHours).Days.Single(d => d.Date == "2026-01-10");
+        Assert.Equal("partial", after.Status);
+        Assert.Equal(before.Kwh, after.Kwh); Assert.Equal(before.ValidSeconds, after.ValidSeconds);
+    }
     private readonly string folder = Path.Combine(Path.GetTempPath(), "cockpit-efficiency-" + Guid.NewGuid().ToString("N"));
     private static readonly DateTimeOffset Start = DateTimeOffset.Parse("2026-01-10T10:00:00Z");
     private SqliteHistoryStore Open(SourceKind source = SourceKind.Simulator, int step = 30) => new(Path.Combine(folder, "test.db"), source, new(step));

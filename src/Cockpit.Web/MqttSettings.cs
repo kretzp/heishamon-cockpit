@@ -77,14 +77,14 @@ public sealed class ReloadingMqttSource(MqttSettingsStore settings, Cockpit.Infr
             using var reload = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             void Changed() { try { reload.Cancel(); } catch (ObjectDisposedException) { } }
             var powerSettings = appSettings?.Read();
-            void PowerChanged(Cockpit.Infrastructure.Persistence.AppSettings value) { if (value.PowerGeneration != powerSettings?.PowerGeneration) Changed(); }
+            void PowerChanged(Cockpit.Infrastructure.Persistence.AppSettings value) { if (value.PowerGeneration != powerSettings?.PowerGeneration || value.HouseTemperatureGeneration != powerSettings?.HouseTemperatureGeneration) Changed(); }
             settings.Changed += Changed;
             if (appSettings is not null) appSettings.Changed += PowerChanged;
             try
             {
                 var options = settings.Read().Options;
-                if (appSettings?.Read().PowerGeneration != powerSettings?.PowerGeneration) reload.Cancel();
-                await new MqttReadSource(options, powerSettings?.AlternativePower, powerSettings?.PowerGeneration ?? 0).RunAsync(store, reload.Token);
+                if (appSettings?.Read().PowerGeneration != powerSettings?.PowerGeneration || appSettings?.Read().HouseTemperatureGeneration != powerSettings?.HouseTemperatureGeneration) reload.Cancel();
+                await new MqttReadSource(options, powerSettings?.AlternativePower, powerSettings?.PowerGeneration ?? 0, powerSettings?.PlantModel.HouseTemperature, powerSettings?.HouseTemperatureGeneration ?? 0).RunAsync(store, reload.Token);
             }
             catch (OperationCanceledException) when (reload.IsCancellationRequested) { }
             finally { settings.Changed -= Changed; if (appSettings is not null) appSettings.Changed -= PowerChanged; store.SetConnection(false); }

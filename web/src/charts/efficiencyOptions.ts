@@ -43,6 +43,7 @@ export type EnergyDay = {
 export type EnergyResult = {
   electricalSource?: string;
   maxGapSeconds?: number;
+  dailyCompletenessHours?: number;
   year: number;
   source: string;
   unit: string;
@@ -138,7 +139,7 @@ export function copOptions(result: CopResult, trend = false): EChartsOption {
   return option;
 }
 export function energyOptions(result: EnergyResult): EChartsOption {
-  const colored = (d: EnergyDay) => d.kwh !== null && (d.status === 'complete' || d.status === 'partial' && d.validSeconds >= 20 * 3600);
+  const colored = (d: EnergyDay) => d.kwh !== null && (d.status === 'complete' || d.status === 'partial' && d.validSeconds >= Math.min((result.dailyCompletenessHours ?? 20) * 3600, d.expectedSeconds ?? 86400));
   const maximum = Math.max(1, ...result.days.filter(colored).map(d => d.kwh ?? 0));
   return {
     animation: false,

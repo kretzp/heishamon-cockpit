@@ -277,7 +277,7 @@ export default function MetricChartDialog({
               ...preferences,
               symbols: e.target.checked
             })} />{t("Messpunkte")}</label>
-        <label>{t("Höhe")}<select value={preferences.height} onChange={e => save({
+        <label className="chart-height-control">{t("Höhe")}<select value={preferences.height} onChange={e => save({
               ...preferences,
               height: Number(e.target.value)
             })}>{localizeText([300, 420, 600].map(n => <option key={n} value={n}>{localizeText(n)}{t(" px")}</option>))}</select></label>

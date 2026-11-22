@@ -3,6 +3,9 @@ WORKDIR /source/web
 COPY web/package.json web/package-lock.json ./
 RUN npm install --global npm@11.19.0 && npm ci
 COPY web/ ./
+COPY Directory.Build.props /source/Directory.Build.props
+COPY documentation/RELEASE-NOTES.md /source/documentation/RELEASE-NOTES.md
+COPY documentation/release-notes/ /source/documentation/release-notes/
 RUN npm run build
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0.404 AS backend

@@ -130,6 +130,15 @@ test('calendar colors partial days from 20 hours while retaining status and meas
   assert.ok(options.calendar.every(c => c.dayLabel.firstDay === 1));
 });
 
+test('calendar uses the configured historical coverage threshold', () => {
+  const days = [{ date: '2026-01-01', kwh: 0, status: 'partial', validSeconds: 19 * 3600, expectedSeconds: 86400 }];
+  const low = energyOptions({ year: 2026, dailyCompletenessHours: 18, days });
+  const high = energyOptions({ year: 2026, dailyCompletenessHours: 20, days });
+  assert.equal(low.series[0].data.length, 1);
+  assert.equal(high.series[0].data.length, 0);
+  assert.equal(days[0].kwh, 0);
+});
+
 const start = Date.parse('2026-09-20T10:00:00Z');
 const point = (seconds, value, quality = 'valid') => ({ time: new Date(start + seconds * 1000).toISOString(), value, quality, samples: 1 });
 const history = (points, key = 'flowTemperature', unit = '°C') => ({ from: new Date(start).toISOString(), to: new Date(start + 300000).toISOString(), bucketSeconds: 30,

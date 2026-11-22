@@ -47,7 +47,7 @@ public static partial class PowerPayload
         if (end != path.Length) throw new CommandRejected(422, "invalid_power_path");
     }
     // Missing property is a partial update; explicit null/wrong type is invalid.
-    public static (bool Present, double? Watts) Read(string payload, string path)
+    public static (bool Present, double? Watts) Read(string payload, string path, bool allowNegative = false)
     {
         try
         {
@@ -72,7 +72,7 @@ public static partial class PowerPayload
                 }
             }
             return (true, value.ValueKind == JsonValueKind.Number && value.TryGetDouble(out var watts)
-                && double.IsFinite(watts) && watts >= 0 ? watts : null);
+                && double.IsFinite(watts) && (allowNegative || watts >= 0) ? watts : null);
         }
         catch (JsonException) { return (true, null); }
     }

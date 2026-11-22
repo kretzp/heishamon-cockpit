@@ -13,12 +13,12 @@ import './plant-model.css';
 
 type Saved = { configuration: PlantConfiguration; revision: number; editable: boolean };
 type Props = { snapshot: (PlantSnapshot & { heatPumpModel?: HeatPumpModel }) | null; live: boolean; now: number; labels: Record<string, string>; openChart: (key: string) => void };
-const activityLabels = { unknown: 'Unbekannt', off: 'Aus', idle: 'Bereitschaft', circulate: 'Umwälzung', heating: 'Heizen', dhw: 'Warmwasser', cooling: 'Kühlen', defrost: 'Abtauung' };
+const activityLabels = { unknown: 'Unbekannt', off: 'Aus', idle: 'Bereitschaft', circulate: 'Umwälzung', heating: 'Heizen', dhw: 'Warmwasser', cooling: 'Kühlen', defrost: 'Abtauung', sterilization: 'Sterilisation' };
 const components = ['Außeneinheit', 'Hydraulik', 'Warmwasser', 'Heizkreise', 'Kältekreis'] as const;
 const detailKeys: Record<typeof components[number], string[]> = {
   Außeneinheit: ['compressorFrequency', 'fanSpeed', 'compressorCurrent', 'operationsHours', 'operationsCounter', 'activeError'],
   Hydraulik: ['flowTemperature', 'returnTemperature', 'temperatureSpread', 'waterFlow', 'waterPressure', 'pumpSpeed', 'threeWayValveState'],
-  Warmwasser: ['dhwTemperature', 'dhwTargetTemperature', 'dhwHeatDelta', 'internalHeaterState', 'sterilizationState'],
+  Warmwasser: ['dhwTemperature', 'dhwTargetTemperature', 'dhwHeatDelta', 'internalHeaterState', 'sterilizationState', 'sterilizationTemperature'],
   Heizkreise: ['indoorTemperature', 'indoorTargetTemperature', 'mainTargetTemperature', 'zone1HeatRequest', 'zone1SensorMode', 'zonesState'],
   Kältekreis: ['highPressure', 'compressorCurrent']
 };
@@ -62,21 +62,25 @@ export function PlantModel({ snapshot, live, now, labels, openChart }: Props) {
   const number = (key: string) => readNumber(values, key, plant.connected);
   const reading = (key: string) => {
     const v = values.find(value => value.key === key);
-    const n = number(key);
-    if (n === null) return '—';
-    const fixedPrecision = ['flowTemperature', 'returnTemperature', 'temperatureSpread', 'waterPressure'].includes(key) ? 2 : undefined;
+    const temperature = v?.unit === '°C';
+    const n = temperature
+      ? v && ['valid', 'stale'].includes(v.quality) && typeof v.value === 'number' && Number.isFinite(v.value) && v.value > -78 ? v.value : null
+      : number(key);
+    if (n === null) return temperature || key === 'mqttHouseTemperature' || key.toLowerCase().includes('temperature') ? '-' : '—';
+    const fixedPrecision = ['flowTemperature', 'returnTemperature', 'temperatureSpread', 'waterPressure', 'mainTargetTemperature'].includes(key) ? 2 : undefined;
     return `${n.toLocaleString(getLocale(), { minimumFractionDigits: fixedPrecision, maximumFractionDigits: fixedPrecision ?? (['fanSpeed', 'pumpSpeed', 'compressorFrequency'].includes(key) ? 0 : 1) })}${v?.unit && v.unit !== 'enum' ? ` ${v.unit}` : ''}`;
   };
   const label = (v: PlantValue) => v.alias || t(labels[v.key] ?? plantMetricLabels[v.key] ?? v.key);
   const chartButton = (key: string, name: string) => <Button type="button" className="metric-chart-open"
     aria-label={t('{0} – Diagramm öffnen', [name])} onClick={() => openChart(key)} />;
   const display = (v: PlantValue) => {
+    if (v.unit === '°C') return reading(v.key);
     if (!plant.connected || v.quality !== 'valid' || v.retained) return '—';
     if (v.unit === 'enum' && typeof v.value === 'number') return stateLabel(v.key, v.value) ?? String(v.value);
     if (typeof v.value === 'number') return reading(v.key);
     return v.value === 'no error' ? t('Fehlerfrei') : v.value === null ? '—' : String(v.value);
   };
-  const prefix = plant.activity === 'heating' ? 'heat' : plant.activity === 'dhw' ? 'dhw' : plant.activity === 'cooling' ? 'cool' : null;
+  const prefix = plant.activity === 'heating' ? 'heat' : (plant.activity === 'dhw' || plant.activity === 'sterilization') ? 'dhw' : plant.activity === 'cooling' ? 'cool' : null;
   const power = (kind: string) => {
     const watts = prefix ? number(`${prefix}Power${kind}`) : null;
     return watts !== null && watts >= 0 ? `${(watts / 1000).toLocaleString(getLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kW` : '—';
@@ -113,6 +117,14 @@ export function PlantModel({ snapshot, live, now, labels, openChart }: Props) {
       <label>{t('Heizkreise')}<select aria-label={t("Heizkreise")} value={draft.zones} onChange={e => update('zones', e.target.value === '2' ? 2 : 1)}><option value="1">1</option><option value="2">2</option></select></label>
       {([1, 2] as const).map(zone => <label key={zone}>{t(zone === 1 ? 'Heizkreis 1' : 'Heizkreis 2')}<select aria-label={t(zone === 1 ? "Heizkreis 1" : "Heizkreis 2")} disabled={zone === 2 && draft.zones === 1} value={draft[zone === 1 ? 'zone1' : 'zone2']} onChange={e => update(zone === 1 ? 'zone1' : 'zone2', e.target.value === 'radiator' ? 'radiator' : 'floor')}><option value="floor">{t('Fußbodenheizung')}</option><option value="radiator">{t('Heizkörper')}</option></select></label>)}
       {(['tank', 'buffer', 'sensors', 'motion'] as const).map((key, i) => <label className="plant-check" key={key}><input type="checkbox" checked={draft[key]} onChange={e => update(key, e.target.checked)} />{t(['Warmwasserspeicher anzeigen', 'Reihenpuffer anzeigen', 'Temperaturen an den Leitungen', 'Animation anzeigen'][i])}</label>)}
+      <fieldset className="plant-house-temperature">
+        <legend>{t('Haustemperatur per MQTT')}</legend>
+        <label className="plant-check"><input type="checkbox" checked={draft.houseTemperature.enabled} onChange={e => update('houseTemperature', { ...draft.houseTemperature, enabled: e.target.checked })} />{t('MQTT-Haustemperatur verwenden')}</label>
+        <label>{t('MQTT-Topic')}<input disabled={!draft.houseTemperature.enabled || saving} required={draft.houseTemperature.enabled} maxLength={200} value={draft.houseTemperature.input.topic} onChange={e => update('houseTemperature', { ...draft.houseTemperature, input: { ...draft.houseTemperature.input, topic: e.target.value } })} /></label>
+        <label>{t('Payload-Pfad')}<input disabled={!draft.houseTemperature.enabled || saving} maxLength={256} placeholder="$.temperature" value={draft.houseTemperature.input.payloadPath} onChange={e => update('houseTemperature', { ...draft.houseTemperature, input: { ...draft.houseTemperature.input, payloadPath: e.target.value } })} /></label>
+        <p className="plant-note">{t('Temperatur in °C über den konfigurierten MQTT-Broker. Payload-Pfad leer: direkte Zahl, sonst z. B. $.temperature. Keine MQTT-Platzhalter.')}</p>
+        <p className="plant-note">{t('Ersetzt nach dem Speichern die Haustemperatur im Hausbild. Fehlende MQTT-Werte werden als - angezeigt. Veraltete Temperaturen bleiben sichtbar.')}</p>
+      </fieldset>
       <label>{t('Animationstempo')}<input type="range" min="0.5" max="2" step="0.25" value={draft.speed} onChange={e => update('speed', Number(e.target.value))} /></label>
       <div className="plant-config-actions"><button type="button" disabled={saving} onClick={() => void save()}>{t(saving ? 'Wird gespeichert …' : 'Speichern')}</button><button type="button" disabled={saving} onClick={() => setEditing(false)}>{t('Abbrechen')}</button></div>
     </section>}
@@ -127,7 +139,7 @@ export function PlantModel({ snapshot, live, now, labels, openChart }: Props) {
       </article>)}
     </section>
     <div className="plant-workbench"><section className="panel plant-canvas"><div className="plant-section-heading"><h2>{t('Hydraulik & Energiefluss')}</h2><span>{t(activityLabels[plant.activity])}</span></div>
-      <div className="plant-diagram-scroll" role="region" aria-label={t("Hydraulik & Energiefluss")} tabIndex={0}><PlantDiagram profile={profile} config={config} plant={plant} reading={reading} /></div>
+      <div className="plant-diagram-scroll" role="region" aria-label={t("Hydraulik & Energiefluss")} tabIndex={0}><PlantDiagram profile={profile} config={config} plant={plant} reading={key => reading(key === 'indoorTemperature' && saved?.configuration.houseTemperature.enabled ? 'mqttHouseTemperature' : key)} /></div>
       <div className="plant-components">{components.map(name => <button type="button" key={name} aria-pressed={component === name} onClick={() => setComponent(name)}>{t(name)}</button>)}</div>
       <p className="plant-note">{t('Gemeinsamer Gerätemaßstab. Leitungsführung und Bauteilpositionen sind schematisch.')} {t('Gestrichelte Verbindung: Kältemittel (H/J/K).')}</p>
     </section>

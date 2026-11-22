@@ -1,0 +1,95 @@
+{
+  "sourceSha256": "fceb4e38d0904bead20a2ab26cd66f67a2eb27018324240c1607577c575fd0f7",
+  "translations": {
+    "de": {
+      "title": "Anlagenmodell, MQTT-Haustemperatur und Tagesverlauf",
+      "items": [
+        "Messwertdiagramme direkt aus der Leistungsübersicht, dem Anlagenstatus und dem Messwert-Explorer öffnen – mit Zeitraumauswahl, Diagrammeinstellungen und CSV-Export. Leistungsdiagramme berücksichtigen Heiz-, Warmwasser- und Kühlbetrieb.",
+        "Messwert-Aliasse bleiben erhalten; Diagrammdetails zeigen den Kontext des Anlagenmodells. Für Modellkennungen wird erklärt, dass kein Messwertverlauf verfügbar ist.",
+        "Der Diagrammkopf ist durch den Wegfall der doppelten Sprachauswahl übersichtlicher.",
+        "Datumsfelder und Zeitraumaktionen in Messwertdiagrammen und Verlauf sind bündig ausgerichtet.",
+        "Das Hydraulikbild zeigt gerade Vor- und Rücklaufanschlüsse, ausgerichtete Häuser und Heizkreise sowie klarer platzierte Leitungen und Beschriftungen.",
+        "Die Flussanimation läuft durch Fußbodenheizung und Heizkörper beider Heizkreise, die Warmwasserwendel und den Puffer. Am Warmwasserspeicher tritt der Vorlauf unten links ein und der Rücklauf oben rechts aus. Der Puffer sitzt im gemeinsamen Rücklauf direkt hinter dem Haus; der Vorlauf des zweiten Heizkreises führt daran vorbei.",
+        "Der gemeldete Vorlauf-Sollwert (HeishaMon TOP7) steht zusammen mit der Isttemperatur über der Vorlaufleitung. Fehlende oder ungültige Temperaturen erscheinen als „-“. Veraltete und retained Temperaturen bleiben sichtbar, auch die letzte MQTT-Haustemperatur nach einem Verbindungsabbruch. Animationen benötigen weiterhin aktuelle Daten.",
+        "Unter „Modell konfigurieren“ lässt sich eine MQTT-Haustemperatur mit exaktem Topic und Payload-Pfad über den konfigurierten Broker zuschalten. Sie ersetzt die Temperatur im Hausbild. Speichern wirkt ohne Neustart; Ausschalten stellt die Inneneinheit als Quelle wieder her. Bestehende Installationen starten mit deaktivierter Option; die ursprüngliche Telemetrie bleibt unverändert.",
+        "Unter „Anlage & Datenspeicherung“ ist die Grenze für vollständige Tagesverläufe von 1 bis 24 h einstellbar, vorbelegt mit 20 h. Sie gilt sofort rückwirkend für Kalender, Status und CSV, ohne Messdaten oder berechnete Energie zu ändern. Laufende, zukünftige und datenlose Tage sowie die Zeitumstellung werden berücksichtigt.",
+        "Der Modus „Sterilisation“ wird aus aktuellem TOP69-Status erkannt, auch bei elektrischer Erwärmung mit stehendem Verdichter. Die TOP70-Zieltemperatur steht hinter dem normalen Warmwasser-Sollwert im Diagramm und in der Übersicht. Abtauung und Aus behalten Vorrang; veralteter Status meldet keinen aktiven Zyklus.",
+        "Die Seite „Über…“ steht zwischen Einstellungen und Abmelden. Sie enthält direkte Links zu Repository, Discussions und Issues sowie Version und Release Notes in allen sechs Sprachen. Passende Release Notes werden beim Build eingebunden; fehlende oder veraltete Übersetzungen stoppen den Build.",
+        "Erweiterte Desktop-, Mobil- und Sprachtests prüfen Diagrammzugriffe, Betriebsarten, Diagrammgeometrie und die Ausrichtung der Zeitraumfelder.",
+        "Keine Datenbankmigration erforderlich."
+      ]
+    },
+    "fr": {
+      "title": "Modèle de l’installation, température MQTT et historique journalier",
+      "items": [
+        "Ouvrez les graphiques de mesure depuis la vue des puissances, l’état des composants et l’explorateur de mesures, avec périodes, réglages et export CSV. Les graphiques de puissance suivent le chauffage, l’eau chaude et le refroidissement.",
+        "Les alias de mesure sont conservés et les détails indiquent le contexte du modèle de l’installation. Un message explique que les identifiants de modèle n’ont pas d’historique de mesure.",
+        "L’en-tête des graphiques est simplifié par la suppression du sélecteur de langue en double.",
+        "Les champs de date et les actions de période sont alignés dans les graphiques et l’historique.",
+        "Le schéma hydraulique présente des raccordements droits de départ et de retour, une maison et des circuits alignés, ainsi que des tuyaux et libellés mieux placés.",
+        "Le flux est animé dans les planchers chauffants et radiateurs des deux circuits, le serpentin d’eau chaude et le ballon tampon. Le départ entre en bas à gauche du ballon d’eau chaude et le retour sort en haut à droite. Le tampon est placé dans le retour commun juste après la maison ; le départ du second circuit le contourne.",
+        "La consigne de départ rapportée par HeishaMon TOP7 figure avec la température réelle au-dessus du tuyau. Les températures absentes ou invalides affichent « - ». Les températures périmées ou retenues restent visibles, y compris la dernière température MQTT après déconnexion. Les animations exigent toujours des données récentes.",
+        "Configurer le modèle permet d’activer une température de maison MQTT avec topic exact et chemin de valeur, via le broker configuré. Elle remplace la température dans la maison du schéma. L’enregistrement agit sans redémarrage ; la désactivation rétablit la valeur de l’unité intérieure. L’option est désactivée par défaut et la télémétrie d’origine reste inchangée.",
+        "Le seuil de complétude des journées est configurable de 1 à 24 h dans les paramètres d’installation et de stockage, avec 20 h par défaut. Il s’applique immédiatement aux anciens jours du calendrier, aux statuts et au CSV, sans modifier les mesures ni l’énergie calculée. Les journées en cours, futures, sans données et les changements d’heure sont pris en compte.",
+        "Le mode Stérilisation utilise un état TOP69 récent, y compris pendant le chauffage électrique sans compresseur. La cible TOP70 suit la consigne d’eau chaude normale dans le schéma et la vue d’ensemble. Dégivrage et Arrêt restent prioritaires ; un état périmé n’annonce jamais un cycle actif.",
+        "La page À propos apparaît entre Paramètres et Déconnexion, avec liens directs vers le dépôt, Discussions et Issues, version et notes de version dans les six langues. Les notes correspondantes sont intégrées à la compilation ; une traduction absente ou périmée arrête celle-ci.",
+        "Les tests pour ordinateur, mobile et langues couvrent les accès aux graphiques, les modes, la géométrie et l’alignement des champs de période.",
+        "Aucune migration de base de données n’est nécessaire."
+      ]
+    },
+    "es": {
+      "title": "Modelo de instalación, temperatura MQTT e historial diario",
+      "items": [
+        "Abre gráficos de medición desde el resumen de potencia, el estado de componentes y el explorador de mediciones, con períodos, ajustes y exportación CSV. Los gráficos de potencia siguen calefacción, agua caliente y refrigeración.",
+        "Se conservan los alias de medición y los detalles muestran el contexto del modelo de instalación. Un mensaje explica que los identificadores de modelo no tienen historial de mediciones.",
+        "Se simplifica la cabecera de los gráficos eliminando el selector de idioma duplicado.",
+        "Se alinean los campos de fecha y las acciones de período en los gráficos y el historial.",
+        "El esquema hidráulico muestra conexiones rectas de impulsión y retorno, la casa y los circuitos alineados y una ubicación más clara de tuberías y etiquetas.",
+        "El flujo se anima por el suelo radiante y los radiadores de ambos circuitos, el serpentín de agua caliente y el depósito de inercia. La impulsión entra por abajo a la izquierda del acumulador y el retorno sale por arriba a la derecha. El depósito de inercia queda en el retorno común justo después de la casa; la impulsión del segundo circuito lo rodea.",
+        "La consigna de impulsión de HeishaMon TOP7 aparece con la temperatura real sobre la tubería. Las temperaturas ausentes o inválidas muestran «-». Las antiguas y retenidas siguen visibles, incluida la última temperatura MQTT tras desconectarse. Las animaciones siguen requiriendo datos recientes.",
+        "Configurar modelo permite activar una temperatura de la casa por MQTT con topic exacto y ruta de valor usando el broker configurado. Sustituye la temperatura de la casa del esquema. Guardar se aplica sin reinicio; desactivar restaura la lectura interior. La opción viene desactivada y la telemetría original no cambia.",
+        "El umbral de días completos se configura de 1 a 24 h en instalación y almacenamiento, con 20 h por defecto. Se aplica inmediatamente a días históricos del calendario, estados y CSV sin cambiar mediciones ni energía calculada. Se respetan días actuales, futuros, sin datos y cambios de horario.",
+        "El modo Esterilización usa el estado TOP69 reciente, también durante calentamiento eléctrico con el compresor parado. La consigna TOP70 aparece detrás de la normal de agua caliente en el esquema y el resumen. Desescarche y Apagado tienen prioridad; un estado antiguo nunca anuncia un ciclo activo.",
+        "La página Acerca de aparece entre Ajustes y Cerrar sesión, con enlaces directos al repositorio, Discussions e Issues, versión y notas en los seis idiomas. Las notas de la versión se incluyen al compilar; traducciones ausentes o antiguas detienen la compilación.",
+        "Se amplían las pruebas de escritorio, móvil e idiomas para accesos a gráficos, modos, geometría y alineación de controles de período.",
+        "No se requiere migración de la base de datos."
+      ]
+    },
+    "it": {
+      "title": "Modello impianto, temperatura MQTT e storico giornaliero",
+      "items": [
+        "Apri i grafici delle misure dal riepilogo potenze, dallo stato dei componenti e dall’esploratore misure, con intervalli, impostazioni ed esportazione CSV. I grafici di potenza seguono riscaldamento, acqua calda e raffrescamento.",
+        "Gli alias delle misure vengono conservati e i dettagli mostrano il contesto del modello impianto. Un messaggio spiega che gli identificativi del modello non hanno uno storico delle misure.",
+        "L’intestazione dei grafici è semplificata rimuovendo il selettore della lingua duplicato.",
+        "I campi data e le azioni dell’intervallo sono allineati nei grafici e nello storico.",
+        "Lo schema idraulico mostra collegamenti diritti di mandata e ritorno, casa e circuiti allineati e una disposizione più chiara di tubi ed etichette.",
+        "Il flusso è animato nei pavimenti radianti e nei radiatori di entrambi i circuiti, nella serpentina dell’acqua calda e nel puffer. La mandata entra in basso a sinistra del bollitore e il ritorno esce in alto a destra. Il puffer è nel ritorno comune subito dopo la casa; la mandata del secondo circuito lo evita.",
+        "La temperatura di mandata richiesta da HeishaMon TOP7 compare con quella reale sopra il tubo. Le temperature mancanti o non valide mostrano «-». Quelle obsolete o retained restano visibili, inclusa l’ultima temperatura MQTT dopo una disconnessione. Le animazioni richiedono sempre dati recenti.",
+        "Configura modello permette di attivare una temperatura della casa MQTT con topic esatto e percorso del valore tramite il broker configurato. Sostituisce la temperatura nella casa del disegno. Il salvataggio si applica senza riavvio; disattivando si ripristina l’unità interna. L’opzione è disattivata per le installazioni esistenti e la telemetria originale resta invariata.",
+        "La soglia di completezza giornaliera si configura da 1 a 24 h nelle impostazioni di impianto e archiviazione, con valore iniziale 20 h. Si applica subito anche ai giorni storici di calendario, stato e CSV senza modificare misure o energia calcolata. Sono rispettati giorni correnti, futuri, senza dati e cambi d’ora.",
+        "La modalità Sterilizzazione usa lo stato TOP69 recente, anche durante il riscaldamento elettrico con compressore fermo. Il target TOP70 segue quello normale dell’acqua calda nel disegno e nella panoramica. Sbrinamento e Spento hanno priorità; uno stato obsoleto non annuncia un ciclo attivo.",
+        "La pagina Informazioni è tra Impostazioni e Disconnetti e include link diretti a repository, Discussions e Issues, versione e note nelle sei lingue. Le note corrispondenti sono incluse durante la compilazione; traduzioni mancanti o obsolete la interrompono.",
+        "I test desktop, mobili e delle lingue coprono accessi ai grafici, modalità operative, geometria e allineamento dei controlli dell’intervallo.",
+        "Non è necessaria una migrazione del database."
+      ]
+    },
+    "pt": {
+      "title": "Modelo da instalação, temperatura MQTT e histórico diário",
+      "items": [
+        "Abra gráficos de medição no resumo de potência, no estado dos componentes e no explorador de medições, com períodos, definições e exportação CSV. Os gráficos de potência acompanham aquecimento, água quente e arrefecimento.",
+        "Os nomes alternativos das medições são preservados e os detalhes mostram o contexto do modelo da instalação. Uma mensagem explica que os identificadores de modelo não têm histórico de medições.",
+        "O cabeçalho dos gráficos é simplificado ao remover o seletor de idioma duplicado.",
+        "Os campos de data e as ações de período ficam alinhados nos gráficos e no histórico.",
+        "O esquema hidráulico apresenta ligações retas de ida e retorno, casa e circuitos alinhados e uma disposição mais clara de tubagens e etiquetas.",
+        "O fluxo é animado no piso radiante e nos radiadores dos dois circuitos, na serpentina de água quente e no depósito de inércia. A ida entra em baixo à esquerda do acumulador e o retorno sai em cima à direita. O depósito de inércia fica no retorno comum logo após a casa; a ida do segundo circuito passa ao lado.",
+        "A temperatura de ida pretendida do HeishaMon TOP7 aparece com a real por cima do tubo. Temperaturas ausentes ou inválidas mostram «-». As antigas e retidas permanecem visíveis, incluindo a última temperatura MQTT após uma desconexão. As animações continuam a exigir dados recentes.",
+        "Configurar modelo permite ativar uma temperatura da casa MQTT com tópico exato e caminho do valor pelo broker configurado. Substitui a temperatura na casa do esquema. Guardar aplica sem reiniciar; desativar restaura a unidade interior. A opção vem desativada e a telemetria original mantém-se.",
+        "O limite de dias completos é configurável entre 1 e 24 h nas definições de instalação e armazenamento, com 20 h por defeito. Aplica-se imediatamente também ao calendário histórico, estados e CSV sem alterar medições ou energia calculada. Respeita dias atuais, futuros, sem dados e mudanças de hora.",
+        "O modo Esterilização usa o estado TOP69 recente, também durante aquecimento elétrico com o compressor parado. A meta TOP70 aparece depois da normal de água quente no esquema e na visão geral. Descongelação e Desligado têm prioridade; um estado antigo nunca anuncia um ciclo ativo.",
+        "A página Sobre fica entre Definições e Terminar sessão, com ligações diretas ao repositório, Discussions e Issues, versão e notas nas seis línguas. As notas correspondentes são incluídas durante a compilação; traduções ausentes ou antigas interrompem-na.",
+        "Os testes de computador, telemóvel e idiomas abrangem acesso aos gráficos, modos, geometria e alinhamento dos controlos de período.",
+        "Não é necessária uma migração da base de dados."
+      ]
+    }
+  }
+}

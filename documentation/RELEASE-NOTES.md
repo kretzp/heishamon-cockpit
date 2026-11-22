@@ -1,6 +1,6 @@
 # Release notes
 
-## 1.0.3 — System model charts and layout refinements, 2026-11-22
+## 1.0.3 — System model, MQTT room temperature and daily history, 2026-11-22
 
 - Open measurement charts directly from the System model power overview,
   component status and measurement explorer, with the existing time ranges,
@@ -12,8 +12,36 @@
 - Align date fields and range actions in measurement charts and history.
 - Refine the hydraulic diagram with straight supply and return connections,
   aligned home and heating circuits, and clearer pipe and label placement.
+- Animate flow through floor heating and radiators in both heating circuits,
+  through the hot-water tank coil and through the buffer. Route the hot-water
+  supply into the lower-left tank connection and the return out of the upper-right
+  connection. Move the buffer into the shared return immediately after the house,
+  keeping the second heating-circuit supply clear of it.
+- Show the reported flow target temperature (HeishaMon TOP7) above the supply
+  pipe alongside the actual temperature. Display missing or invalid temperatures
+  as `-`, while keeping stale and retained temperatures visible, including the
+  last MQTT room temperature after a disconnect. Animation still requires fresh data.
+- Add an optional MQTT room-temperature source under Configure model, with an
+  exact topic and payload path using the configured broker. When enabled, it
+  replaces the room temperature in the house drawing. Saving applies without
+  restarting; disabling restores the indoor-unit reading. Existing installations
+  default to disabled, and the original indoor telemetry remains unchanged.
+- Add a daily-history completeness threshold under Installation & data storage,
+  defaulting to 20 h and configurable from 1 to 24 h. Apply it immediately to past
+  calendar days, status labels and CSV exports without changing recorded data or
+  calculated energy. Preserve current/future/missing days and handle daylight-saving
+  day lengths correctly.
+- Show an active Sterilisation mode from fresh TOP69 status, including electric
+  heating with the compressor stopped, and append the TOP70 sterilisation target
+  after the normal hot-water target in the diagram and overview. Defrost and Off
+  retain priority; stale status never announces an active cycle.
+- Add an About page between Settings and Logout with direct repository,
+  Discussions and Issues links, installed version and release notes in all six
+  supported languages. Bundle the version-matched notes during the build and
+  reject missing or outdated translations instead of showing stale release text.
 - Extend desktop, mobile and language regression coverage for chart access,
-  operating modes, diagram geometry and range-control alignment.
+  operating modes, diagram geometry, range-control alignment, MQTT temperature
+  quality, retrospective daily completeness and localized About content.
 - No database migration is required.
 
 ## 1.0.2 — Additional heat pump models, 2026-11-18

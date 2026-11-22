@@ -125,7 +125,7 @@ test('installation model configuration is editable only for administrators and s
   expect(writes).toBe(1);
 });
 
-test('Anlagenmodell suppresses stale measurements and unknown model assumptions', async ({ page, request }) => {
+test('Anlagenmodell displays stale temperatures without animation or unknown model assumptions', async ({ page, request }) => {
   const snapshot = await (await request.get('/api/v1/snapshot')).json();
   await page.route('**/api/v1/snapshot', route => route.fulfill({ json: {
     ...snapshot, revision: Number.MAX_SAFE_INTEGER,
@@ -133,7 +133,7 @@ test('Anlagenmodell suppresses stale measurements and unknown model assumptions'
     values: snapshot.values.map((v: { key: string }) => ({ ...v, quality: 'stale' }))
   } }));
   await page.goto('/');
-  await expect(page.locator('.plant-model #flow-value')).toHaveText('—');
+  await expect(page.locator('.plant-model #flow-value')).toHaveText('34,50 °C');
   await expect(page.locator('.plant-model [data-family="generic"]')).toBeVisible();
   await expect(page.locator('.plant-model')).not.toHaveClass(/water-active|fan-active|refrigerant-active/);
   await expect(page.locator('.plant-model [data-pump-location]')).toHaveCount(0);
@@ -1251,4 +1251,40 @@ for (const [label, model] of [
   await expect(form.getByRole('checkbox')).toHaveCount(2);
   for (const checkbox of await form.getByRole('checkbox').all()) await expect(checkbox).not.toBeChecked();
   await form.screenshot({ path: info.outputPath(`device-profile-${label}.png`) });
+});
+
+test('daily completeness hours default to twenty and update historical calendar classification', async ({ page }) => {
+  await mockAdminSettings(page);
+  let values = { plantName: 'Test', retentionDays: 700, revision: 0, enableRelaySwitching: false, dailyCompletenessHours: 20,
+    alternativePower: { enabled: false, heatpump: null, heater: null } };
+  await page.route('**/api/v1/settings', route => {
+    if (route.request().method() === 'POST') {
+      values = { ...route.request().postDataJSON(), revision: values.revision + 1 };
+      return route.fulfill({ json: values });
+    }
+    return route.fulfill({ json: { values, enabled: true, source: 'simulator', sampleSeconds: 5, activeRetentionDays: 700, restartRequired: false } });
+  });
+  await page.route('**/api/v1/history/energy?*', route => route.fulfill({ json: {
+    year: 2026, source: 'simulator', timeZone: 'Europe/Berlin', unit: 'kWh', dailyCompletenessHours: values.dailyCompletenessHours,
+    days: [{ date: '2026-01-10', from: '2026-01-09T23:00:00Z', to: '2026-01-10T23:00:00Z', kwh: 19, validSeconds: 19 * 3600, expectedSeconds: 86400,
+      status: 19 >= values.dailyCompletenessHours ? 'complete' : 'partial' }]
+  } }));
+  await page.goto('/');
+  await page.getByRole('navigation').getByRole('button', { name: 'Einstellungen', exact: true }).click();
+  const field = page.getByLabel('Tagesverlauf unvollständig ab', { exact: true });
+  await expect(field).toHaveValue('20');
+  await field.fill('18');
+  await page.getByRole('button', { name: 'Einstellungen speichern', exact: true }).click();
+  await expect.poll(() => values.dailyCompletenessHours).toBe(18);
+  await page.reload();
+  await page.getByRole('navigation').getByRole('button', { name: 'Einstellungen', exact: true }).click();
+  await expect(field).toHaveValue('18');
+  await field.fill('22');
+  await page.getByRole('button', { name: 'Neu laden / Verwerfen', exact: true }).click();
+  await expect(field).toHaveValue('18');
+  await page.getByRole('button', { name: 'Verlauf', exact: true }).click();
+  const daily = page.getByRole('region', { name: 'Tagesverbrauch', exact: true });
+  await expect(daily.getByText('Abgeschlossene Tage ab 18 h Abdeckung', { exact: false })).toBeVisible();
+  await daily.getByText('Tagestabelle und Tagesauswahl', { exact: true }).click();
+  await expect(daily.locator('tbody tr')).toContainText('Vollständig');
 });

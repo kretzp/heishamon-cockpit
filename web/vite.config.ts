@@ -1,3 +1,4 @@
+import { releaseNotesPlugin } from './build/releaseNotes.ts';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 import istanbul from 'vite-plugin-istanbul';
@@ -9,7 +10,7 @@ const rawCoverage = resolve(import.meta.dirname, '../.cache/coverage/frontend/ra
 
 export default defineConfig({
   resolve: { alias: { "@": resolve(import.meta.dirname, "src") } },
-  plugins: [tailwindcss(), ...(coverage ? [istanbul({ include: 'src/**/*', extension: ['.ts', '.tsx'], forceBuildInstrument: true,
+  plugins: [releaseNotesPlugin(resolve(import.meta.dirname, '..')), tailwindcss(), ...(coverage ? [istanbul({ include: 'src/**/*', extension: ['.ts', '.tsx'], forceBuildInstrument: true,
     onCover(filename, data) { mkdirSync(rawCoverage, { recursive: true }); writeFileSync(resolve(rawCoverage, 'seed-' + basename(filename) + '.json'), JSON.stringify({ [filename]: data })); }
   })] : [])],
   build: { outDir: '../src/Cockpit.Web/wwwroot', emptyOutDir: true, sourcemap: coverage },

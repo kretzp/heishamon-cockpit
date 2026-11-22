@@ -21,8 +21,10 @@ public static class HistoryEndpoints
         app.MapGet("/api/v1/history/energy", async (HttpContext context, IHistoryStore store, HistoryWorker recorder, IConfiguration configuration) =>
             await Handle(context, recorder, async () => {
                 if (!int.TryParse(context.Request.Query["year"], out var year)) throw new HistoryRequestException("invalid_year", "Ungültiges Kalenderjahr.");
-                return Results.Ok(await store.EnergyAsync(year, configuration.GetValue<int?>("Telemetry:MaxPairSeconds") ?? 10,
-                    DateTimeOffset.UtcNow, context.RequestAborted));
+                var result = await store.EnergyAsync(year, configuration.GetValue<int?>("Telemetry:MaxPairSeconds") ?? 10,
+                    DateTimeOffset.UtcNow, context.RequestAborted);
+                var hours = context.RequestServices.GetService<Cockpit.Infrastructure.Persistence.AppSettingsStore>()?.Read().DailyCompletenessHours ?? 20;
+                return Results.Ok(result.WithCompletenessHours(hours));
             }));
         app.MapGet("/api/v1/history", async (HttpContext context, IHistoryStore store, HistoryWorker recorder) =>
             await Handle(context, recorder, async () => Results.Ok(await store.QueryAsync(Parse(context, store.Policy), context.RequestAborted))));

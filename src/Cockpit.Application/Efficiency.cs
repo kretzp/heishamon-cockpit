@@ -35,6 +35,15 @@ public sealed record EnergyResult(int Year, SourceKind Source, string Unit, stri
 {
     public string ElectricalSource { get; init; } = "heishamon-extra";
     public int? MaxGapSeconds { get; init; }
+    public double DailyCompletenessHours { get; init; } = 20;
+    public EnergyResult WithCompletenessHours(double hours)
+    {
+        if (!double.IsFinite(hours) || hours is < 1 or > 24) throw new ArgumentOutOfRangeException(nameof(hours));
+        return this with { DailyCompletenessHours = hours, Days = Days.Select(day => day.Status is "future" or "current" ? day
+            : day with { Status = day.Kwh is null || day.ValidSeconds <= 0 ? "missing"
+                : day.ValidSeconds >= Math.Min(hours * 3600, day.ExpectedSeconds) ? "complete" : "partial" }).ToArray() };
+    }
+
 }
 
 public static class EnergyCalendar

@@ -17,6 +17,7 @@ type Area = 'general' | 'relays' | 'power';
 type Values = {
   plantName: string;
   retentionDays: number;
+  dailyCompletenessHours?: number;
   revision: number;
   alternativePower: AlternativePowerOptions;
   enableRelaySwitching: boolean;
@@ -66,6 +67,7 @@ export function SettingsPanel({
   const [config, setConfig] = useState<Config | null>(null);
   const [draft, setDraft] = useState<Values | null>(null);
   const [days, setDays] = useState('');
+  const [completenessHours, setCompletenessHours] = useState('20');
   const [session, setSession] = useState<Session | null>(null);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -90,7 +92,7 @@ export function SettingsPanel({
     });
     if (!response.ok) {
       const p = await response.json().catch(() => ({}));
-      throw Error(({ invalid_power_topic: t("Ungültiges MQTT-Topic. Ein exaktes Topic ohne Platzhalter ist erforderlich."), invalid_power_path: t("Ungültiger Payload-Pfad. Erlaubt sind JSON-Objektfelder und Arrayindizes."), invalid_power_settings: t("Ungültige alternative Leistungsdaten.") } as Record<string, string>)[p.errorCode] ?? errors[p.errorCode] ?? (response.status === 401 ? 'Anmeldung erforderlich oder Zugangsdaten ungültig.' : response.status === 403 ? 'Bedienerrechte erforderlich.' : 'Anfrage fehlgeschlagen.'));
+      throw Error(({ invalid_daily_completeness_hours: t("Bitte eine Stundenzahl zwischen 1 und 24 eingeben."), invalid_power_topic: t("Ungültiges MQTT-Topic. Ein exaktes Topic ohne Platzhalter ist erforderlich."), invalid_power_path: t("Ungültiger Payload-Pfad. Erlaubt sind JSON-Objektfelder und Arrayindizes."), invalid_power_settings: t("Ungültige alternative Leistungsdaten.") } as Record<string, string>)[p.errorCode] ?? errors[p.errorCode] ?? (response.status === 401 ? 'Anmeldung erforderlich oder Zugangsdaten ungültig.' : response.status === 403 ? 'Bedienerrechte erforderlich.' : 'Anfrage fehlgeschlagen.'));
     }
     return response.status === 204 ? null : response.json();
   }
@@ -100,6 +102,7 @@ export function SettingsPanel({
     setDraft(c.values);
     setAreaBases({ general: c.values, relays: c.values, power: c.values });
     setDays(String(c.values.retentionDays));
+    setCompletenessHours(String(c.values.dailyCompletenessHours ?? 20));
     setConfirmed(false);
     const current: Session = await json('auth/session');
     setSession(current);
@@ -124,13 +127,13 @@ export function SettingsPanel({
   const reducing = !!config && Number(days) < Math.max(config.values.retentionDays, config.activeRetentionDays);
   const emptyPower: AlternativePowerOptions = { enabled: false, heatpump: null, heater: null };
   const dirty = {
-    general: !!draft && !!config && (draft.plantName !== config.values.plantName || Number(days) !== config.values.retentionDays),
+    general: !!draft && !!config && (draft.plantName !== config.values.plantName || Number(days) !== config.values.retentionDays || Number(completenessHours) !== (config.values.dailyCompletenessHours ?? 20)),
     relays: !!draft && !!config && !!draft.enableRelaySwitching !== !!config.values.enableRelaySwitching,
     power: !!draft && !!config && JSON.stringify(draft.alternativePower ?? emptyPower) !== JSON.stringify(config.values.alternativePower ?? emptyPower)
   };
   const pendingReduction = !!config && config.values.retentionDays < config.activeRetentionDays;
   function fingerprint(area: Area, values: Values) {
-    return JSON.stringify(area === 'general' ? [values.plantName, values.retentionDays] : area === 'relays' ? !!values.enableRelaySwitching : values.alternativePower ?? emptyPower);
+    return JSON.stringify(area === 'general' ? [values.plantName, values.retentionDays, values.dailyCompletenessHours ?? 20] : area === 'relays' ? !!values.enableRelaySwitching : values.alternativePower ?? emptyPower);
   }
   function retentionConfirmation(area: 'relays' | 'power') {
     return pendingReduction && <div className="settings-callout settings-retention"><p>{t('Gespeicherte Aufbewahrung: {0} Tage. Die Verkürzung gilt nach dem Neustart.', [config!.values.retentionDays])}</p><label className="settings-confirm"><Input type="checkbox" required disabled={!operator || busy} checked={pendingConfirmed[area]} onChange={e => setPendingConfirmed(old => ({ ...old, [area]: e.target.checked }))} /><span>{t(' Ich bestätige: Nach dem Neustart werden Messwerte und Ereignisse außerhalb der verkürzten Aufbewahrung gelöscht.')}</span></label></div>;
@@ -138,10 +141,10 @@ export function SettingsPanel({
   function applyArea(area: Area, values: Values) {
     setAreaBases(old => old ? { ...old, [area]: values } : { general: values, relays: values, power: values });
     setPendingConfirmed({ relays: false, power: false });
-    setDraft(old => old ? { ...old, ...(area === 'general' ? { plantName: values.plantName, retentionDays: values.retentionDays }
+    setDraft(old => old ? { ...old, ...(area === 'general' ? { plantName: values.plantName, retentionDays: values.retentionDays, dailyCompletenessHours: values.dailyCompletenessHours ?? 20 }
       : area === 'relays' ? { enableRelaySwitching: values.enableRelaySwitching }
       : { alternativePower: values.alternativePower }), revision: values.revision } : values);
-    if (area === 'general') { setDays(String(values.retentionDays)); setConfirmed(false); }
+    if (area === 'general') { setCompletenessHours(String(values.dailyCompletenessHours ?? 20)); setDays(String(values.retentionDays)); setConfirmed(false); }
   }
   async function discard(area: Area) {
     const next: Config = await json('settings');
@@ -150,7 +153,7 @@ export function SettingsPanel({
   async function save(area: Area) {
     if (!config || !draft || !operator || !areaBases) return;
     if (fingerprint(area, areaBases[area]) !== fingerprint(area, config.values)) throw Error(errors.settings_conflict);
-    const values = { ...config.values, ...(area === 'general' ? { plantName: draft.plantName, retentionDays: Number(days) }
+    const values = { ...config.values, ...(area === 'general' ? { plantName: draft.plantName, retentionDays: Number(days), dailyCompletenessHours: Number(completenessHours) }
       : area === 'relays' ? { enableRelaySwitching: draft.enableRelaySwitching ?? false }
       : { alternativePower: draft.alternativePower ?? emptyPower }) };
     const saved: Values = await json('settings', { ...values, confirmReduction: area === 'general' ? confirmed : pendingConfirmed[area] });
@@ -194,6 +197,7 @@ export function SettingsPanel({
                 <label className="settings-field"><span>{t('Aufbewahrung in Tagen')}</span><Input aria-label={t('Aufbewahrung in Tagen')} type="number" min={1} max={700} step={1} required value={days} disabled={!operator || busy} onChange={e => { setDays(e.target.value); setConfirmed(false); }} /><small>{t('Eine Änderung gilt nach dem nächsten Neustart.')}</small></label>
                 <label className="settings-field"><span>{t('Aufzeichnungsintervall in Sekunden')}</span><Input aria-label={t('Aufzeichnungsintervall in Sekunden')} value={config.sampleSeconds} disabled /><small>{t('Für diese Datenbank festgelegt.')}</small></label>
               </div>
+              <label className="settings-field"><span>{t('Tagesverlauf unvollständig ab')}</span><div className="settings-hours-input"><Input aria-label={t('Tagesverlauf unvollständig ab')} type="number" min={1} max={24} step={0.5} required value={completenessHours} disabled={!operator || busy} onChange={e => setCompletenessHours(e.target.value)} /><span>h</span></div><small>{t('Abgeschlossene Tage mit weniger gültigen Messstunden gelten als unvollständig. Gilt sofort auch für bereits erfasste Tage.')}</small></label>
               <p className="settings-help">{t('Aktiv: ')}{config.activeRetentionDays}{t(' Tage · Messraster: ')}{config.sampleSeconds}{t(' Sekunden. Ein anderes Messraster benötigt eine neue Datenbank.')}</p>
               {config.restartRequired && <p role="status" className="settings-callout">{t('Geänderte Aufbewahrung gespeichert – Cockpit-Neustart ausstehend.')}</p>}
               {reducing && <label className="settings-confirm settings-callout"><Input type="checkbox" checked={confirmed} disabled={!operator || busy} required onChange={e => setConfirmed(e.target.checked)} /><span>{t(' Ich bestätige: Nach dem Neustart werden Messwerte und Ereignisse außerhalb der verkürzten Aufbewahrung gelöscht.')}</span></label>}

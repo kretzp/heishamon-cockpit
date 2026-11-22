@@ -18,6 +18,34 @@ public sealed class AppSettingsTests : IDisposable
         Assert.Throws<CommandRejected>(() => store.Save(saved with { Revision = 0 }, false));
         Assert.Equal(saved, store.Read());
     }
+    [Fact] public void HouseTemperaturePersistsAndOnlySourceChangesAdvanceGeneration()
+    {
+        var store = new AppSettingsStore(FilePath, 700);
+        Assert.False(store.Read().PlantModel.HouseTemperature.Enabled);
+        var defaults = store.Save(store.Read() with { PlantModel = new() { HouseTemperature = new(false, new()) } }, false);
+        Assert.Equal(0, defaults.HouseTemperatureGeneration);
+        var sensor = new HouseTemperatureOptions(true, new("house/sensor", "$.temperature"));
+        var saved = store.Save(store.Read() with { PlantModel = new() { HouseTemperature = sensor } }, false);
+        Assert.Equal(1, saved.HouseTemperatureGeneration);
+        Assert.Equal(sensor, new AppSettingsStore(FilePath, 700).Read().PlantModel.HouseTemperature);
+        var visual = store.Save(saved with { PlantModel = saved.PlantModel with { Buffer = true } }, false);
+        Assert.Equal(1, visual.HouseTemperatureGeneration); Assert.Equal(0, visual.PowerGeneration);
+        Assert.Throws<CommandRejected>(() => store.Save(visual with { PlantModel = visual.PlantModel with { HouseTemperature = sensor with { Input = new("house/#", "") } } }, false));
+        Assert.Throws<CommandRejected>(() => store.Save(visual with { PlantModel = visual.PlantModel with { HouseTemperature = sensor with { Input = new("house", "$..x") } } }, false));
+        var disabled = store.Save(visual with { PlantModel = visual.PlantModel with { HouseTemperature = sensor with { Enabled = false } } }, false);
+        Assert.Equal(2, disabled.HouseTemperatureGeneration);
+    }
+    [Fact] public void DailyCompletenessDefaultsToTwentyHoursAndPersistsIndependently()
+    {
+        var store = new AppSettingsStore(FilePath, 700);
+        Assert.Equal(20, store.Read().DailyCompletenessHours);
+        var saved = store.Save(store.Read() with { DailyCompletenessHours = 18.5 }, false);
+        Assert.Equal(18.5, new AppSettingsStore(FilePath, 700).Read().DailyCompletenessHours);
+        Assert.Equal(0, saved.PowerGeneration); Assert.Equal(0, saved.HouseTemperatureGeneration);
+        foreach (var invalid in new[] { 0d, 24.5, double.NaN, double.PositiveInfinity })
+            Assert.Throws<CommandRejected>(() => store.Save(saved with { DailyCompletenessHours = invalid }, false));
+        Assert.Equal(saved, store.Read());
+    }
     private readonly string directory = Path.Combine(Path.GetTempPath(), "cockpit-settings-" + Guid.NewGuid());
     private string FilePath => Path.Combine(directory, "settings.json");
     public void Dispose() { if (Directory.Exists(directory)) Directory.Delete(directory, true); }

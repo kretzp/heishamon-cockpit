@@ -73,3 +73,7 @@
 
 /* Fit the complete diagram on phones and tablets; preserve desktop sizing. */
 @media(max-width:1099px){.plant-model .plant-diagram{min-width:0;width:100%;height:auto}}
+
+.plant-model .surface-flow,.plant-model .tank-flow{stroke:color-mix(in srgb,var(--orange) 35%,white)}
+
+.plant-model .plant-house-temperature{grid-column:1/-1;display:grid;gap:12px;min-width:0;border:1px solid var(--border);border-radius:10px;padding:16px}

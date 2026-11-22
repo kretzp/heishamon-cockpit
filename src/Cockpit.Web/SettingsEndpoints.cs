@@ -1,7 +1,7 @@
 using Cockpit.Application;
 using Cockpit.Infrastructure.Persistence;
 
-public sealed record SettingsInput(string PlantName, int RetentionDays, long Revision, bool ConfirmReduction, AlternativePowerOptions? AlternativePower = null, bool? EnableRelaySwitching = null);
+public sealed record SettingsInput(string PlantName, int RetentionDays, long Revision, bool ConfirmReduction, AlternativePowerOptions? AlternativePower = null, bool? EnableRelaySwitching = null, double? DailyCompletenessHours = null);
 public static class SettingsEndpoints
 {
     public static void MapSettings(this WebApplication app, bool enabled, HistoryPolicy active, string source)
@@ -16,7 +16,7 @@ public static class SettingsEndpoints
             if (input.RetentionDays < active.RetentionDays && !input.ConfirmReduction)
                 throw new Cockpit.Domain.CommandRejected(422, "retention_confirmation_required");
             return Task.FromResult(Results.Ok(settings.Save(new(input.PlantName, input.RetentionDays, input.Revision)
-            { AlternativePower = input.AlternativePower ?? settings.Read().AlternativePower, EnableRelaySwitching = input.EnableRelaySwitching ?? settings.Read().EnableRelaySwitching, PlantModel = settings.Read().PlantModel }, input.ConfirmReduction)));
+            { DailyCompletenessHours = input.DailyCompletenessHours ?? settings.Read().DailyCompletenessHours, AlternativePower = input.AlternativePower ?? settings.Read().AlternativePower, EnableRelaySwitching = input.EnableRelaySwitching ?? settings.Read().EnableRelaySwitching, PlantModel = settings.Read().PlantModel }, input.ConfirmReduction)));
         })).RequireAuthorization("admin").RequireRateLimiting("commands");
     }
 

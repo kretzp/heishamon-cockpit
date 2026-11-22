@@ -150,3 +150,13 @@ above.
 
 References: [Microsoft .NET container guide](https://docs.docker.com/guides/dotnet/)
 and [Podman Compose provider documentation](https://docs.podman.io/en/latest/markdown/podman-compose.1.html).
+
+## Bundled release notes
+
+The frontend build includes the current version section from `documentation/RELEASE-NOTES.md`
+and its five translations from `documentation/release-notes/<version>.json` for the
+About page. German, English, French, Spanish, Italian and Portuguese are available
+offline in the built application. The build checks frontend/backend version equality,
+all translations, and the SHA-256 of the normalized original release section. When
+preparing a release, update its notes and translations together; a mismatch stops the
+build rather than displaying stale release information.

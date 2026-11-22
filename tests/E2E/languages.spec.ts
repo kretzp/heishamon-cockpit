@@ -1,3 +1,5 @@
+import { readReleaseNotes } from '../../web/build/releaseNotes';
+import { resolve as resolvePath } from 'node:path';
 import { openOverview } from './coverage-fixture';
 import { test, expect } from './coverage-fixture';
 
@@ -171,4 +173,32 @@ test('empty simulator and live logs render grammatical translations without send
     }
   }
   expect(writes).toEqual([]);
+});
+
+test('About sits between settings and logout and includes build release notes in all six languages', async ({ page }) => {
+  const notes = readReleaseNotes(resolvePath(process.cwd(), '..'));
+  await page.route('**/api/v1/auth/session', route => route.fulfill({ json: { loginRequired: true, authenticated: true, username: 'testreader', role: 'reader', csrfToken: 'isolated-test' } }));
+  const externalRequests: string[] = [];
+  page.on('request', request => { if (request.url().startsWith('https://github.com')) externalRequests.push(request.url()); });
+  await page.goto('/');
+  for (const [index, about] of ['Über…', 'About…', 'À propos…', 'Acerca de…', 'Informazioni…', 'Sobre…'].entries()) {
+    const language = languages[index];
+    await page.getByTestId('language-picker').first().selectOption(language.code);
+    const nav = page.getByRole('navigation', { name: /./ });
+    const buttons = await nav.getByRole('button').allTextContents();
+    const settingsIndex = buttons.findIndex(text => text.trim() === language.settings);
+    expect(buttons[settingsIndex + 1].trim()).toBe(about);
+    expect(settingsIndex + 2).toBe(buttons.length - 1);
+    await nav.getByRole('button', { name: about, exact: true }).click();
+    const content = page.locator('.about-panel');
+    await expect(content.locator('a').nth(0)).toHaveAttribute('href', 'https://github.com/kretzp/heishamon-cockpit/discussions');
+    await expect(content.locator('a').nth(1)).toHaveAttribute('href', 'https://github.com/kretzp/heishamon-cockpit/issues');
+    await expect(content.locator('a').nth(2)).toHaveAttribute('href', 'https://github.com/kretzp/heishamon-cockpit');
+    const localized = notes.translations[language.code];
+    await expect(content.getByRole('heading', { name: `${notes.version} · ${localized.title}`, exact: true })).toBeVisible();
+    await expect(content.locator('li')).toHaveText(localized.items);
+    await expect(content).toContainText(notes.version);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+  }
+  expect(externalRequests).toEqual([]);
 });

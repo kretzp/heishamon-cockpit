@@ -116,6 +116,8 @@ var settings = new AppSettingsStore(historyPath + ".settings.json", historyPolic
 historyPolicy = historyPolicy with { RetentionDays = settings.Read().RetentionDays };
 store.ConfigureAlternativePower(settings.Read().AlternativePower, settings.Read().PowerGeneration);
 settings.Changed += value => store.ConfigureAlternativePower(value.AlternativePower, value.PowerGeneration);
+store.ConfigureHouseTemperature(settings.Read().PlantModel.HouseTemperature, settings.Read().HouseTemperatureGeneration);
+settings.Changed += value => store.ConfigureHouseTemperature(value.PlantModel.HouseTemperature, value.HouseTemperatureGeneration);
 builder.Services.AddSingleton(settings);
 builder.Services.AddSingleton(mqttSettings);
 builder.Services.AddSingleton(controlSetup);

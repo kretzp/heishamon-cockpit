@@ -88,3 +88,5 @@
 .settings-redesign .settings-retention { display: grid; gap: 8px; }
 
 .settings-model { display: block; font-weight: 600; overflow-wrap: anywhere; }
+
+.settings-hours-input{display:flex;align-items:center;gap:8px}.settings-hours-input input{width:110px}

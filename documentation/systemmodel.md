@@ -39,3 +39,43 @@ The verified housing families and manufacturer sources are documented in the [de
 The catalogue test checks all 91 legacy IDs, the additional confirmed L-series signature and the common equipment scale. The browser matrix checks twelve representative devices from all ten housing families, including older and current All-in-One modules and the tall M-series tank. It runs on desktop and mobile and checks housing selection, fan count, pump location, fixed rotation axes, optional heating circuits and the absence of horizontal page overflow.
 
 The operating-state matrix covers heating, hot water, cooling, defrosting, off, circulation, standby and connection loss. Regression tests also cover contradictory pump-speed and water-flow readings and unavailable pump-speed data. Additional tests cover stale and historical readings, unknown models, administrator permissions, CSRF, persistence across restarts and revision conflicts. These checks use simulated measurements; they do not establish operation on a real heat pump.
+
+## House temperature from MQTT
+
+Under **Configure model**, administrators can enable **Use MQTT house temperature**
+and enter an exact MQTT topic and payload path, using the existing configured broker.
+The payload must contain a numeric temperature in °C (−50 to 100). Leave the path
+empty for a direct number, or use the same limited JSON paths as alternative power
+readings, for example `$.temperature` or `$.sensors[0].temperature`. MQTT wildcards
+are not accepted. Saving applies the subscription without restarting the application.
+
+When enabled, the house drawing uses this source instead of the indoor unit's room
+temperature. Missing or invalid readings display `-`. Retained and stale temperatures remain
+visible, including the last MQTT temperature after a disconnect. There is no
+fallback to the indoor unit while enabled. Disable the checkbox and save to restore
+the indoor unit reading. Existing installations default to disabled. The original
+indoor telemetry and heat-pump control are unaffected.
+
+The pipe temperature display also shows the flow target (**Vorlauf-Soll (Anlage)**)
+from HeishaMon TOP7 (`main/Main_Target_Temp`) below the actual flow temperature.
+It uses the reported setpoint rather than calculating one from the heating curve.
+Missing targets display `-`; stale target temperatures remain visible.
+
+## Daily history completeness
+
+In **Settings → Installation & data storage**, **Tagesverlauf unvollständig ab**
+sets the minimum valid daily coverage in hours (default **20 h**, range **1–24 h**).
+A completed day below this coverage is incomplete; a day at or above it is complete.
+The setting applies immediately to historical calendar colors, status labels and CSV
+exports, without changing recorded measurements or calculated consumption. Current
+and future days retain their separate status. A fully covered 23-hour daylight-saving
+day is complete even with a 24-hour threshold.
+
+## Sterilisation status
+
+Fresh, valid active sterilisation telemetry (TOP69) displays **Sterilisation** in
+both the system model status and the application operating-status header, including
+electric heating phases with the compressor stopped. Defrost and Off retain priority.
+During this mode, the sterilisation target (TOP70) appears after the normal hot-water
+target in the diagram and overview. Stale or retained status messages do not announce
+an active cycle. An active status does not confirm that a cycle completed successfully.

@@ -7,7 +7,9 @@ namespace Cockpit.Infrastructure.Persistence;
 public sealed record AppSettings(string PlantName, int RetentionDays, long Revision = 0)
 {
     public AlternativePowerOptions AlternativePower { get; init; } = new();
+    public double DailyCompletenessHours { get; init; } = 20;
     public bool EnableRelaySwitching { get; init; }
+    public long HouseTemperatureGeneration { get; init; }
     public long PowerGeneration { get; init; }
     public PlantModelOptions PlantModel { get; init; } = new();
 }
@@ -29,10 +31,12 @@ public sealed class AppSettingsStore
     {
         if (value.AlternativePower is null) throw new CommandRejected(422, "invalid_power_settings");
         value.AlternativePower.Validate();
+        if (!double.IsFinite(value.DailyCompletenessHours) || value.DailyCompletenessHours is < 1 or > 24)
+            throw new CommandRejected(422, "invalid_daily_completeness_hours");
         if (value.PlantModel is null) throw new CommandRejected(422, "invalid_plant_model");
         value.PlantModel.Validate();
         if (string.IsNullOrWhiteSpace(value.PlantName) || value.PlantName.Length > 80
-            || value.PlantName.Any(char.IsControl) || value.RetentionDays is < 1 or > 700 || value.Revision < 0 || value.PowerGeneration is < 0 or > 9007199254740991L)
+            || value.PlantName.Any(char.IsControl) || value.RetentionDays is < 1 or > 700 || value.Revision < 0 || value.PowerGeneration is < 0 or > 9007199254740991L || value.HouseTemperatureGeneration is < 0 or > 9007199254740991L)
             throw new CommandRejected(422, "invalid_settings");
     }
     public AppSettings Save(AppSettings input, bool confirmReduction)
@@ -44,6 +48,7 @@ public sealed class AppSettingsStore
             if (input.RetentionDays < current.RetentionDays && !confirmReduction)
                 throw new CommandRejected(422, "retention_confirmation_required");
             var next = input with { PlantName = input.PlantName.Trim(), Revision = checked(current.Revision + 1),
+                HouseTemperatureGeneration = input.PlantModel.HouseTemperature.HasSameSource(current.PlantModel.HouseTemperature) ? current.HouseTemperatureGeneration : checked(current.HouseTemperatureGeneration + 1),
                 PowerGeneration = input.AlternativePower == current.AlternativePower ? current.PowerGeneration : checked(current.PowerGeneration + 1) };
 
             var temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";

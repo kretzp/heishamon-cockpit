@@ -162,3 +162,7 @@ dl > div { display: grid; grid-template-columns: 140px 1fr; gap: 15px; margin-bo
 @media (prefers-reduced-motion: reduce) { .relay-switch-track, .relay-switch-track::before { transition: none; } }
 
 .plant-metric .relay-switch { grid-column: 2; }
+
+.chart-height-control { display: inline-flex; align-items: center; gap: 8px; }
+
+.value .sterilization-target{display:inline-block;font-size:.85rem;line-height:1.4;overflow-wrap:anywhere}

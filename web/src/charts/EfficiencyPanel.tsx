@@ -51,8 +51,10 @@ export function EfficiencyPanel({
     to
   } = sync.range;
   useEffect(() => {
-    const timer = setInterval(() => setCalendarRefresh(x => x + 1), 60000);
-    return () => clearInterval(timer);
+    const refreshCalendar = () => setCalendarRefresh(x => x + 1);
+    const timer = setInterval(refreshCalendar, 60000);
+    globalThis.addEventListener('cockpit-power-changed', refreshCalendar);
+    return () => { clearInterval(timer); globalThis.removeEventListener('cockpit-power-changed', refreshCalendar); };
   }, []);
   useEffect(() => {
     const controller = new AbortController();
@@ -119,7 +121,7 @@ export function EfficiencyPanel({
   }, [energy, onSelect]);
   return <section aria-label={t("Effizienz und Tagesenergie")}>
     <h2 className="history-subheading">{t("COP · Heizen und Warmwasser")}</h2>
-    <label>{t("Diagrammhöhe")}<select value={height} onChange={e => setHeight(Number(e.target.value))}>{[320, 480, 640, 960].map(n => <option key={n} value={n}>{n} px</option>)}</select></label>
+    <label className="chart-height-control">{t("Diagrammhöhe")}<select value={height} onChange={e => setHeight(Number(e.target.value))}>{[320, 480, 640, 960].map(n => <option key={n} value={n}>{n} px</option>)}</select></label>
     <label>{t("Gleitender Mittelwert")}<select value={window} onChange={e => setWindow(Number(e.target.value))}>{localizeText([5, 15, 30].map(n => <option key={n} value={n}>{localizeText(n)}{t(" Minuten")}</option>))}</select></label>
     <p className="field-note">{t("COP = thermische Extra-Leistung / ")}{localizeText(cop?.electricalSource === 'alternative-mqtt' ? 'alternative elektrische Gesamtleistung' : cop?.electricalSource === 'mixed' ? 'elektrische Leistung der jeweils aufgezeichneten Quelle' : 'elektrische Extra-Leistung')}{t(". Blau: Heizen; Violett: Warmwasser. Gestrichelt: Rastermittel des COP; durchgezogen: nachlaufender zeitgewichteter Mittelwert. Lücken, Abtauung, Heizstab und Betriebswechsel unterbrechen die Glättung. Kühlen ist kein Heiz-COP.")}</p>
     {copLoading && <p role="status">{t("COP wird geladen …")}</p>}{copError && <p className="warning" role="alert">{localizeText(copError)}</p>}
@@ -145,7 +147,7 @@ export function EfficiencyPanel({
         ? t('Integration der aufgezeichneten elektrischen Quelle. Alternative Leistungsdaten summieren Wärmepumpe und Heizstab. Messlücken und Quellenwechsel werden nicht überbrückt; keine Hochrechnung und kein Energiezählerstand.')
         : t('Integration elektrischer Extra-Leistung, kein geeichter Gesamtverbrauch. Keine Hochrechnung und keine Addition gleichzeitig positiver Betriebsbereiche. Pumpen und externe Verbraucher sind nicht als vollständig erfasst nachgewiesen.')}</p>
     {energyLoading && <p role="status">{t("Tagesenergie wird geladen …")}</p>}{energyError && <p className="warning" role="alert">{localizeText(energyError)}</p>}
-    {energy && <><p>{energy.source === 'simulator' ? localizeText('Simulation') : localizeText('MQTT')}{t(' · Quelle: ')}{energySourceLabel(energy.electricalSource)}{t(" · Tage in Europe/Berlin · Vollständige und unvollständige Tage ab 20 h Abdeckung erhalten die blaue Verbrauchsfarbe.")}</p>
+    {energy && <><p>{energy.source === 'simulator' ? localizeText('Simulation') : localizeText('MQTT')}{t(' · Quelle: ')}{energySourceLabel(energy.electricalSource)}{t(" · Tage in Europe/Berlin · Abgeschlossene Tage ab {0} h Abdeckung gelten als vollständig.", [energy.dailyCompletenessHours ?? 20])}</p>
       <p className="field-note">{t("! Unvollständig · … Laufender Tag · – Keine Daten · Leeres graues Feld: zukünftig. Farbskala: 0 bis zum größten eingefärbten Tageswert dieses Jahres. Tag anklicken oder in der Tabelle wählen, um den Verlauf zu öffnen.")}</p>
       <ChartFrame option={energyOption} height={calendarHeight} className="energy-calendar" title={localizeText(`Verbrauchskalender ${year}. Unvollständige Tage getrennt gekennzeichnet. Tastaturauswahl in der Tagestabelle.`)} onDateClick={selectDay} />
       <details><summary>{t("Tagestabelle und Tagesauswahl")}</summary><div className="history-table-wrap"><table><thead><tr><th>{t("Tag")}</th><th>{t("Erfasst")}</th><th>{t("Tiefste Außentemperatur · °C")}</th><th>{t("Abdeckung")}</th><th>{t("Status")}</th></tr></thead><tbody>{localizeText(energy.days.map(d => <tr key={d.date}><td><Button disabled={d.status === 'future'} onClick={() => selectDay(d.date)}>{localizeText(d.date)}</Button></td><td>{d.kwh === null ? localizeText('—') : localizeText(chartNumber(d.kwh)) + localizeText(' kWh')}</td><td>{d.minOutdoorTemperatureC == null ? localizeText('—') : localizeText(chartNumber(d.minOutdoorTemperatureC))}</td><td>{localizeText(chartNumber(d.validSeconds / 3600))} / {localizeText(chartNumber(d.expectedSeconds / 3600))}{t(" h")}</td><td>{localizeText(dayStatus[d.status])}</td></tr>))}</tbody></table></div></details>
