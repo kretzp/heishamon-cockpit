@@ -1,5 +1,18 @@
 # Release notes
 
+## 1.0.4 — MQTT indoor temperature across views, 2026-11-23
+
+- Move the MQTT house-temperature configuration from Configure model to the new
+  Settings → Temperature data tab, preserving existing topics and payload paths.
+- When enabled, use the MQTT reading as Indoor in temperature history, its CSV
+  export, the overview tile and the tile's measurement chart, as well as the house drawing.
+  Disabling restores the indoor-unit source. Saved changes apply without a restart.
+- Preserve stale and retained readings in live displays. Missing or invalid MQTT
+  readings remain unavailable without falling back to the indoor unit; historical
+  charts retain their existing quality gaps. Original indoor telemetry remains available.
+- Add desktop and mobile regression checks for source selection and the relocated
+  administrator settings. No database migration is required.
+
 ## 1.0.3 — System model, MQTT room temperature and daily history, 2026-11-22
 
 - Open measurement charts directly from the System model power overview,

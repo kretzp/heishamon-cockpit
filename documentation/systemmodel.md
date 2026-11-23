@@ -42,15 +42,18 @@ The operating-state matrix covers heating, hot water, cooling, defrosting, off, 
 
 ## House temperature from MQTT
 
-Under **Configure model**, administrators can enable **Use MQTT house temperature**
+Under **Settings → Temperature data**, administrators can enable **Use MQTT house temperature**
 and enter an exact MQTT topic and payload path, using the existing configured broker.
 The payload must contain a numeric temperature in °C (−50 to 100). Leave the path
 empty for a direct number, or use the same limited JSON paths as alternative power
 readings, for example `$.temperature` or `$.sensors[0].temperature`. MQTT wildcards
 are not accepted. Saving applies the subscription without restarting the application.
 
-When enabled, the house drawing uses this source instead of the indoor unit's room
-temperature. Missing or invalid readings display `-`. Retained and stale temperatures remain
+When enabled, the house drawing, the **Indoor** overview tile and its measurement
+chart, and the **Indoor** series in temperature history and its CSV export use this
+source instead of the indoor unit's room temperature. Missing or invalid readings
+display a dash (`-` in the diagram, `—` in the tile). Historical charts retain their
+existing quality gaps. Retained and stale temperatures remain
 visible, including the last MQTT temperature after a disconnect. There is no
 fallback to the indoor unit while enabled. Disable the checkbox and save to restore
 the indoor unit reading. Existing installations default to disabled. The original

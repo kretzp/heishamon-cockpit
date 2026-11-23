@@ -27,6 +27,7 @@ const colors: Record<string, string> = {
   returnTemperature: '#a63b15',
   outsideTemperature: '#247642',
   indoorTemperature: '#784ac2',
+  mqttHouseTemperature: '#784ac2',
   dhwTemperature: '#aa2865',
   dhwTargetTemperature: '#71611a',
   temperatureSpread: '#177b83',

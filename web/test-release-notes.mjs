@@ -18,15 +18,15 @@ test('build includes current release notes in all six languages', () => {
   const notes = readReleaseNotes(root);
   assert.deepEqual(Object.keys(notes.translations).sort(), ['de', 'en', 'es', 'fr', 'it', 'pt']);
   assert.equal(notes.version, JSON.parse(readFileSync(resolve(root, 'web/package.json'), 'utf8')).version);
-  assert.ok(notes.translations.en.items[0].startsWith('Open measurement charts'));
-  assert.ok(notes.translations.de.items[0].startsWith('Messwertdiagramme'));
+  assert.ok(notes.translations.en.items[0].startsWith('Move the MQTT'));
+  assert.ok(notes.translations.de.items[0].startsWith('Die MQTT'));
 });
 for (const change of ['source', 'missing-language', 'version']) test(`build rejects outdated release data: ${change}`, () => {
   const { temporary, version } = fixture();
   try {
     if (change === 'source') {
       const path = resolve(temporary, 'documentation/RELEASE-NOTES.md');
-      writeFileSync(path, readFileSync(path, 'utf8').replace('Open measurement charts', 'Updated measurement charts'));
+      writeFileSync(path, readFileSync(path, 'utf8').replace('Move the MQTT', 'Update the MQTT'));
     } else if (change === 'version') {
       const path = resolve(temporary, 'web/package.json');
       const metadata = JSON.parse(readFileSync(path, 'utf8')); metadata.version = '99.0.0'; writeFileSync(path, JSON.stringify(metadata));

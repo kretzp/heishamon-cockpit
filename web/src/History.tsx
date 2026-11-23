@@ -1,3 +1,4 @@
+import { useTemperatureSource, indoorTemperatureKey } from './useTemperatureSource';
 import { exportFilename } from './charts/exportFilename';
 import { t, text as localizeText, getLocale } from "./i18n/core";
 import { useLanguage } from "./i18n/Language";
@@ -46,6 +47,7 @@ const labels: Record<string, string> = {
   returnTemperature: 'Rücklauf',
   outsideTemperature: 'Außen',
   indoorTemperature: 'Innen',
+  mqttHouseTemperature: 'Innen',
   indoorTargetTemperature: 'Innen-Soll',
   zone1HeatRequest: 'Heizanforderung Zone 1',
   zone1SensorMode: 'Sensormodus Zone 1',
@@ -157,6 +159,7 @@ function HistorySection({
   compact?: boolean; kind?: HistoryKind; stateKey?: string;
 }) {
   const language = useLanguage();
+  const mqttTemperature = useTemperatureSource(kind === 'temperature');
   const temperature = kind === 'temperature';
   const title = temperature ? 'Temperaturverlauf' : kind === 'technical' ? 'Technische Anlagenwerte' : kind === 'pressure' ? 'Wasserdruckverlauf' : kind === 'power' ? 'Leistungsverlauf' : kind === 'efficiency' ? 'COP-Verlauf' : labels[stateKey];
   const [height, setHeight] = useState(kind === 'state' ? 190 : 640);
@@ -184,7 +187,7 @@ function HistorySection({
   const [error, setError] = useState('');
   const [exporting, setExporting] = useState(false);
   const [refresh, setRefresh] = useState(0);
-  const keyString = temperature ? keys.join(',') : kind === 'technical' ? technicalKey : kind === 'pressure' ? 'waterPressure' : kind === 'state' ? stateKey : 'heatPowerConsumption,heatPowerProduction,coolPowerConsumption,coolPowerProduction,dhwPowerConsumption,dhwPowerProduction';
+  const keyString = temperature ? keys.map(key => indoorTemperatureKey(mqttTemperature, key)).join(',') : kind === 'technical' ? technicalKey : kind === 'pressure' ? 'waterPressure' : kind === 'state' ? stateKey : 'heatPowerConsumption,heatPowerProduction,coolPowerConsumption,coolPowerProduction,dhwPowerConsumption,dhwPowerProduction';
   const {
     bundle,
     loading,

@@ -1,0 +1,50 @@
+{
+  "sourceSha256": "5494e0054acfa2a8f3d1c3a7bff1e2520cf14f9a5ab9b25a383bac2c1c98d0fc",
+  "translations": {
+    "de": {
+      "title": "MQTT-Innentemperatur in allen Ansichten",
+      "items": [
+        "Die MQTT-Haustemperatur-Konfiguration wurde von „Modell konfigurieren“ in den neuen Reiter „Einstellungen → Temperaturdaten“ verschoben. Vorhandene Topics und Payload-Pfade bleiben erhalten.",
+        "Bei aktivierter Option erscheint der MQTT-Wert als „Innen“ im Temperaturverlauf, dessen CSV-Export, auf der Übersichtskachel und in deren Messwertdiagramm sowie im Hausbild. Ausschalten stellt die Inneneinheit als Quelle wieder her. Gespeicherte Änderungen wirken ohne Neustart.",
+        "Liveanzeigen behalten veraltete und retained Messwerte bei. Fehlende oder ungültige MQTT-Werte bleiben ohne Rückgriff auf die Inneneinheit unverfügbar; historische Diagramme behalten ihre bisherigen Qualitätslücken. Die ursprüngliche Innentemperatur-Telemetrie bleibt verfügbar.",
+        "Desktop- und Mobiltests prüfen die Quellenauswahl und die verschobenen Administratoreinstellungen. Keine Datenbankmigration erforderlich."
+      ]
+    },
+    "fr": {
+      "title": "Température intérieure MQTT dans toutes les vues",
+      "items": [
+        "La configuration de température MQTT passe de Configurer le modèle au nouvel onglet Paramètres → Données de température. Les sujets et chemins existants sont conservés.",
+        "Lorsque l’option est activée, la valeur MQTT apparaît comme Intérieur dans l’historique, son export CSV, la tuile de synthèse et son graphique ainsi que le schéma de la maison. La désactivation rétablit la source de l’unité intérieure. Aucun redémarrage requis.",
+        "Les vues en direct conservent les valeurs périmées et retained. Les valeurs MQTT absentes ou invalides restent indisponibles sans repli sur l’unité intérieure ; les graphiques historiques conservent leurs lacunes de qualité. La télémétrie intérieure originale reste disponible.",
+        "Des tests sur ordinateur et mobile couvrent la sélection de source et les paramètres administrateur déplacés. Aucune migration de base de données requise."
+      ]
+    },
+    "es": {
+      "title": "Temperatura interior MQTT en todas las vistas",
+      "items": [
+        "La configuración MQTT pasa de Configurar modelo a la nueva pestaña Ajustes → Datos de temperatura. Se conservan los temas y rutas existentes.",
+        "Al activar la opción, el valor MQTT aparece como Interior en el historial, su CSV, la tarjeta de resumen y su gráfico, y el esquema de la casa. Desactivarla restaura la fuente de la unidad interior. Los cambios guardados no requieren reinicio.",
+        "Las vistas en directo conservan valores antiguos y retained. Las lecturas MQTT ausentes o inválidas quedan sin valor, sin recurrir a la unidad interior; los gráficos históricos mantienen sus huecos de calidad. La telemetría interior original sigue disponible.",
+        "Las pruebas de escritorio y móvil cubren la selección de fuente y los ajustes de administrador trasladados. No requiere migración de base de datos."
+      ]
+    },
+    "it": {
+      "title": "Temperatura interna MQTT in tutte le viste",
+      "items": [
+        "La configurazione MQTT passa da Configura modello alla nuova scheda Impostazioni → Dati di temperatura. Topic e percorsi esistenti vengono conservati.",
+        "Quando attiva, la lettura MQTT appare come Interno nello storico, nel CSV, nel riquadro della panoramica e nel suo grafico, oltre che nello schema della casa. Disattivandola si ripristina l’unità interna come fonte. Le modifiche salvate non richiedono riavvio.",
+        "Le viste in tempo reale mantengono valori obsoleti e retained. Le letture MQTT mancanti o non valide restano indisponibili senza usare l’unità interna; i grafici storici conservano le lacune di qualità. La telemetria interna originale rimane disponibile.",
+        "I test desktop e mobile coprono la selezione della fonte e le impostazioni amministratore spostate. Nessuna migrazione del database richiesta."
+      ]
+    },
+    "pt": {
+      "title": "Temperatura interior MQTT em todas as vistas",
+      "items": [
+        "A configuração MQTT passa de Configurar modelo para o novo separador Definições → Dados de temperatura. Os tópicos e caminhos existentes são preservados.",
+        "Quando ativada, a leitura MQTT aparece como Interior no histórico, no CSV, no cartão da visão geral e no seu gráfico, além do esquema da casa. Desativar restaura a unidade interior como fonte. As alterações guardadas dispensam reinício.",
+        "As vistas em direto mantêm valores antigos e retained. Leituras MQTT ausentes ou inválidas ficam indisponíveis sem recorrer à unidade interior; os gráficos históricos mantêm as lacunas de qualidade. A telemetria interior original continua disponível.",
+        "Os testes de computador e telemóvel cobrem a seleção de fonte e as definições de administrador movidas. Não é necessária migração da base de dados."
+      ]
+    }
+  }
+}

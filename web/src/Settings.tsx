@@ -1,3 +1,4 @@
+import { TemperatureSettings } from './TemperatureSettings';
 import { AlternativePowerFields, type AlternativePowerOptions } from './AlternativePowerFields';
 import { settingsText as st } from './i18n/settings';
 import { t, text as localizeText, getLocale } from "./i18n/core";
@@ -167,6 +168,7 @@ export function SettingsPanel({
     ...(session?.role === 'admin' ? [{ id: 'mqtt', label: 'MQTT-Verbindung', icon: 'cloud' as IconName }] : []),
     { id: 'control', label: 'Steuerung & Relais', icon: 'valve' },
     { id: 'power', label: 'Leistungsdaten', icon: 'flow' },
+    { id: 'temperature', label: 'Temperaturdaten', icon: 'thermometer' },
     ...(session?.role === 'admin' || enabled && !session?.loginRequired ? [{ id: 'users', label: 'Benutzer & Zugriff', icon: 'lock' as IconName }] : [])
   ];
   const activeSection = sections.some(item => item.id === section) ? section : 'general';
@@ -214,6 +216,9 @@ export function SettingsPanel({
             <div className="settings-panel-body"><SettingsToggle label={t('Relaisschaltung aktivieren')} description={t('Zeigt Relais 1 und 2 mit Toggle und Ein/Aus-Verlauf.')} checked={draft.enableRelaySwitching ?? false} disabled={!operator || busy} onChange={e => setDraft({ ...draft, enableRelaySwitching: e.target.checked })} /><p className="settings-help">{t('Zum Schalten sind eine aktive Steuerungsfreigabe und Schreibrechte nötig. Speichern verändert keinen Relaiszustand.')}</p>{retentionConfirmation('relays')}</div>
             <SettingsFooter dirty={dirty.relays} busy={busy} disabled={!operator || pendingReduction && !pendingConfirmed.relays} onDiscard={() => void act(() => discard('relays'))} saveLabel={t('Relais-Einstellung speichern')} />
           </form>}
+        </section>
+        <section id="settings-temperature" role="tabpanel" aria-labelledby="settings-tab-temperature" hidden={activeSection !== 'temperature'}>
+          <TemperatureSettings enabled={!!operator} csrfToken={session?.csrfToken ?? ''} />
         </section>
         <section id="settings-power" role="tabpanel" aria-labelledby="settings-tab-power" hidden={activeSection !== 'power'}>
           {draft && config && <form className="panel settings-panel" onSubmit={e => { e.preventDefault(); void act(() => save('power')); }}>

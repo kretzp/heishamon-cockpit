@@ -1,3 +1,4 @@
+import { useTemperatureSource, indoorTemperatureKey } from './useTemperatureSource';
 import { derivePlantState } from './plant/plantModelState';
 import { AboutPanel } from './About';
 import { metricNumber, twoDecimalMetrics } from './charts/chartFormat';
@@ -80,6 +81,7 @@ const labels: Record<string, string> = {
   temperatureSpread: 'Spreizung',
   outsideTemperature: 'Außentemperatur',
   indoorTemperature: 'Innen',
+  mqttHouseTemperature: 'Innen',
   indoorTargetTemperature: 'Innen-Soll',
   dhwTemperature: 'Warmwasser',
   dhwTargetTemperature: 'Warmwasser-Soll',
@@ -137,6 +139,7 @@ const formatTime = (date: string) => new Intl.DateTimeFormat(getLocale(), {
   second: '2-digit'
 }).format(new Date(date));
 function display(value: Value) {
+  if (value.key === 'mqttHouseTemperature' && (['unknown', 'invalid'].includes(value.quality) || typeof value.value !== 'number' || !Number.isFinite(value.value))) return '—';
   if (technicalKeys.includes(value.key)) {
     if (value.quality === 'unknown' || value.quality === 'invalid' || typeof value.value !== 'number' || !Number.isFinite(value.value) || value.value < 0) return '—';
     return value.value.toLocaleString(getLocale(), {
@@ -169,6 +172,7 @@ function Unavailable({
   return <div className="unavailable"><Icon name="info" /><div><h2>{t("Noch nicht verfügbar")}</h2><p>{localizeText(children)}</p></div></div>;
 }
 function App() {
+  const mqttTemperature = useTemperatureSource();
   const navigationRef = useRef<HTMLElement>(null);
   useEffect(() => {
     const navigation = navigationRef.current;
@@ -316,7 +320,7 @@ function App() {
   }
   function card(key: string, variant = '', attributes: React.HTMLAttributes<HTMLElement> = {}, controls?: React.ReactNode, headingLevel: 2 | 3 = 3) {
     const Heading = headingLevel === 2 ? 'h2' : 'h3';
-    const value = currentValue(key);
+    const value = currentValue(indoorTemperatureKey(mqttTemperature, key));
     const targetKey = tab === 'Übersicht' ? ({ dhwTemperature: 'dhwTargetTemperature', indoorTemperature: 'indoorTargetTemperature' } as Record<string, string>)[key] : undefined;
     const target = targetKey ? currentValue(targetKey) : undefined;
     const sterilizationTarget = currentValue('sterilizationTemperature');
@@ -369,7 +373,7 @@ function App() {
           setEditingOrder(false);
         }} aria-current={tab === name ? 'page' : undefined}><Icon name={tabIcons[i]} />{localizeText(name)}</Button>))}<AccountMenu /></nav><p className="sidebar-note"><Icon name="lock" /> {liveControl ? localizeText('Anlagensteuerung') : curveControl ? localizeText('Heizkurvensteuerung') : liveTest ? localizeText('Begrenzter Live-Test') : simulatorControl ? localizeText('Simulatorbetrieb') : localizeText('Lesender Betrieb')}</p></aside>
     <main id="content" tabIndex={-1}>
-      {chartKey && <Suspense fallback={<p role="status">{t("Diagramm wird geöffnet …")}</p>}><MetricChartDialog key={chartKey} metricKey={chartKey} label={chartLabel} fromPlantModel={plantChart} onClose={() => setChartKey(null)} /></Suspense>}
+      {chartKey && <Suspense fallback={<p role="status">{t("Diagramm wird geöffnet …")}</p>}><MetricChartDialog key={chartKey} metricKey={plantChart ? chartKey : indoorTemperatureKey(mqttTemperature, chartKey)} label={chartLabel} fromPlantModel={plantChart} onClose={() => setChartKey(null)} /></Suspense>}
       <div className="page-heading"><div className="page-heading-row"><h1 className="page-title">{localizeText(tab)}</h1>{(tab === 'Übersicht' || tab === 'Steuerung' || tab === 'Dallas-1-Wire') && <Button aria-pressed={editingOrder} onClick={() => setEditingOrder(!editingOrder)}>{editingOrder ? localizeText('Anordnung fertig') : localizeText('Kacheln anordnen')}</Button>}</div><p>{t("Version ")}{localizeText(system?.appVersion) ?? localizeText('—')} · {system ? system.source === 'simulator' ? localizeText('Simulatordaten') : system.readOnly ? localizeText('Lokaler Lesebetrieb') : localizeText('Lokaler Bedienbetrieb') : localizeText('Datenquelle wird geladen …')}</p></div>
       <div className="simulation" role="status"><Icon name="info" />{system?.source === 'simulator' ? localizeText('SIMULATION · Alle Messwerte und Verbindungszustände sind simuliert.') : system?.source === 'mqtt' ? liveControl ? localizeText('MQTT · Heizkurve und Warmwassersteuerung verfügbar') : curveControl ? localizeText('MQTT · Heizkurvensteuerung verfügbar') : localizeText('MQTT · Lesender Betrieb') : localizeText('Datenquelle wird geladen …')}</div>
       <StorageNotice />

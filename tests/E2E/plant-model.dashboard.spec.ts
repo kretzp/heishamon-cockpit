@@ -187,9 +187,20 @@ for (const mode of ['disabled', 'valid', 'stale', 'retained', 'offline', 'missin
   await expect(page.locator('#room-value')).toHaveText(mode === 'disabled' ? '26 °C' : mode === 'missing' || mode === 'invalid' ? '-' : '19,5 °C');
   await page.locator('.plant-explorer input[type=search]').fill('indoorTemperature');
   await expect(page.locator('.plant-explorer tbody tr').filter({ hasText: 'indoorTemperature' }).locator('td').nth(1)).toHaveText('26 °C');
+  const expectedKey = mode === 'disabled' ? 'indoorTemperature' : 'mqttHouseTemperature';
+  const historyRequest = page.waitForRequest(r => r.url().includes('/api/v1/history?') && !!new URL(r.url()).searchParams.get('keys')?.split(',').includes(expectedKey));
+  await page.getByRole('navigation').getByRole('button', { name: 'Übersicht', exact: true }).click();
+  const tile = page.locator('.temperature-grid article').filter({ has: page.getByRole('heading', { name: 'Innen', exact: true }) });
+  await expect(tile).toContainText(mode === 'disabled' ? '26' : mode === 'missing' || mode === 'invalid' ? '—' : '19,5');
+  await historyRequest;
+
 });
 
 test('administrator configures MQTT house temperature with checkbox, topic and payload path', async ({ page }) => {
+  await page.route('**/api/v1/system', async route => {
+    const response = await route.fetch();
+    await route.fulfill({ json: { ...await response.json(), settingsEnabled: true } });
+  });
   await page.route('**/api/v1/auth/session', route => route.fulfill({ json: { loginRequired: false, authenticated: true, role: 'admin', csrfToken: 'isolated-test' } }));
   let configuration = { houseTemperature: { enabled: false, input: { topic: '', payloadPath: '' } } };
   await page.route('**/api/v1/settings/plant-model', async route => {
@@ -201,16 +212,20 @@ test('administrator configures MQTT house temperature with checkbox, topic and p
   });
   await page.goto('/');
   await page.getByRole('button', { name: 'Modell konfigurieren', exact: true }).click();
-  const editor = page.getByRole('region', { name: 'Modell konfigurieren' });
+  await expect(page.getByRole('region', { name: 'Modell konfigurieren' }).getByLabel('MQTT-Topic', { exact: true })).toHaveCount(0);
+  await page.getByRole('navigation').getByRole('button', { name: 'Einstellungen', exact: true }).click();
+  await page.getByRole('tab', { name: 'Temperaturdaten', exact: true }).click();
+  const editor = page.getByRole('tabpanel', { name: 'Temperaturdaten', exact: true });
   await expect(editor.getByLabel('MQTT-Topic', { exact: true })).toBeDisabled();
   await editor.getByLabel('MQTT-Haustemperatur verwenden', { exact: true }).check();
   await editor.getByLabel('MQTT-Topic', { exact: true }).fill('house/sensor');
   await editor.getByLabel('Payload-Pfad', { exact: true }).fill('$.temperature');
-  await editor.getByRole('button', { name: 'Speichern', exact: true }).click();
-  await expect(editor).toHaveCount(0);
+  await editor.getByRole('button', { name: 'Einstellungen speichern', exact: true }).click();
+  await expect(editor.getByText('Keine offenen Änderungen', { exact: true })).toBeVisible();
   expect(configuration.houseTemperature).toEqual({ enabled: true, input: { topic: 'house/sensor', payloadPath: '$.temperature' } });
   await page.reload();
-  await page.getByRole('button', { name: 'Modell konfigurieren', exact: true }).click();
+  await page.getByRole('navigation').getByRole('button', { name: 'Einstellungen', exact: true }).click();
+  await page.getByRole('tab', { name: 'Temperaturdaten', exact: true }).click();
   await expect(editor.getByLabel('MQTT-Haustemperatur verwenden', { exact: true })).toBeChecked();
   await expect(editor.getByLabel('MQTT-Topic', { exact: true })).toHaveValue('house/sensor');
   await expect(editor.getByLabel('Payload-Pfad', { exact: true })).toHaveValue('$.temperature');
