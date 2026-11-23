@@ -35,6 +35,24 @@ public sealed class AppSettingsTests : IDisposable
         var disabled = store.Save(visual with { PlantModel = visual.PlantModel with { HouseTemperature = sensor with { Enabled = false } } }, false);
         Assert.Equal(2, disabled.HouseTemperatureGeneration);
     }
+    [Fact] public void HouseTargetTemperaturePersistsWithIndependentGeneration()
+    {
+        var store = new AppSettingsStore(FilePath, 700);
+        Assert.False(store.Read().PlantModel.HouseTargetTemperature.Enabled);
+        var sensor = new HouseTemperatureOptions(true, new("house", "$.target"));
+        var saved = store.Save(store.Read() with { PlantModel = new() { HouseTargetTemperature = sensor } }, false);
+        Assert.Equal(1, saved.HouseTargetTemperatureGeneration);
+        Assert.Equal(0, saved.HouseTemperatureGeneration);
+        Assert.Equal(sensor, new AppSettingsStore(FilePath, 700).Read().PlantModel.HouseTargetTemperature);
+        var actual = store.Save(saved with { PlantModel = saved.PlantModel with { HouseTemperature = sensor } }, false);
+        Assert.Equal(1, actual.HouseTargetTemperatureGeneration);
+        Assert.Equal(1, actual.HouseTemperatureGeneration);
+        var disabled = store.Save(actual with { PlantModel = actual.PlantModel with { HouseTargetTemperature = sensor with { Enabled = false } } }, false);
+        Assert.Equal(2, disabled.HouseTargetTemperatureGeneration);
+        Assert.Equal(1, disabled.HouseTemperatureGeneration);
+        Assert.Throws<CommandRejected>(() => store.Save(disabled with { PlantModel = disabled.PlantModel with { HouseTargetTemperature = sensor with { Input = new("house/#", "") } } }, false));
+        Assert.Throws<CommandRejected>(() => store.Save(disabled with { PlantModel = disabled.PlantModel with { HouseTargetTemperature = sensor with { Input = new("house", "$..x") } } }, false));
+    }
     [Fact] public void DailyCompletenessDefaultsToTwentyHoursAndPersistsIndependently()
     {
         var store = new AppSettingsStore(FilePath, 700);

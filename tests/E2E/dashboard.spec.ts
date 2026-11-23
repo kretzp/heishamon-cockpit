@@ -1288,3 +1288,27 @@ test('daily completeness hours default to twenty and update historical calendar 
   await daily.getByText('Tagestabelle und Tagesauswahl', { exact: true }).click();
   await expect(daily.locator('tbody tr')).toContainText('Vollständig');
 });
+
+for (const rememberMe of [false, true]) test(`login remember checkbox is explicit and resets after logout: ${rememberMe}`, async ({ page }) => {
+  let authenticated = false;
+  await page.route('**/api/v1/auth/session', route => route.fulfill({ json: {
+    loginRequired: true, authenticated, username: authenticated ? 'simulation' : undefined, role: 'reader', csrfToken: 'isolated-test-csrf'
+  } }));
+  await page.route('**/api/v1/auth/login', route => {
+    expect(route.request().headers()['x-csrf-token']).toBe('isolated-test-csrf');
+    expect(route.request().postDataJSON()).toEqual({ username: 'simulation', password: 'isolated-test-password', rememberMe });
+    authenticated = true; return route.fulfill({ status: 204 });
+  });
+  await page.route('**/api/v1/auth/logout', route => { authenticated = false; return route.fulfill({ status: 204 }); });
+  await page.goto('/');
+  const checkbox = page.getByRole('checkbox', { name: 'Auf diesem Gerät 30 Tage angemeldet bleiben', exact: true });
+  await expect(checkbox).not.toBeChecked();
+  await page.getByLabel('Benutzername', { exact: true }).fill('simulation');
+  await page.getByLabel('Passwort', { exact: true }).fill('isolated-test-password');
+  if (rememberMe) await checkbox.check();
+  await page.getByRole('button', { name: 'Anmelden', exact: true }).click();
+  await page.getByRole('button', { name: 'Abmelden', exact: true }).click();
+  await expect(checkbox).not.toBeChecked();
+  await expect(page.getByLabel('Passwort', { exact: true })).toHaveValue('');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+});

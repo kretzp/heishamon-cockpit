@@ -59,6 +59,17 @@ fallback to the indoor unit while enabled. Disable the checkbox and save to rest
 the indoor unit reading. Existing installations default to disabled. The original
 indoor telemetry and heat-pump control are unaffected.
 
+A separate **House target temperature via MQTT** group in the same settings tab
+has its own checkbox, exact topic and payload path. It can use the same topic as
+the actual temperature with a different JSON path. When enabled, it supplies
+**Indoor target** on the overview tile. When disabled, the tile continues to use
+the heat pump's indoor target. Missing or invalid enabled MQTT readings do not
+fall back to the heat pump; stale and retained readings remain visible.
+The house diagram displays the MQTT target in smaller text below the actual
+room temperature only when the option is enabled and a usable reading exists.
+Saving updates the subscription immediately. This display source does not send
+setpoints to the heat pump or change the control-page target.
+
 The pipe temperature display also shows the flow target (**Vorlauf-Soll (Anlage)**)
 from HeishaMon TOP7 (`main/Main_Target_Temp`) below the actual flow temperature.
 It uses the reported setpoint rather than calculating one from the heating curve.

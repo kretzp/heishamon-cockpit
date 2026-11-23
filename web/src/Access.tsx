@@ -43,6 +43,7 @@ export function AccessGate({
   const [session, setSession] = useState<Session | null>(null);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [sessionUnavailable, setSessionUnavailable] = useState(false);
@@ -110,10 +111,12 @@ export function AccessGate({
         },
         body: JSON.stringify(login ? {
           username,
-          password
+          password,
+          rememberMe
         } : {})
       });
       if (!response.ok) throw Error(response.status === 401 ? 'Benutzername oder Passwort ist falsch.' : response.status === 429 ? 'Zu viele Anmeldeversuche. Bitte eine Minute warten.' : 'Anmeldung konnte nicht verarbeitet werden. Bitte erneut versuchen.');
+      setRememberMe(false);
       if (!login) {
         sessionAvailable = false;
         ++latestSessionCheck.current;
@@ -141,6 +144,7 @@ export function AccessGate({
       }}>
         <label>{t("Benutzername")}<Input autoFocus autoComplete="username" required maxLength={64} value={username} onChange={e => setUsername(e.target.value)} /></label>
         <label>{t("Passwort")}<Input type="password" autoComplete="current-password" required maxLength={128} value={password} onChange={e => setPassword(e.target.value)} /></label>
+        <label className="remember-login"><Input type="checkbox" checked={rememberMe} disabled={busy} onChange={e => setRememberMe(e.target.checked)} /><span>{t('Auf diesem Gerät 30 Tage angemeldet bleiben')}</span></label>
         <Button className="primary" disabled={busy}>{busy ? localizeText('Anmeldung läuft …') : localizeText('Anmelden')}</Button>
       </form> : <><p role="status">{t("Zugang wird geprüft.")}</p><Button disabled={busy} onClick={() => {
           setError('');

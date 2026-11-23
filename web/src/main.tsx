@@ -173,6 +173,7 @@ function Unavailable({
 }
 function App() {
   const mqttTemperature = useTemperatureSource();
+  const mqttTargetTemperature = useTemperatureSource(true, 'houseTargetTemperature');
   const navigationRef = useRef<HTMLElement>(null);
   useEffect(() => {
     const navigation = navigationRef.current;
@@ -322,7 +323,7 @@ function App() {
     const Heading = headingLevel === 2 ? 'h2' : 'h3';
     const value = currentValue(indoorTemperatureKey(mqttTemperature, key));
     const targetKey = tab === 'Übersicht' ? ({ dhwTemperature: 'dhwTargetTemperature', indoorTemperature: 'indoorTargetTemperature' } as Record<string, string>)[key] : undefined;
-    const target = targetKey ? currentValue(targetKey) : undefined;
+    const target = targetKey ? currentValue(targetKey === 'indoorTargetTemperature' && mqttTargetTemperature ? 'mqttHouseTargetTemperature' : targetKey) : undefined;
     const sterilizationTarget = currentValue('sterilizationTemperature');
     const sterilizationTargetText = sterilizationTarget && ['valid', 'stale'].includes(sterilizationTarget.quality) && typeof sterilizationTarget.value === 'number' && Number.isFinite(sterilizationTarget.value) ? `${display(sterilizationTarget)} °C` : '-';
     const targetQuality = !live && target?.quality === 'valid' ? 'stale' : target?.quality ?? 'unknown';

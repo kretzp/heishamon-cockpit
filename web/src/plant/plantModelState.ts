@@ -5,13 +5,13 @@ export type PlantValue = {
 };
 export type PlantSnapshot = { brokerConnected: boolean; deviceAvailability: string; values: PlantValue[] };
 export type HouseTemperatureOptions = { enabled: boolean; input: { topic: string; payloadPath: string } };
-export type PlantConfiguration = { houseTemperature: HouseTemperatureOptions; zones: 1 | 2; zone1: 'floor' | 'radiator'; zone2: 'floor' | 'radiator'; tank: boolean; buffer: boolean; sensors: boolean; motion: boolean; speed: number };
-const defaults: PlantConfiguration = { houseTemperature: { enabled: false, input: { topic: '', payloadPath: '' } }, zones: 1, zone1: 'floor', zone2: 'radiator', tank: true, buffer: false, sensors: true, motion: true, speed: 1 };
+export type PlantConfiguration = { houseTemperature: HouseTemperatureOptions; houseTargetTemperature: HouseTemperatureOptions; zones: 1 | 2; zone1: 'floor' | 'radiator'; zone2: 'floor' | 'radiator'; tank: boolean; buffer: boolean; sensors: boolean; motion: boolean; speed: number };
+const defaults: PlantConfiguration = { houseTargetTemperature: { enabled: false, input: { topic: '', payloadPath: '' } }, houseTemperature: { enabled: false, input: { topic: '', payloadPath: '' } }, zones: 1, zone1: 'floor', zone2: 'radiator', tank: true, buffer: false, sensors: true, motion: true, speed: 1 };
 export function readConfiguration(raw: string | null): PlantConfiguration {
   try {
     const v = JSON.parse(raw ?? '{}');
     if (!v || typeof v !== 'object' || Array.isArray(v)) return { ...defaults };
-    return { houseTemperature: { enabled: v.houseTemperature?.enabled === true, input: { topic: typeof v.houseTemperature?.input?.topic === 'string' ? v.houseTemperature.input.topic : '', payloadPath: typeof v.houseTemperature?.input?.payloadPath === 'string' ? v.houseTemperature.input.payloadPath : '' } }, zones: v.zones === 2 ? 2 : 1, zone1: v.zone1 === 'radiator' ? 'radiator' : 'floor', zone2: v.zone2 === 'floor' ? 'floor' : 'radiator',
+    return { houseTargetTemperature: { enabled: v.houseTargetTemperature?.enabled === true, input: { topic: typeof v.houseTargetTemperature?.input?.topic === 'string' ? v.houseTargetTemperature.input.topic : '', payloadPath: typeof v.houseTargetTemperature?.input?.payloadPath === 'string' ? v.houseTargetTemperature.input.payloadPath : '' } }, houseTemperature: { enabled: v.houseTemperature?.enabled === true, input: { topic: typeof v.houseTemperature?.input?.topic === 'string' ? v.houseTemperature.input.topic : '', payloadPath: typeof v.houseTemperature?.input?.payloadPath === 'string' ? v.houseTemperature.input.payloadPath : '' } }, zones: v.zones === 2 ? 2 : 1, zone1: v.zone1 === 'radiator' ? 'radiator' : 'floor', zone2: v.zone2 === 'floor' ? 'floor' : 'radiator',
       tank: typeof v.tank === 'boolean' ? v.tank : true, buffer: v.buffer === true, sensors: v.sensors !== false, motion: v.motion !== false,
       speed: typeof v.speed === 'number' && Number.isFinite(v.speed) && v.speed >= .5 && v.speed <= 2 ? v.speed : 1 };
   } catch { return { ...defaults }; }

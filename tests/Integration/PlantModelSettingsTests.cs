@@ -36,7 +36,7 @@ public sealed class PlantModelSettingsTests
             app.MapPlantModelSettings(true);
             await app.StartAsync();
             var address = app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single();
-            var configuration = new PlantModelOptions { Zones = 2, Zone1 = "radiator", Buffer = true, HouseTemperature = new(true, new("house/sensor", "$.temperature")) };
+            var configuration = new PlantModelOptions { Zones = 2, Zone1 = "radiator", Buffer = true, HouseTemperature = new(true, new("house/sensor", "$.temperature")), HouseTargetTemperature = new(true, new("house/sensor", "$.target")) };
             foreach (var username in new[] { "anonymous", "observer", "operator", "administrator" })
             {
                 using var handler = new HttpClientHandler { CookieContainer = new CookieContainer() };

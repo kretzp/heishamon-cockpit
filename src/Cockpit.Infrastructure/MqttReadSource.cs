@@ -44,11 +44,13 @@ public sealed class MqttReadSource : IReadOnlyTelemetrySource
     private readonly long powerGeneration;
     private readonly HouseTemperatureOptions houseTemperature;
     private readonly long houseTemperatureGeneration;
+    private readonly HouseTemperatureOptions houseTargetTemperature;
+    private readonly long houseTargetTemperatureGeneration;
     private readonly HashSet<string> optionalSubscriptions;
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
     public IReadOnlyList<string> Subscriptions { get; }
 
-    public MqttReadSource(MqttReadOptions options, AlternativePowerOptions? alternativePower = null, long powerGeneration = 0, HouseTemperatureOptions? houseTemperature = null, long houseTemperatureGeneration = 0)
+    public MqttReadSource(MqttReadOptions options, AlternativePowerOptions? alternativePower = null, long powerGeneration = 0, HouseTemperatureOptions? houseTemperature = null, long houseTemperatureGeneration = 0, HouseTemperatureOptions? houseTargetTemperature = null, long houseTargetTemperatureGeneration = 0)
     {
         options.Validate();
         this.options = options;
@@ -58,14 +60,18 @@ public sealed class MqttReadSource : IReadOnlyTelemetrySource
         this.houseTemperature = houseTemperature ?? new();
         this.houseTemperature.Validate();
         this.houseTemperatureGeneration = houseTemperatureGeneration;
+        this.houseTargetTemperature = houseTargetTemperature ?? new();
+        this.houseTargetTemperature.Validate();
+        this.houseTargetTemperatureGeneration = houseTargetTemperatureGeneration;
         optionalSubscriptions = Catalog.Metrics.Where(m => m.Optional || HeatingCurve.Fields.Any(f => f.Key == m.Key) || m.Key is "mainTargetTemperature" or "zonesState" || m.Suffix.StartsWith("extra/", StringComparison.Ordinal) || m.Key is "defrostState" or "threeWayValveState" or "zone1HeatRequest" or "zone1SensorMode" or "operationsHours" or "operationsCounter" or "waterPressure" or "dhwHeatDelta")
             .Select(m => options.Prefix + "/" + m.Suffix).ToHashSet(StringComparer.Ordinal);
         optionalSubscriptions.UnionWith([options.Prefix + "/1wire/+", options.Prefix + "/1wire/+/alias"]);
         optionalSubscriptions.UnionWith(this.alternativePower.Topics);
         optionalSubscriptions.UnionWith(this.houseTemperature.Topics);
+        optionalSubscriptions.UnionWith(this.houseTargetTemperature.Topics);
         Subscriptions = Catalog.Metrics.Select(m => options.Prefix + "/" + m.Suffix)
             .Append(options.Prefix + "/LWT").Append(options.Prefix + "/1wire/+")
-            .Append(options.Prefix + "/1wire/+/alias").Concat(this.alternativePower.Topics).Concat(this.houseTemperature.Topics).Distinct().ToArray();
+            .Append(options.Prefix + "/1wire/+/alias").Concat(this.alternativePower.Topics).Concat(this.houseTemperature.Topics).Concat(this.houseTargetTemperature.Topics).Distinct().ToArray();
     }
 
     public async Task RunAsync(TelemetryStore store, CancellationToken cancellationToken)
@@ -83,6 +89,11 @@ public sealed class MqttReadSource : IReadOnlyTelemetrySource
             {
                 try { store.ReceiveHouseTemperature(message.Topic, message.Payload.Length > 32768 ? "" : StrictUtf8.GetString(message.Payload), message.Retain, houseTemperatureGeneration); }
                 catch (DecoderFallbackException) { store.ReceiveHouseTemperature(message.Topic, "", message.Retain, houseTemperatureGeneration); }
+            }
+            if (houseTargetTemperature.Topics.Contains(message.Topic, StringComparer.Ordinal))
+            {
+                try { store.ReceiveHouseTargetTemperature(message.Topic, message.Payload.Length > 32768 ? "" : StrictUtf8.GetString(message.Payload), message.Retain, houseTargetTemperatureGeneration); }
+                catch (DecoderFallbackException) { store.ReceiveHouseTargetTemperature(message.Topic, "", message.Retain, houseTargetTemperatureGeneration); }
             }
             if (!message.Topic.StartsWith(options.Prefix + "/", StringComparison.Ordinal)) return Task.CompletedTask;
             var suffix = message.Topic[(options.Prefix.Length + 1)..];

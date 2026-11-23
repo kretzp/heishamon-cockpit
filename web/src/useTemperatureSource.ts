@@ -5,7 +5,7 @@ export function indoorTemperatureKey(enabled: boolean, key: string): string {
   return enabled && key === 'indoorTemperature' ? 'mqttHouseTemperature' : key;
 }
 
-export function useTemperatureSource(active = true) {
+export function useTemperatureSource(active = true, source: 'houseTemperature' | 'houseTargetTemperature' = 'houseTemperature') {
   const [enabled, setEnabled] = useState(false);
   useEffect(() => {
     if (!active) return;
@@ -17,7 +17,7 @@ export function useTemperatureSource(active = true) {
         const response = await sessionFetch('/api/v1/settings/plant-model', { signal: controller.signal, cache: 'no-store' });
         if (!response.ok) return;
         const data = await response.json();
-        if (!controller.signal.aborted && current === request) setEnabled(data.configuration?.houseTemperature?.enabled === true);
+        if (!controller.signal.aborted && current === request) setEnabled(data.configuration?.[source]?.enabled === true);
       } catch { /* Keep the last confirmed source during a connection failure. */ }
     };
     void load();
@@ -29,6 +29,6 @@ export function useTemperatureSource(active = true) {
       window.removeEventListener('cockpit-temperature-changed', load);
       window.removeEventListener('cockpit-session-changed', load);
     };
-  }, [active]);
+  }, [active, source]);
   return enabled;
 }

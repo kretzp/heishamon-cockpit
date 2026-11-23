@@ -202,7 +202,7 @@ test('administrator configures MQTT house temperature with checkbox, topic and p
     await route.fulfill({ json: { ...await response.json(), settingsEnabled: true } });
   });
   await page.route('**/api/v1/auth/session', route => route.fulfill({ json: { loginRequired: false, authenticated: true, role: 'admin', csrfToken: 'isolated-test' } }));
-  let configuration = { houseTemperature: { enabled: false, input: { topic: '', payloadPath: '' } } };
+  let configuration = { houseTemperature: { enabled: false, input: { topic: '', payloadPath: '' } }, houseTargetTemperature: { enabled: false, input: { topic: '', payloadPath: '' } } };
   await page.route('**/api/v1/settings/plant-model', async route => {
     if (route.request().method() === 'POST') {
       expect(route.request().headers()['x-csrf-token']).toBe('isolated-test');
@@ -215,13 +215,13 @@ test('administrator configures MQTT house temperature with checkbox, topic and p
   await expect(page.getByRole('region', { name: 'Modell konfigurieren' }).getByLabel('MQTT-Topic', { exact: true })).toHaveCount(0);
   await page.getByRole('navigation').getByRole('button', { name: 'Einstellungen', exact: true }).click();
   await page.getByRole('tab', { name: 'Temperaturdaten', exact: true }).click();
-  const editor = page.getByRole('tabpanel', { name: 'Temperaturdaten', exact: true });
+  const editor = page.getByRole('tabpanel', { name: 'Temperaturdaten', exact: true }).getByRole('group', { name: 'Haustemperatur per MQTT', exact: true });
   await expect(editor.getByLabel('MQTT-Topic', { exact: true })).toBeDisabled();
   await editor.getByLabel('MQTT-Haustemperatur verwenden', { exact: true }).check();
   await editor.getByLabel('MQTT-Topic', { exact: true }).fill('house/sensor');
   await editor.getByLabel('Payload-Pfad', { exact: true }).fill('$.temperature');
-  await editor.getByRole('button', { name: 'Einstellungen speichern', exact: true }).click();
-  await expect(editor.getByText('Keine offenen Änderungen', { exact: true })).toBeVisible();
+  await page.getByRole('tabpanel', { name: 'Temperaturdaten', exact: true }).getByRole('button', { name: 'Einstellungen speichern', exact: true }).click();
+  await expect(page.getByRole('tabpanel', { name: 'Temperaturdaten', exact: true }).getByText('Keine offenen Änderungen', { exact: true })).toBeVisible();
   expect(configuration.houseTemperature).toEqual({ enabled: true, input: { topic: 'house/sensor', payloadPath: '$.temperature' } });
   await page.reload();
   await page.getByRole('navigation').getByRole('button', { name: 'Einstellungen', exact: true }).click();
@@ -229,6 +229,16 @@ test('administrator configures MQTT house temperature with checkbox, topic and p
   await expect(editor.getByLabel('MQTT-Haustemperatur verwenden', { exact: true })).toBeChecked();
   await expect(editor.getByLabel('MQTT-Topic', { exact: true })).toHaveValue('house/sensor');
   await expect(editor.getByLabel('Payload-Pfad', { exact: true })).toHaveValue('$.temperature');
+  const targetEditor = page.getByRole('group', { name: 'Haustemperatur Soll per MQTT', exact: true });
+  await expect(targetEditor.getByLabel('MQTT-Topic', { exact: true })).toBeDisabled();
+  await targetEditor.getByLabel('MQTT-Haustemperatur Soll verwenden', { exact: true }).check();
+  await targetEditor.getByLabel('MQTT-Topic', { exact: true }).fill('house/sensor');
+  await targetEditor.getByLabel('Payload-Pfad', { exact: true }).fill('$.target');
+  await page.getByRole('tabpanel', { name: 'Temperaturdaten', exact: true }).getByRole('button', { name: 'Einstellungen speichern', exact: true }).click();
+  await expect(page.getByRole('tabpanel', { name: 'Temperaturdaten', exact: true }).getByText('Keine offenen Änderungen', { exact: true })).toBeVisible();
+  expect(configuration.houseTargetTemperature).toEqual({ enabled: true, input: { topic: 'house/sensor', payloadPath: '$.target' } });
+  expect(configuration.houseTemperature.enabled).toBe(true);
+
 });
 
 for (const quality of ['valid', 'stale', 'missing'] as const) test(`flow target temperature in hydraulic diagram: ${quality}`, async ({ page, request }) => {
@@ -288,4 +298,29 @@ for (const state of ['active', 'inactive', 'stale', 'retained', 'offline', 'defr
     await expect(page.locator('.dhwTemperature .target-reading')).toContainText('50');
   } else await expect(target).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+});
+
+for (const mode of ['disabled', 'valid', 'stale', 'missing', 'invalid'] as const) test(`MQTT house target selection: ${mode}`, async ({ page, request }) => {
+  const snapshot = await (await request.get('/api/v1/snapshot')).json();
+  await page.route('**/api/v1/snapshot', route => route.fulfill({ json: { ...snapshot, revision: Number.MAX_SAFE_INTEGER, values: [
+    ...snapshot.values.filter((v: { key: string }) => !['indoorTemperature', 'indoorTargetTemperature', 'mqttHouseTargetTemperature'].includes(v.key)),
+    { key: 'indoorTemperature', value: 26, unit: '°C', quality: 'valid', retained: false, receivedAtUtc: new Date().toISOString() },
+    { key: 'indoorTargetTemperature', value: 24, unit: '°C', quality: 'valid', retained: false, receivedAtUtc: new Date().toISOString() },
+    ...(mode === 'missing' ? [] : [{ key: 'mqttHouseTargetTemperature', value: 21.5, unit: '°C', quality: mode === 'invalid' ? 'invalid' : mode === 'stale' ? 'stale' : 'valid', retained: false, receivedAtUtc: new Date().toISOString() }])
+  ] } }));
+  await page.route('**/api/v1/settings/plant-model', route => route.fulfill({ json: { revision: 7, editable: false, configuration: {
+    houseTemperature: { enabled: false }, houseTargetTemperature: { enabled: mode !== 'disabled', input: { topic: 'house', payloadPath: '$.target' } }
+  } } }));
+  await page.goto('/');
+  await expect(page.locator('#room-value')).toHaveText('26 °C');
+  if (mode === 'valid' || mode === 'stale') {
+    await expect(page.locator('#room-target-value')).toHaveText('Innen-Soll: 21,5 °C');
+    const actual = await page.locator('#room-value').boundingBox();
+    const target = await page.locator('#room-target-value').boundingBox();
+    expect(target!.y).toBeGreaterThan(actual!.y);
+    expect(target!.height).toBeLessThan(actual!.height);
+  } else await expect(page.locator('#room-target-value')).toHaveCount(0);
+  await page.getByRole('navigation').getByRole('button', { name: 'Übersicht', exact: true }).click();
+  const tile = page.locator('.temperature-grid article.indoorTemperature');
+  await expect(tile.locator('.target-reading')).toContainText(mode === 'disabled' ? '24' : mode === 'missing' || mode === 'invalid' ? '—' : '21,5');
 });

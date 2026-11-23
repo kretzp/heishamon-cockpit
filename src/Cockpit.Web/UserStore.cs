@@ -8,7 +8,7 @@ public sealed record CreateUserInput(string Username, string Password, string Ro
 public sealed record UpdateUserInput(string Role, bool Disabled, string? Password, long ExpectedVersion);
 
 // A separate database keeps accounts independent of the telemetry source.
-public sealed class UserStore
+public sealed partial class UserStore
 {
     private const int Iterations = 600000;
     private readonly string connectionString;
@@ -31,6 +31,7 @@ public sealed class UserStore
         using var command = db.CreateCommand();
         command.CommandText = "CREATE TABLE IF NOT EXISTS Users (Username TEXT PRIMARY KEY COLLATE BINARY, Role TEXT NOT NULL, Disabled INTEGER NOT NULL, Salt BLOB NOT NULL, PasswordHash BLOB NOT NULL, Iterations INTEGER NOT NULL, Version INTEGER NOT NULL)";
         command.ExecuteNonQuery();
+        InitializeSessions(db);
     }
     private SqliteConnection Open() { var db = new SqliteConnection(connectionString); db.Open(); return db; }
     private static void Validate(string username, string role, string? password)

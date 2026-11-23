@@ -1,6 +1,6 @@
 # Release notes
 
-## 1.0.4 — MQTT indoor temperature across views, 2026-11-23
+## 1.0.4 — MQTT temperature sources and remembered sign-in, 2026-11-23
 
 - Move the MQTT house-temperature configuration from Configure model to the new
   Settings → Temperature data tab, preserving existing topics and payload paths.
@@ -10,8 +10,27 @@
 - Preserve stale and retained readings in live displays. Missing or invalid MQTT
   readings remain unavailable without falling back to the indoor unit; historical
   charts retain their existing quality gaps. Original indoor telemetry remains available.
-- Add desktop and mobile regression checks for source selection and the relocated
-  administrator settings. No database migration is required.
+- Add an independent MQTT house target-temperature source with its own checkbox,
+  exact topic and payload path. Use it as Indoor target on the overview tile when
+  enabled; otherwise retain the heat pump's target. Show an available MQTT target
+  in smaller text below the house temperature, with both labels raised above the
+  floor-heating drawing. Missing or invalid targets are hidden in the diagram.
+  Both sources can share a topic with separate payload paths; neither sends setpoints.
+- Add an unchecked Stay signed in on this device for 30 days checkbox. Opting in
+  creates a persistent protected cookie with a fixed 30-day expiry; ordinary
+  sign-ins keep their 30-minute lifetime. Remembered sign-ins survive browser,
+  application and Docker restarts without saving passwords in the browser.
+- Store only hashes of random remembered-session tokens in the account database.
+  Signing out revokes the session immediately, including cookie replay. Password,
+  role and account-status changes invalidate existing sessions. Preserve HTTP-only,
+  HTTPS Secure and SameSite=Strict protections and existing control safeguards.
+- Add the RememberedSessions table automatically to the account database and keep
+  authentication protection keys in its sibling auth-keys directory. Preserve both
+  in backups and updates; Docker keeps them on the existing /data volume. No telemetry
+  database migration is needed. Existing users may need to sign in once after updating.
+- Extend desktop, mobile, language and backend regression coverage for independent
+  temperature sources, missing and stale values, settings persistence, remembered
+  sessions, exact expiry, account changes, restart recovery and logout revocation.
 
 ## 1.0.3 — System model, MQTT room temperature and daily history, 2026-11-22
 

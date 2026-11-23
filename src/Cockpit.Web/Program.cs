@@ -118,6 +118,8 @@ store.ConfigureAlternativePower(settings.Read().AlternativePower, settings.Read(
 settings.Changed += value => store.ConfigureAlternativePower(value.AlternativePower, value.PowerGeneration);
 store.ConfigureHouseTemperature(settings.Read().PlantModel.HouseTemperature, settings.Read().HouseTemperatureGeneration);
 settings.Changed += value => store.ConfigureHouseTemperature(value.PlantModel.HouseTemperature, value.HouseTemperatureGeneration);
+store.ConfigureHouseTargetTemperature(settings.Read().PlantModel.HouseTargetTemperature, settings.Read().HouseTargetTemperatureGeneration);
+settings.Changed += value => store.ConfigureHouseTargetTemperature(value.PlantModel.HouseTargetTemperature, value.HouseTargetTemperatureGeneration);
 builder.Services.AddSingleton(settings);
 builder.Services.AddSingleton(mqttSettings);
 builder.Services.AddSingleton(controlSetup);
@@ -131,7 +133,7 @@ builder.Services.AddSingleton<IReadOnlyTelemetrySource>(source == "simulator"
 builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter(System.Text.Json.JsonNamingPolicy.CamelCase)));
 builder.Services.AddSignalR().AddJsonProtocol(o => o.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter(System.Text.Json.JsonNamingPolicy.CamelCase)));
 builder.Services.AddHostedService<TelemetryWorker>();
-if (authenticationEnabled) builder.Services.AddSimulatorAuthentication(builder.Configuration, localPort, requireControlHttps);
+if (authenticationEnabled) builder.Services.AddSimulatorAuthentication(builder.Configuration, localPort, requireControlHttps, Path.Combine(Path.GetDirectoryName(Path.GetFullPath(usersPath))!, "auth-keys"));
 if (dynamicControl is not null)
 {
     builder.Services.AddSingleton(dynamicControl);

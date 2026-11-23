@@ -5,7 +5,7 @@ Thx to all Heishamon contributors for this peace of software.
 
 This is an independent companion application for HeishaMon, with historical charts, role-based accounts and explicitly confirmed control actions. The repository name is `heishamon-cockpit`.
 
-Windows x64, Linux x64 and Raspberry Pi ARM64 installation targets are available. See [compatibility](documentation/COMPATIBILITY.md) for tested systems and limitations, and [release notes](documentation/RELEASE-NOTES.md) for the initial feature set.
+Windows x64, Linux x64 and Raspberry Pi ARM64 installation targets are available. See [compatibility](documentation/COMPATIBILITY.md) for tested systems and limitations, and [release notes](documentation/RELEASE-NOTES.md) for changes in each version.
 
 ## System model
 
@@ -28,7 +28,8 @@ by [Sturmi77](https://github.com/Sturmi77).
 - SQLite measurement history, charts, daily energy views and CSV export.
 - COP calculated from HeishaMon Extra power readings, with separate heating and hot-water history.
 - Optional [external MQTT power measurements](documentation/alternative-power.md) for historical COP and daily electrical energy, including imported Shelly history.
-- Administrator, reader and reader/writer accounts with hashed passwords.
+- Optional [MQTT room and target temperatures](documentation/systemmodel.md#house-temperature-from-mqtt) with separate sources under Settings → Temperature data.
+- Administrator, reader and reader/writer accounts with hashed passwords and optional [30-day remembered sign-in](documentation/INSTALLATION.md#remembered-sign-in).
 - Administrator settings for users, MQTT connection, HeishaMon topic base and control mode.
 - Control activation and deactivation without an application restart, with separate confirmation for heat-pump commands.
 - Optional [relay switching](documentation/RELAYS.md): two cards with direct manual toggles, receipt/retained metadata and on/off history diagrams; disabled by default.

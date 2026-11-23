@@ -26,7 +26,7 @@ public sealed class MqttReadTests
     {
         var temperature = new HouseTemperatureOptions(true, new("external/events", "$.temperature"));
         var power = new AlternativePowerOptions(true, new("external/events", "$.power"), new("heater", ""));
-        var source = new MqttReadSource(new() { IsolatedTestBroker = true }, power, 1, temperature, 1);
+        var source = new MqttReadSource(new() { IsolatedTestBroker = true }, power, 1, temperature, 1, temperature with { Input = new("external/events", "$.target") }, 2);
         Assert.Single(source.Subscriptions, t => t == "external/events");
         var disabled = new MqttReadSource(new() { IsolatedTestBroker = true }, houseTemperature: temperature with { Enabled = false });
         Assert.DoesNotContain("external/events", disabled.Subscriptions);
@@ -101,10 +101,11 @@ public sealed class MqttReadTests
         await Inject("1wire/28abcdef01234567/alias", "Retained Tank", true);
         await Inject("1wire/28abcdef01234567", "19.25", true);
         var temperature = new HouseTemperatureOptions(true, new("external/house", "$.temperature"));
-        var source = new MqttReadSource(new() { Port = port, IsolatedTestBroker = !live, LiveReadOnly = live, UseTls = false }, houseTemperature: temperature, houseTemperatureGeneration: 1);
+        var source = new MqttReadSource(new() { Port = port, IsolatedTestBroker = !live, LiveReadOnly = live, UseTls = false }, houseTemperature: temperature, houseTemperatureGeneration: 1, houseTargetTemperature: temperature with { Input = new("external/house", "$.target") }, houseTargetTemperatureGeneration: 2);
         var expectedSubscriptions = source.Subscriptions.Where(t => !rejectExtra || !t.Contains("/extra/", StringComparison.Ordinal)).ToArray();
         var store = new TelemetryStore(SourceKind.Mqtt);
         store.ConfigureHouseTemperature(temperature, 1);
+        store.ConfigureHouseTargetTemperature(temperature with { Input = new("external/house", "$.target") }, 2);
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(30));
         var running = source.RunAsync(store, cancellation.Token);
         TelemetryValue Flow() => store.Read().Values.Single(v => v.Key == "flowTemperature");
@@ -115,8 +116,9 @@ public sealed class MqttReadTests
             await Until(() => store.Read().HeatPumpModel.Known);
             Assert.Equal("Panasonic WH-SDC0309K3E5 / WH-UDZ05KE5", store.Read().HeatPumpModel.DisplayName);
             Assert.DoesNotContain(subscriptions, t => t.Contains('#') || t.Contains("commands"));
-            await broker.InjectApplicationMessage(new InjectedMqttApplicationMessage(new MqttApplicationMessageBuilder().WithTopic("external/house").WithPayload("{\"temperature\":-2.5}").Build()) { SenderClientId = "isolated-fixture" });
+            await broker.InjectApplicationMessage(new InjectedMqttApplicationMessage(new MqttApplicationMessageBuilder().WithTopic("external/house").WithPayload("{\"temperature\":-2.5,\"target\":22.5}").Build()) { SenderClientId = "isolated-fixture" });
             await Until(() => Equals(store.Read().Values.Single(v => v.Key == "mqttHouseTemperature").Value, -2.5d));
+            await Until(() => Equals(store.Read().Values.Single(v => v.Key == "mqttHouseTargetTemperature").Value, 22.5d));
             Assert.Equal(new[] { "cockpit_test/1wire/+", "cockpit_test/1wire/+/alias" }, subscriptions.Where(t => t.Contains('+')).Order());
             await Until(() => store.Read().Values.Any(v => v.Key == "ds18b20_28abcdef01234567" && v.Alias == "Retained Tank"));
             Assert.True(store.Read().Values.Single(v => v.Key == "ds18b20_28abcdef01234567").Retained);

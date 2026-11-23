@@ -63,6 +63,7 @@ public sealed partial class TelemetryStore
             values.Clear();
             powerValues.Clear();
             houseTemperatureValue = null;
+            houseTargetTemperatureValue = null;
             oneWireAliases.Clear();
             foreach (var m in Catalog.Metrics)
                 values[m.Key] = new(m.Key, null, m.Unit, Quality.Unknown, null, null, false, null, sourceKind);
@@ -80,6 +81,7 @@ public sealed partial class TelemetryStore
                 availability = Availability.Unknown;
                 powerValues.Clear();
                 if (houseTemperatureValue is not null) houseTemperatureValue = houseTemperatureValue with { Quality = Quality.Stale };
+                if (houseTargetTemperatureValue is not null) houseTargetTemperatureValue = houseTargetTemperatureValue with { Quality = Quality.Stale };
                 InvalidateLiveValues();
             }
             connected = isConnected;
@@ -177,6 +179,7 @@ public sealed partial class TelemetryStore
             evaluated.Add(ExtraCop.Calculate(evaluated, now, sourceKind));
             AppendAlternativePower(evaluated, now);
             AppendHouseTemperature(evaluated, now);
+            AppendHouseTargetTemperature(evaluated, now);
             // Z1 heat request is also used for water targets/curve shifts. Only a
             // fresh room-sensor mode may turn it into a room temperature setpoint.
             var request = evaluated.Single(v => v.Key == "zone1HeatRequest");

@@ -41,3 +41,20 @@ The source installers verify Python 3.10+ with SSL for MCP. Windows installs mis
 Installed HTTPS instances listen on IPv4 interfaces and require login. The certificate includes current IPv4 addresses at setup time; verify its fingerprint on each client. Changed addresses can require a replacement certificate. Firewall rules and certificate trust are configured separately.
 
 Configuration and databases reside in the installation's data directory by default. Preserve the entire data directory, including encryption keys, when managing updates or backups. The fresh-install scripts do not upgrade existing installations. Service installation with automatic startup is optional (default no); backup jobs are not created. See [compatibility](COMPATIBILITY.md) for the tested target scope.
+
+## Remembered sign-in
+
+The sign-in form offers **Stay signed in on this device for 30 days**, unchecked
+by default. Selecting it creates a persistent, protected HTTP-only cookie and a
+revocable session in the account database. The session expires after a fixed
+30 days, including across browser and application restarts; activity does not
+extend it. Without the checkbox, sign-in retains its existing 30-minute lifetime.
+Signing out immediately revokes that device's session. Password or role changes
+and disabling the account invalidate existing sessions.
+
+Preserve the account database and its sibling **auth-keys** directory across
+updates and backups. Docker's standard layout keeps both on the persistent
+`/data` volume. The Linux key directory must be accessible only to its owner.
+Existing sessions may require a new sign-in once when updating from versions
+without this persistent authentication key directory. Passwords are not stored
+in the browser; the database stores only hashes of the random session tokens.

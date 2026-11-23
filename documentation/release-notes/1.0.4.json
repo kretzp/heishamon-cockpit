@@ -1,49 +1,69 @@
 {
-  "sourceSha256": "5494e0054acfa2a8f3d1c3a7bff1e2520cf14f9a5ab9b25a383bac2c1c98d0fc",
+  "sourceSha256": "d0faed4b5cf1d8250769a85ad376f9a6798857cd4386faea82399452fbd51601",
   "translations": {
     "de": {
-      "title": "MQTT-Innentemperatur in allen Ansichten",
+      "title": "MQTT-Temperaturquellen und gespeicherte Anmeldung",
       "items": [
         "Die MQTT-Haustemperatur-Konfiguration wurde von „Modell konfigurieren“ in den neuen Reiter „Einstellungen → Temperaturdaten“ verschoben. Vorhandene Topics und Payload-Pfade bleiben erhalten.",
         "Bei aktivierter Option erscheint der MQTT-Wert als „Innen“ im Temperaturverlauf, dessen CSV-Export, auf der Übersichtskachel und in deren Messwertdiagramm sowie im Hausbild. Ausschalten stellt die Inneneinheit als Quelle wieder her. Gespeicherte Änderungen wirken ohne Neustart.",
         "Liveanzeigen behalten veraltete und retained Messwerte bei. Fehlende oder ungültige MQTT-Werte bleiben ohne Rückgriff auf die Inneneinheit unverfügbar; historische Diagramme behalten ihre bisherigen Qualitätslücken. Die ursprüngliche Innentemperatur-Telemetrie bleibt verfügbar.",
-        "Desktop- und Mobiltests prüfen die Quellenauswahl und die verschobenen Administratoreinstellungen. Keine Datenbankmigration erforderlich."
+        "Eine unabhängige MQTT-Haustemperatur Soll erhält eine eigene Checkbox, ein exaktes Topic und einen Payload-Pfad. Aktiviert ersetzt sie Innen-Soll auf der Übersicht, sonst bleibt der Wärmepumpen-Sollwert. Ein vorhandener MQTT-Sollwert erscheint klein unter der Haustemperatur; beide Anzeigen stehen oberhalb der Fußbodenheizung. Fehlende oder ungültige Sollwerte werden im Hausbild ausgeblendet. Beide Quellen können dasselbe Topic mit unterschiedlichen Pfaden nutzen und senden keine Sollwerte.",
+        "Die zunächst leere Checkbox „Auf diesem Gerät 30 Tage angemeldet bleiben“ erstellt bei Auswahl ein dauerhaftes geschütztes Cookie mit festem Ablauf nach 30 Tagen. Normale Anmeldungen gelten weiterhin 30 Minuten. Gespeicherte Anmeldungen überstehen Browser-, Anwendungs- und Docker-Neustarts, ohne das Passwort im Browser zu speichern.",
+        "In der Kontodatenbank werden nur Hashes zufälliger Sitzungstokens gespeichert. Abmelden widerruft die Sitzung sofort, auch bei erneuter Nutzung des alten Cookies. Passwort-, Rollen- und Kontostatusänderungen machen bestehende Sitzungen ungültig. HttpOnly, Secure über HTTPS, SameSite=Strict und die bisherigen Steuerungsschutzregeln bleiben erhalten.",
+        "Die Tabelle RememberedSessions wird automatisch in der Kontodatenbank ergänzt. Die Anmeldeschlüssel liegen im benachbarten Verzeichnis auth-keys. Beides bei Sicherungen und Updates erhalten; Docker verwendet dafür das vorhandene /data-Volume. Keine Migration der Telemetriedatenbank nötig. Nach dem Update kann einmaliges erneutes Anmelden erforderlich sein.",
+        "Desktop-, Mobil-, Sprach- und Backendtests prüfen unabhängige Temperaturquellen, fehlende und veraltete Werte, gespeicherte Einstellungen, dauerhafte Sitzungen, exakten Ablauf, Kontoänderungen, Wiederanmeldung nach Neustart und Widerruf beim Abmelden."
       ]
     },
     "fr": {
-      "title": "Température intérieure MQTT dans toutes les vues",
+      "title": "Sources de température MQTT et connexion mémorisée",
       "items": [
         "La configuration de température MQTT passe de Configurer le modèle au nouvel onglet Paramètres → Données de température. Les sujets et chemins existants sont conservés.",
         "Lorsque l’option est activée, la valeur MQTT apparaît comme Intérieur dans l’historique, son export CSV, la tuile de synthèse et son graphique ainsi que le schéma de la maison. La désactivation rétablit la source de l’unité intérieure. Aucun redémarrage requis.",
         "Les vues en direct conservent les valeurs périmées et retained. Les valeurs MQTT absentes ou invalides restent indisponibles sans repli sur l’unité intérieure ; les graphiques historiques conservent leurs lacunes de qualité. La télémétrie intérieure originale reste disponible.",
-        "Des tests sur ordinateur et mobile couvrent la sélection de source et les paramètres administrateur déplacés. Aucune migration de base de données requise."
+        "Une source MQTT de température de consigne possède sa propre case, un sujet exact et un chemin. Activée, elle remplace la consigne intérieure de la tuile ; sinon celle de la pompe reste utilisée. Une valeur disponible apparaît en petit sous la température de la maison, au-dessus du plancher chauffant. Les consignes absentes ou invalides sont masquées dans le schéma. Les deux sources peuvent partager un sujet avec des chemins distincts et ne transmettent aucune consigne.",
+        "La case initialement décochée « Rester connecté sur cet appareil pendant 30 jours » crée un cookie protégé persistant avec expiration fixe à 30 jours. Sans sélection, la connexion dure toujours 30 minutes. La connexion mémorisée résiste aux redémarrages du navigateur, de l’application et de Docker sans stocker le mot de passe dans le navigateur.",
+        "Seuls les hachages des jetons aléatoires sont stockés dans la base des comptes. La déconnexion révoque immédiatement la session, même en cas de réutilisation du cookie. Les changements de mot de passe, rôle ou état du compte invalident les sessions. HttpOnly, Secure sous HTTPS, SameSite=Strict et les protections de commande restent actifs.",
+        "La table RememberedSessions est ajoutée automatiquement à la base des comptes. Les clés de connexion sont conservées dans le répertoire voisin auth-keys. Préserver les deux lors des sauvegardes et mises à jour ; Docker utilise le volume /data existant. Aucune migration de télémétrie requise. Une nouvelle connexion peut être nécessaire une fois après la mise à jour.",
+        "Les tests ordinateur, mobile, langue et serveur couvrent les sources indépendantes, les valeurs absentes et périmées, les paramètres, les sessions persistantes, l’expiration exacte, les modifications de compte, les redémarrages et la révocation."
       ]
     },
     "es": {
-      "title": "Temperatura interior MQTT en todas las vistas",
+      "title": "Fuentes de temperatura MQTT y sesión recordada",
       "items": [
         "La configuración MQTT pasa de Configurar modelo a la nueva pestaña Ajustes → Datos de temperatura. Se conservan los temas y rutas existentes.",
         "Al activar la opción, el valor MQTT aparece como Interior en el historial, su CSV, la tarjeta de resumen y su gráfico, y el esquema de la casa. Desactivarla restaura la fuente de la unidad interior. Los cambios guardados no requieren reinicio.",
         "Las vistas en directo conservan valores antiguos y retained. Las lecturas MQTT ausentes o inválidas quedan sin valor, sin recurrir a la unidad interior; los gráficos históricos mantienen sus huecos de calidad. La telemetría interior original sigue disponible.",
-        "Las pruebas de escritorio y móvil cubren la selección de fuente y los ajustes de administrador trasladados. No requiere migración de base de datos."
+        "Una fuente MQTT de temperatura objetivo tiene su propia casilla, tema exacto y ruta. Activada sustituye la consigna interior de la tarjeta; desactivada conserva la de la bomba. El objetivo disponible aparece pequeño bajo la temperatura de la casa, por encima del suelo radiante. Los objetivos ausentes o inválidos se ocultan en el esquema. Ambas fuentes pueden compartir tema con rutas distintas y no envían consignas.",
+        "La casilla inicialmente vacía « Mantener la sesión en este dispositivo durante 30 días » crea una cookie protegida persistente con vencimiento fijo a los 30 días. Sin marcarla, la sesión sigue durando 30 minutos. Las sesiones recordadas sobreviven a reinicios del navegador, aplicación y Docker sin guardar contraseñas en el navegador.",
+        "La base de cuentas solo almacena hashes de tokens aleatorios. Cerrar sesión la revoca inmediatamente, incluso si se reutiliza la cookie anterior. Los cambios de contraseña, rol o estado de cuenta invalidan las sesiones. Se mantienen HttpOnly, Secure mediante HTTPS, SameSite=Strict y las protecciones de control.",
+        "La tabla RememberedSessions se añade automáticamente a la base de cuentas. Las claves se guardan en el directorio adyacente auth-keys. Conservar ambos al actualizar y hacer copias; Docker utiliza el volumen /data existente. No requiere migración de telemetría. Puede ser necesario iniciar sesión una vez tras actualizar.",
+        "Las pruebas de escritorio, móvil, idiomas y servidor cubren fuentes independientes, valores ausentes y antiguos, ajustes, sesiones persistentes, vencimiento exacto, cambios de cuenta, reinicios y revocación."
       ]
     },
     "it": {
-      "title": "Temperatura interna MQTT in tutte le viste",
+      "title": "Fonti di temperatura MQTT e accesso memorizzato",
       "items": [
         "La configurazione MQTT passa da Configura modello alla nuova scheda Impostazioni → Dati di temperatura. Topic e percorsi esistenti vengono conservati.",
         "Quando attiva, la lettura MQTT appare come Interno nello storico, nel CSV, nel riquadro della panoramica e nel suo grafico, oltre che nello schema della casa. Disattivandola si ripristina l’unità interna come fonte. Le modifiche salvate non richiedono riavvio.",
         "Le viste in tempo reale mantengono valori obsoleti e retained. Le letture MQTT mancanti o non valide restano indisponibili senza usare l’unità interna; i grafici storici conservano le lacune di qualità. La telemetria interna originale rimane disponibile.",
-        "I test desktop e mobile coprono la selezione della fonte e le impostazioni amministratore spostate. Nessuna migrazione del database richiesta."
+        "Una fonte MQTT della temperatura obiettivo ha una propria casella, un topic esatto e un percorso. Se attiva sostituisce il valore interno desiderato nel riquadro; altrimenti resta quello della pompa. Un obiettivo disponibile appare in piccolo sotto la temperatura della casa, sopra il riscaldamento a pavimento. Valori mancanti o non validi sono nascosti nello schema. Le fonti possono condividere un topic con percorsi diversi e non inviano setpoint.",
+        "La casella inizialmente vuota « Resta connesso su questo dispositivo per 30 giorni » crea un cookie protetto persistente con scadenza fissa a 30 giorni. Senza selezione, l’accesso dura ancora 30 minuti. L’accesso memorizzato supera i riavvii del browser, dell’applicazione e di Docker senza salvare password nel browser.",
+        "Il database degli account conserva solo hash di token casuali. La disconnessione revoca subito la sessione, anche se il vecchio cookie viene riutilizzato. Modifiche a password, ruolo o stato dell’account invalidano le sessioni. Restano HttpOnly, Secure su HTTPS, SameSite=Strict e le protezioni dei comandi.",
+        "La tabella RememberedSessions viene aggiunta automaticamente al database degli account. Le chiavi sono nella directory adiacente auth-keys. Conservare entrambi durante backup e aggiornamenti; Docker usa il volume /data esistente. Nessuna migrazione della telemetria richiesta. Dopo l’aggiornamento può essere necessario accedere nuovamente una volta.",
+        "I test desktop, mobile, lingue e server coprono fonti indipendenti, valori mancanti e obsoleti, impostazioni, sessioni persistenti, scadenza esatta, modifiche agli account, riavvii e revoca."
       ]
     },
     "pt": {
-      "title": "Temperatura interior MQTT em todas as vistas",
+      "title": "Fontes de temperatura MQTT e sessão memorizada",
       "items": [
         "A configuração MQTT passa de Configurar modelo para o novo separador Definições → Dados de temperatura. Os tópicos e caminhos existentes são preservados.",
         "Quando ativada, a leitura MQTT aparece como Interior no histórico, no CSV, no cartão da visão geral e no seu gráfico, além do esquema da casa. Desativar restaura a unidade interior como fonte. As alterações guardadas dispensam reinício.",
         "As vistas em direto mantêm valores antigos e retained. Leituras MQTT ausentes ou inválidas ficam indisponíveis sem recorrer à unidade interior; os gráficos históricos mantêm as lacunas de qualidade. A telemetria interior original continua disponível.",
-        "Os testes de computador e telemóvel cobrem a seleção de fonte e as definições de administrador movidas. Não é necessária migração da base de dados."
+        "Uma fonte MQTT da temperatura pretendida tem a sua própria caixa, tópico exato e caminho. Ativada substitui a referência interior no cartão; desativada mantém a da bomba. Um valor disponível surge pequeno sob a temperatura da casa, acima do piso radiante. Valores ausentes ou inválidos ficam ocultos no esquema. As fontes podem partilhar um tópico com caminhos distintos e não enviam referências.",
+        "A caixa inicialmente desmarcada « Manter sessão neste dispositivo durante 30 dias » cria um cookie protegido persistente com prazo fixo de 30 dias. Sem seleção, a sessão continua a durar 30 minutos. A sessão memorizada sobrevive a reinícios do navegador, aplicação e Docker sem guardar palavras-passe no navegador.",
+        "A base de contas guarda apenas hashes de tokens aleatórios. Terminar sessão revoga-a imediatamente, mesmo com reutilização do cookie antigo. Alterações de palavra-passe, função ou estado da conta invalidam as sessões. Mantêm-se HttpOnly, Secure via HTTPS, SameSite=Strict e as proteções de controlo.",
+        "A tabela RememberedSessions é acrescentada automaticamente à base de contas. As chaves ficam no diretório adjacente auth-keys. Preservar ambos nas cópias e atualizações; Docker utiliza o volume /data existente. Não é necessária migração da telemetria. Pode ser necessário iniciar sessão uma vez após atualizar.",
+        "Os testes de computador, móvel, idiomas e servidor cobrem fontes independentes, valores ausentes e antigos, definições, sessões persistentes, prazo exato, alterações de conta, reinícios e revogação."
       ]
     }
   }

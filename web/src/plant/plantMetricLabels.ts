@@ -1,4 +1,5 @@
 export const plantMetricLabels: Record<string, string> = {
+  "mqttHouseTargetTemperature": "Haustemperatur Soll per MQTT",
   "mqttHouseTemperature": "Haustemperatur per MQTT",
 
   "flowTemperature": "Vorlauftemperatur",

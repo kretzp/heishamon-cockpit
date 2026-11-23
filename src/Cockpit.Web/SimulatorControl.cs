@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using System.Collections.Concurrent;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -10,33 +11,60 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.RateLimiting;
 
 public sealed record ControlAccount(string Username, string Role, string PasswordHash);
-public sealed record LoginInput(string Username, string Password);
+public sealed record LoginInput(string Username, string Password, bool RememberMe = false);
+public sealed record LoginSession(string Id, DateTimeOffset Expires);
 public sealed record Confirmation(bool Confirmed);
-public sealed class SimulatorUsers(UserStore users)
+public sealed class SimulatorUsers(UserStore users, TimeProvider? timeProvider = null)
 {
     private readonly ConcurrentDictionary<string, (string Username, long Version, DateTimeOffset Expires)> sessions = new();
     public UserAccount? Verify(LoginInput input) => users.Verify(input.Username, input.Password);
-    public string CreateSession(UserAccount account)
+    private readonly TimeProvider clock = timeProvider ?? TimeProvider.System;
+    public LoginSession CreateSession(UserAccount account, bool rememberMe = false)
     {
-        foreach (var pair in sessions.Where(p => p.Value.Expires <= DateTimeOffset.UtcNow)) sessions.TryRemove(pair.Key, out _);
-        if (sessions.Count >= 100) throw new CommandRejected(429, "session_limit");
-        var id = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
-        sessions[id] = (account.Username, account.Version, DateTimeOffset.UtcNow.AddMinutes(30)); return id;
+        var now = clock.GetUtcNow();
+        var expires = rememberMe ? now.AddDays(30) : now.AddMinutes(30);
+        var id = (rememberMe ? "p_" : "s_") + Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+        if (rememberMe) users.RememberSession(id, account, expires, now);
+        else
+        {
+            foreach (var pair in sessions.Where(p => p.Value.Expires <= now)) sessions.TryRemove(pair.Key, out _);
+            if (sessions.Count >= 100) throw new CommandRejected(429, "session_limit");
+            sessions[id] = (account.Username, account.Version, expires);
+        }
+        return new(id, expires);
     }
     public bool Valid(string? id)
     {
-        if (id is null || !sessions.TryGetValue(id, out var session) || session.Expires <= DateTimeOffset.UtcNow) return false;
+        if (id is null || id.Length != 66 || id.Skip(2).Any(c => c is not (>= '0' and <= '9') && c is not (>= 'A' and <= 'F'))) return false;
+        if (id.StartsWith("p_", StringComparison.Ordinal)) return users.ValidRememberedSession(id, clock.GetUtcNow());
+        if (!sessions.TryGetValue(id, out var session) || session.Expires <= clock.GetUtcNow()) return false;
         var account = users.Find(session.Username);
         return account is { Disabled: false } && account.Version == session.Version;
     }
-    public void Revoke(string? id) { if (id is not null) sessions.TryRemove(id, out _); }
+    public void Revoke(string? id)
+    {
+        if (id is null) return;
+        sessions.TryRemove(id, out _);
+        if (id.StartsWith("p_", StringComparison.Ordinal)) users.RevokeRememberedSession(id);
+    }
 }
 
 public static class SimulatorControl
 {
-    public static void AddSimulatorAuthentication(this IServiceCollection services, IConfiguration configuration, int port, bool requireHttps = false)
+    public static void AddSimulatorAuthentication(this IServiceCollection services, IConfiguration configuration, int port, bool requireHttps = false, string? keyDirectory = null)
     {
         services.AddSingleton<SimulatorUsers>();
+        if (keyDirectory is not null)
+        {
+            if (OperatingSystem.IsWindows()) Directory.CreateDirectory(keyDirectory);
+            else
+            {
+                Directory.CreateDirectory(keyDirectory, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+                if ((File.GetUnixFileMode(keyDirectory) & (UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute | UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute)) != 0)
+                    throw new InvalidOperationException("The authentication key directory must be accessible only to its owner.");
+            }
+            services.AddDataProtection().SetApplicationName("heishamon-cockpit-auth").PersistKeysToFileSystem(new DirectoryInfo(keyDirectory));
+        }
         services.AddAntiforgery(o => { o.HeaderName = "X-CSRF-TOKEN"; o.Cookie.Name = "Cockpit.Csrf." + port; o.Cookie.SameSite = SameSiteMode.Strict; o.Cookie.HttpOnly = true; o.Cookie.SecurePolicy = requireHttps ? CookieSecurePolicy.Always : CookieSecurePolicy.SameAsRequest; });
         services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie(o => {
             o.Cookie.Name = "Cockpit.Simulator." + port; o.Cookie.HttpOnly = true; o.Cookie.SameSite = SameSiteMode.Strict;
@@ -89,8 +117,9 @@ public static class SimulatorControl
         app.MapPost("/api/v1/auth/login", async (LoginInput input, HttpContext c, SimulatorUsers users) => {
             var account = users.Verify(input); if (account is null) return Results.Unauthorized();
             users.Revoke(c.User.FindFirstValue("sid"));
-            var identity = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, account.Username), new Claim(ClaimTypes.Role, account.Role), new Claim("sid", users.CreateSession(account)) }, CookieAuthenticationDefaults.AuthenticationScheme);
-            await c.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity)); return Results.NoContent();
+            var session = users.CreateSession(account, input.RememberMe);
+            var identity = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, account.Username), new Claim(ClaimTypes.Role, account.Role), new Claim("sid", session.Id) }, CookieAuthenticationDefaults.AuthenticationScheme);
+            await c.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity), new AuthenticationProperties { IsPersistent = input.RememberMe, ExpiresUtc = session.Expires, AllowRefresh = false }); return Results.NoContent();
         }).RequireRateLimiting("login");
         app.MapPost("/api/v1/auth/logout", async (HttpContext c, SimulatorUsers users) => {
             users.Revoke(c.User.FindFirstValue("sid")); await c.SignOutAsync(); return Results.NoContent();
