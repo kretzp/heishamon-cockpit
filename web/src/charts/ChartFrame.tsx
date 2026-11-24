@@ -3,7 +3,7 @@ import { useLanguage } from "../i18n/Language";
 import { useTheme } from '../Theme';
 import { themeChart } from './chartTheme';
 import { chartLocales } from './chartLocale';
-import ReactEChartsCore from 'echarts-for-react/esm/core';
+import ReactEChartsCore from 'echarts-for-react/lib/core';
 import * as echarts from 'echarts/core';
 import { LineChart, ScatterChart, CustomChart, HeatmapChart } from 'echarts/charts';
 import { GridComponent, TooltipComponent, MarkLineComponent, MarkAreaComponent, AriaComponent, DataZoomComponent, CalendarComponent, VisualMapComponent } from 'echarts/components';
