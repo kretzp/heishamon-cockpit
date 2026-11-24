@@ -12,10 +12,9 @@ test('overview visibility keeps new tiles opt-in and persists both sections', as
   await page.goto('/');
   await openOverview(page);
   const newTiles = [
-    ['mainTargetTemperature', 'Vorlauf-Soll (Anlage)'],
     ['outsidePipeTemperature', 'Rohrtemperatur Außengerät'],
-    ['evaporatorOutletTemperature', 'Verdampferaustrittstemperatur'],
-    ['dischargeTemperature', 'Verdichteraustrittstemperatur'],
+    ['evaporatorOutletTemperature', 'Verdampferaustritts-temperatur'],
+    ['dischargeTemperature', 'Verdichteraustritts-temperatur'],
   ];
   await page.getByRole('button', { name: 'Kacheln anordnen', exact: true }).click();
   for (const [key, label] of newTiles) {
@@ -25,11 +24,20 @@ test('overview visibility keeps new tiles opt-in and persists both sections', as
     await checkbox.check();
   }
   await page.getByRole('checkbox', { name: 'Durchfluss', exact: true }).uncheck();
+  const statusVisibility = page.getByRole('group', { name: 'Sichtbare Betriebszustände', exact: true });
+  await expect(statusVisibility.getByRole('checkbox')).toHaveCount(5);
+  await statusVisibility.getByRole('checkbox', { name: 'Flüstermodus', exact: true }).uncheck();
   await page.reload();
   await openOverview(page);
   await expect(page.locator('[data-sort-group="temperatures"] article').first()).toHaveAttribute('data-sort-key', 'dhwTemperature');
-  for (const [key] of newTiles) await expect(page.locator(`[data-sort-key="${key}"] .value`)).toContainText('°C');
+  for (const [key] of newTiles) {
+    await expect(page.locator(`[data-sort-key="${key}"] .value`)).toHaveText(/-?\d+,\d{2} °C/);
+    await expect(page.locator(`[data-sort-key="${key}"] svg[data-metric-icon]`)).toHaveCount(1);
+  }
+  await expect(page.locator('[data-sort-key="mainTargetTemperature"]')).toHaveCount(0);
+  await expect(page.getByRole('checkbox', { name: 'Vorlauf-Soll (Anlage)', exact: true })).toHaveCount(0);
   await expect(page.locator('[data-sort-key="waterFlow"]')).toHaveCount(0);
+  await expect(page.locator('[data-sort-group="details"] [data-sort-key="quietMode"]')).toHaveCount(0);
   await page.getByRole('button', { name: 'Rohrtemperatur Außengerät – Diagramm öffnen' }).click();
   await expect(page.getByRole('dialog')).toContainText('Rohrtemperatur Außengerät');
 });
@@ -438,7 +446,7 @@ test('simulated dashboard, readonly API and honest placeholders', async ({ page,
   await expect(page.getByRole('article', { name: 'Vorlauf', exact: true })).toContainText('34,50');
   await expect(page.getByRole('article', { name: 'Spreizung', exact: true })).toContainText('4,5');
   await expect(page.getByRole('article', { name: 'Innen', exact: true })).toContainText('21,5');
-  await expect(page.locator('.temperature-grid h2')).toHaveText(['Vorlauf', 'Rücklauf', 'Spreizung', 'Außen', 'Innen', 'Warmwasser']);
+  await expect(page.locator('.temperature-grid h2')).toHaveText(['Vorlauf / Soll', 'Rücklauf', 'Spreizung / Soll', 'Außen', 'Innen / Soll', 'Warmwasser / Soll']);
   await expect(page.getByRole('article', { name: 'Fehlerstatus', exact: true }).getByText('Fehlerstatus unbekannt', { exact: true })).toBeVisible();
   await expect(page.getByRole('alert')).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
@@ -1035,9 +1043,9 @@ test('control cards support pointer dragging on desktop and touch', async ({ pag
 
 test('Vorlauf, Rücklauf und Spreizung zeigen exakt zwei Nachkommastellen', async ({ page }) => {
   await page.goto('/'); await openOverview(page);
-  await expect(page.getByRole('article', { name: 'Vorlauf', exact: true }).locator('.value')).toHaveText('34,50 °C');
+  await expect(page.getByRole('article', { name: 'Vorlauf', exact: true }).locator('.value')).toHaveText('34,50 °C / 29,00 °C');
   await expect(page.getByRole('article', { name: 'Rücklauf', exact: true }).locator('.value')).toHaveText('30,00 °C');
-  await expect(page.getByRole('article', { name: 'Spreizung', exact: true }).locator('.value')).toHaveText('4,50 K');
+  await expect(page.getByRole('article', { name: 'Spreizung', exact: true }).locator('.value')).toHaveText('4,50 K / 5,00 K');
 });
 
 

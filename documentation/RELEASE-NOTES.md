@@ -2,11 +2,20 @@
 
 ## 1.0.5 — Optional overview temperatures and chart compatibility, 2026-11-24
 
-- Add optional overview cards for the flow target temperature (TOP7), outdoor
-  unit pipe temperature (TOP21), evaporator outlet temperature (TOP53) and
-  compressor discharge temperature (TOP50). These cards start hidden.
-- Under Arrange tiles, choose visible cards separately for the upper readings
-  and system status. Save visibility and order in the current browser while
+- Show flow actual/target (TOP7) together as Flow / Target and hot water actual/target
+  as Hot water / Target. Clicking either card opens both labelled curves, with
+  both measurements in CSV and the value table. Remove the separate flow-target card.
+- Add optional outdoor unit pipe (TOP21), evaporator outlet (TOP53) and compressor
+  discharge (TOP50) temperature cards, hidden by default, with matching duotone symbols.
+- Add Spread / Target with the existing TOP23 heating delta in kelvin; clicking
+  opens both actual and target curves, table and CSV. Rename the indoor card
+  Indoor / Target while preserving its configured MQTT sources and quality handling.
+- Format all three new temperature readings with two decimal places in cards,
+  chart tooltips and axes. Allow the German evaporator-outlet and compressor-discharge
+  labels to wrap at the added hyphen before temperatur.
+- Under Arrange tiles, choose visible cards separately for the upper readings,
+  system measurements and the five lower operating-state cards (heat pump, heater,
+  heating control, quiet mode and error status). Save visibility and order in the current browser while
   preserving existing order preferences. Hiding cards does not stop recording.
 - Read the three additional temperatures from MQTT and include them in stored
   history, measurement charts and CSV export. Add simulator readings and labels

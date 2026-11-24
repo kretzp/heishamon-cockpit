@@ -218,7 +218,7 @@ test('zoom is bounded and export uses the actual selected duration and series co
 
 
 test('temperatures including Dallas sensors retain two decimals in chart tooltips and axes', () => {
-  for (const key of ['flowTemperature', 'returnTemperature', 'temperatureSpread', 'ds18b20_28abcdef01234567']) {
+  for (const key of ['flowTemperature', 'returnTemperature', 'temperatureSpread', 'outsidePipeTemperature', 'evaporatorOutletTemperature', 'dischargeTemperature', 'ds18b20_28abcdef01234567']) {
     assert.equal(metricNumber(34.5, key), '34,50');
     assert.equal(metricNumber(0, key), '0,00');
     assert.equal(metricNumber(-1.236, key), '-1,24');
@@ -266,4 +266,21 @@ test('relay states use on/off labels and the existing interval chart', () => {
     assert.equal(stateIntervals(data, series).length, 1);
     assert.equal(metricOptions(data, key, defaults).series[0].type, 'custom');
   }
+});
+
+
+test('paired temperature charts retain both labelled series with independent quality gaps', () => {
+  const data = { from: '2026-01-01T00:00:00Z', to: '2026-01-01T01:00:00Z', bucketSeconds: 30,
+    series: ['flowTemperature', 'mainTargetTemperature'].map((key, index) => ({ key, unit: '°C', source: 'simulator', aggregation: 'mean',
+      points: [{ time: '2026-01-01T00:00:00Z', value: index ? 36 : 0, quality: 'valid' },
+        { time: '2026-01-01T00:00:30Z', value: index ? 99 : 34, quality: index ? 'invalid' : 'valid' }] })) };
+  const option = metricOptions(data, 'Vorlauf', { ...defaults, trend: false }, { mainTargetTemperature: 'Vorlauf-Soll (Anlage)' });
+  assert.equal(option.series.length, 2);
+  assert.deepEqual(option.series.map(s => s.name), ['Vorlauf', 'Vorlauf-Soll (Anlage)']);
+  assert.deepEqual(option.series[0].data.map(p => p[1]), [0, 34]);
+  assert.deepEqual(option.series[1].data.map(p => p[1]), [36, null]);
+  assert.ok(option.series.every(s => s.connectNulls === false));
+  assert.notEqual(option.series[0].lineStyle.color, option.series[1].lineStyle.color);
+  assert.equal(option.series[1].lineStyle.type, 'dashed');
+  assert.equal(option.legend.type, 'scroll');
 });

@@ -79,6 +79,7 @@ const labels: Record<string, string> = {
   flowTemperature: 'Vorlauf',
   returnTemperature: 'Rücklauf',
   temperatureSpread: 'Spreizung',
+  heatDelta: 'Heiz-ΔT',
   outsideTemperature: 'Außentemperatur',
   indoorTemperature: 'Innen',
   mqttHouseTemperature: 'Innen',
@@ -93,8 +94,8 @@ const labels: Record<string, string> = {
   pumpSpeed: 'Pumpendrehzahl',
   mainTargetTemperature: 'Vorlauf-Soll (Anlage)',
   outsidePipeTemperature: 'Rohrtemperatur Außengerät',
-  evaporatorOutletTemperature: 'Verdampferaustrittstemperatur',
-  dischargeTemperature: 'Verdichteraustrittstemperatur',
+  evaporatorOutletTemperature: 'Verdampferaustritts-temperatur',
+  dischargeTemperature: 'Verdichteraustritts-temperatur',
   fanSpeed: 'Ventilatordrehzahl',
   compressorCurrent: 'Verdichterstrom',
   highPressure: 'Hochdruck',
@@ -119,9 +120,8 @@ const modes = ['Heizen', 'Kühlen', 'Auto (Heizen)', 'Warmwasser', 'Heizen + War
 const tabs = ['Anlagenmodell', 'Übersicht', 'Verlauf', 'Steuerung', 'Heizkurve', 'Dallas-1-Wire', 'Ereignisse', 'Einstellungen', 'Über…'];
 const tabIcons: IconName[] = ['pump', 'home', 'chart', 'sliders', 'chart', 'chart', 'bell', 'settings', 'info'];
 const temperatureKeys = ['flowTemperature', 'returnTemperature', 'temperatureSpread', 'outsideTemperature', 'indoorTemperature', 'dhwTemperature'];
-const optionalTemperatureKeys = ['mainTargetTemperature'];
 const optionalPlantKeys = ['outsidePipeTemperature', 'evaporatorOutletTemperature', 'dischargeTemperature'];
-const hiddenByDefault = [...optionalTemperatureKeys, ...optionalPlantKeys];
+const hiddenByDefault = optionalPlantKeys;
 const powerKeys = ['heatPowerConsumption', 'heatPowerProduction', 'dhwPowerConsumption', 'dhwPowerProduction'];
 const detailKeys = ['heatpumpState', 'internalHeaterState', 'heatingControlMode', 'quietMode', 'activeError'];
 const technicalKeys = ['pumpSpeed', 'fanSpeed', 'compressorCurrent', 'highPressure'];
@@ -217,7 +217,13 @@ function App() {
   const selectedDallas = dallasValues.find(value => value.key === chartKey);
   const plantChart = tab === 'Anlagenmodell';
   const chartAlias = plantChart && chartKey ? snapshot?.values.find(value => value.key === chartKey)?.alias : undefined;
-  const chartLabel = selectedDallas ? `${dallasLabel(selectedDallas)} · ${selectedDallas.key.slice('ds18b20_'.length)}`
+  const chartCompanion = tab === 'Übersicht' && chartKey === 'flowTemperature'
+    ? { key: 'mainTargetTemperature', label: labels.mainTargetTemperature, actualLabel: labels.flowTemperature }
+    : tab === 'Übersicht' && chartKey === 'dhwTemperature'
+      ? { key: 'dhwTargetTemperature', label: labels.dhwTargetTemperature, actualLabel: labels.dhwTemperature }
+      : tab === 'Übersicht' && chartKey === 'temperatureSpread'
+        ? { key: 'heatDelta', label: labels.heatDelta, actualLabel: labels.temperatureSpread } : undefined;
+  const chartLabel = chartCompanion ? localizeText(chartKey === 'flowTemperature' ? 'Vorlauf / Soll' : chartKey === 'temperatureSpread' ? 'Spreizung / Soll' : 'Warmwasser / Soll') : selectedDallas ? `${dallasLabel(selectedDallas)} · ${selectedDallas.key.slice('ds18b20_'.length)}`
     : chartAlias || localizeText(labels[chartKey ?? ''] ?? plantMetricLabels[chartKey ?? ''] ?? chartKey ?? '');
   useEffect(() => {
     if (!hasDallasValues && tab === 'Dallas-1-Wire') setTab('Übersicht');
@@ -307,7 +313,7 @@ function App() {
     ...(system?.enableRelaySwitching ? ['relayOne', 'relayTwo'] : [])];
   const visibilityOverrides = layout.orders['overview-visibility'] ?? [];
   const isVisible = (key: string) => hiddenByDefault.includes(key) === visibilityOverrides.includes(key);
-  const temperatureOrder = normalizeOrder(layout.orders.temperatures, [...temperatureKeys, ...optionalTemperatureKeys]);
+  const temperatureOrder = normalizeOrder(layout.orders.temperatures, temperatureKeys);
   const plantOrder = normalizeOrder(layout.orders.plant, [...visiblePlantKeys, ...optionalPlantKeys]);
   function visibilityOptions(label: string, keys: string[]) {
     if (!editingOrder) return null;
@@ -348,7 +354,8 @@ function App() {
   function card(key: string, variant = '', attributes: React.HTMLAttributes<HTMLElement> = {}, controls?: React.ReactNode, headingLevel: 2 | 3 = 3) {
     const Heading = headingLevel === 2 ? 'h2' : 'h3';
     const value = currentValue(indoorTemperatureKey(mqttTemperature, key));
-    const targetKey = tab === 'Übersicht' ? ({ dhwTemperature: 'dhwTargetTemperature', indoorTemperature: 'indoorTargetTemperature' } as Record<string, string>)[key] : undefined;
+    const targetKey = tab === 'Übersicht' ? ({ temperatureSpread: 'heatDelta', flowTemperature: 'mainTargetTemperature', dhwTemperature: 'dhwTargetTemperature', indoorTemperature: 'indoorTargetTemperature' } as Record<string, string>)[key] : undefined;
+    const heading = targetKey && key === 'temperatureSpread' ? 'Spreizung / Soll' : targetKey && key === 'flowTemperature' ? 'Vorlauf / Soll' : targetKey && key === 'dhwTemperature' ? 'Warmwasser / Soll' : targetKey && key === 'indoorTemperature' ? 'Innen / Soll' : labels[key];
     const target = targetKey ? currentValue(targetKey === 'indoorTargetTemperature' && mqttTargetTemperature ? 'mqttHouseTargetTemperature' : targetKey) : undefined;
     const sterilizationTarget = currentValue('sterilizationTemperature');
     const sterilizationTargetText = sterilizationTarget && ['valid', 'stale'].includes(sterilizationTarget.quality) && typeof sterilizationTarget.value === 'number' && Number.isFinite(sterilizationTarget.value) ? `${display(sterilizationTarget)} °C` : '-';
@@ -359,8 +366,8 @@ function App() {
     const accessibleLabel = technicalKeys.includes(key) ? `${labels[key]} ${value ? display(value) : '—'} ${value ? spokenUnits[value.unit] ?? value.unit : ''} · ${qualities[quality]}` : labels[key];
     return <Card asChild key={key}><article {...attributes} className={['metric', attributes.className ?? '', key, quality, variant, key === 'activeError' && value?.value === 'no error' && quality === 'valid' ? 'error-free' : ''].join(' ')} key={key} aria-label={localizeText(accessibleLabel)}>
       {localizeText(controls)}{icon && <MetricIcon name={icon} />}
-      <div className="metric-top"><Heading className="metric-heading">{key === 'outsideTemperature' ? localizeText('Außen') : key === 'compressorFrequency' ? localizeText('Verdichter') : localizeText(labels[key])}</Heading><Badge variant="secondary" className="quality">{localizeText(qualities[quality])}</Badge></div>
-      <p className={targetKey ? 'value with-target' : 'value'}>{value ? localizeText(display(value)) : key === 'activeError' ? localizeText('Fehlerstatus unbekannt') : localizeText('—')} <span>{value && !['enum', ''].includes(value.unit) && value.value !== null ? localizeText(value.unit) : localizeText('')}</span>{targetKey && <> / <span className="target-reading" title={localizeText(labels[targetKey])}>{localizeText(targetNumber)} <span>{targetNumber !== '—' ? localizeText('°C') : ''}</span></span></>}{sterilizing && targetKey === 'dhwTargetTemperature' && <span className="sterilization-target" title={t("Sterilisationstemperatur")}> · {t("Sterilisation")}: {sterilizationTargetText}</span>}</p>
+      <div className="metric-top"><Heading className="metric-heading">{key === 'outsideTemperature' ? localizeText('Außen') : key === 'compressorFrequency' ? localizeText('Verdichter') : localizeText(heading)}</Heading><Badge variant="secondary" className="quality">{localizeText(qualities[quality])}</Badge></div>
+      <p className={targetKey ? 'value with-target' : 'value'}>{value ? localizeText(display(value)) : key === 'activeError' ? localizeText('Fehlerstatus unbekannt') : localizeText('—')} <span>{value && !['enum', ''].includes(value.unit) && value.value !== null ? localizeText(value.unit) : localizeText('')}</span>{targetKey && <> / <span className="target-reading" title={localizeText(labels[targetKey])}>{localizeText(targetNumber)} <span>{targetNumber !== '—' ? localizeText(target?.unit ?? '') : ''}</span></span></>}{sterilizing && targetKey === 'dhwTargetTemperature' && <span className="sterilization-target" title={t("Sterilisationstemperatur")}> · {t("Sterilisation")}: {sterilizationTargetText}</span>}</p>
       {targetKey && (targetQuality !== 'valid' || target?.retained) && <p className="note target-quality">{localizeText(labels[targetKey])}: {localizeText(qualities[targetQuality])}{target?.retained && <> · {t('Retained · historische Nachricht')}</>}</p>}
       <p className="age">{value?.receivedAtUtc ? <><time dateTime={value.receivedAtUtc}>{t("Empfangen ")}{localizeText(formatTime(value.receivedAtUtc))}</time><span className="age-elapsed">{t(" · vor {0} s", [Math.max(0, Math.floor((now - Date.parse(value.receivedAtUtc)) / 1000))])}</span></> : localizeText('Noch kein Messwert')}</p>
       {value?.retained && <p className="note">{t("Retained · historische Nachricht")}</p>}
@@ -400,7 +407,7 @@ function App() {
           setEditingOrder(false);
         }} aria-current={tab === name ? 'page' : undefined}><Icon name={tabIcons[i]} />{localizeText(name)}</Button>))}<AccountMenu /></nav><p className="sidebar-note"><Icon name="lock" /> {liveControl ? localizeText('Anlagensteuerung') : curveControl ? localizeText('Heizkurvensteuerung') : liveTest ? localizeText('Begrenzter Live-Test') : simulatorControl ? localizeText('Simulatorbetrieb') : localizeText('Lesender Betrieb')}</p></aside>
     <main id="content" tabIndex={-1}>
-      {chartKey && <Suspense fallback={<p role="status">{t("Diagramm wird geöffnet …")}</p>}><MetricChartDialog key={chartKey} metricKey={plantChart ? chartKey : indoorTemperatureKey(mqttTemperature, chartKey)} label={chartLabel} fromPlantModel={plantChart} onClose={() => setChartKey(null)} /></Suspense>}
+      {chartKey && <Suspense fallback={<p role="status">{t("Diagramm wird geöffnet …")}</p>}><MetricChartDialog key={chartKey} metricKey={plantChart ? chartKey : indoorTemperatureKey(mqttTemperature, chartKey)} label={chartLabel} companion={chartCompanion} fromPlantModel={plantChart} onClose={() => setChartKey(null)} /></Suspense>}
       <div className="page-heading"><div className="page-heading-row"><h1 className="page-title">{localizeText(tab)}</h1>{(tab === 'Übersicht' || tab === 'Steuerung' || tab === 'Dallas-1-Wire') && <Button aria-pressed={editingOrder} onClick={() => setEditingOrder(!editingOrder)}>{editingOrder ? localizeText('Anordnung fertig') : localizeText('Kacheln anordnen')}</Button>}</div><p>{t("Version ")}{localizeText(system?.appVersion) ?? localizeText('—')} · {system ? system.source === 'simulator' ? localizeText('Simulatordaten') : system.readOnly ? localizeText('Lokaler Lesebetrieb') : localizeText('Lokaler Bedienbetrieb') : localizeText('Datenquelle wird geladen …')}</p></div>
       <div className="simulation" role="status"><Icon name="info" />{system?.source === 'simulator' ? localizeText('SIMULATION · Alle Messwerte und Verbindungszustände sind simuliert.') : system?.source === 'mqtt' ? liveControl ? localizeText('MQTT · Heizkurve und Warmwassersteuerung verfügbar') : curveControl ? localizeText('MQTT · Heizkurvensteuerung verfügbar') : localizeText('MQTT · Lesender Betrieb') : localizeText('Datenquelle wird geladen …')}</div>
       <StorageNotice />
@@ -418,8 +425,9 @@ function App() {
           {visibilityOptions('Sichtbare obere Kacheln', temperatureOrder)}
           <SortableMetrics group="temperatures" label={t("Messwerte")} className="temperature-grid" editing={editingOrder} keys={temperatureOrder.filter(isVisible)} labels={labels} save={saveVisibleOrder} render={(key, attrs, controls) => card(key, "", attrs, controls, 2)} />
           <section className="panel plant-panel" aria-label={t("Anlagenstatus")}><h2>{t("Anlagenstatus")}</h2>
-            {visibilityOptions('Sichtbare Kacheln im Anlagenstatus', [...plantOrder, ...detailOrder])}
+            {visibilityOptions('Sichtbare Kacheln im Anlagenstatus', plantOrder)}
             <SortableMetrics group="plant" label={t("Anlagenmesswerte")} className="plant-grid" editing={editingOrder} keys={plantOrder.filter(isVisible)} labels={labels} save={saveVisibleOrder} render={(key, attrs, controls) => card(key, "plant-metric", attrs, controls)} />
+            {visibilityOptions('Sichtbare Betriebszustände', detailOrder)}
             <SortableMetrics group="details" label={t("Betriebszustände")} className="plant-details" editing={editingOrder} keys={detailOrder.filter(isVisible)} labels={labels} save={saveVisibleOrder} render={(key, attrs, controls) => card(key, "compact", attrs, controls)} />
           </section>
           <HistoryPanel compact /><EventsPanel compact />

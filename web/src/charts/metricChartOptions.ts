@@ -64,34 +64,32 @@ export function readPreferences(key: string): Preferences {
     return fallback;
   }
 }
-export function metricOptions(data: History, label: string, p: Preferences): EChartsOption {
+export function metricOptions(data: History, label: string, p: Preferences, labels: Record<string, string> = {}): EChartsOption {
   const s = data.series[0];
   const states = s?.aggregation === 'observedIntervals' || s?.aggregation === 'stableState';
   const base = states ? stateOptions(data, s) : lineOptions(data, {
-    [s.key]: label
+    [s.key]: label, ...labels
   }, s.unit === '°C', s.key === 'waterPressure');
   if (!states) {
-    const series = (base.series as object[])[0];
-    base.series = [{
-      ...series,
-      type: p.type,
-      itemStyle: {
-        color: p.color
-      },
-      lineStyle: {
-        color: p.color,
-        width: 2
-      },
-      areaStyle: p.area ? {
-        opacity: .16
-      } : undefined,
-      step: p.step ? 'end' : false,
-      showSymbol: p.symbols
-    }] as EChartsOption['series'];
-    if (p.trend) (base.series as object[]).push(trendSeries(s.key, label, (series as { data: TrendPoint[] }).data, data.bucketSeconds, p.color));
+    const original = base.series as { data: TrendPoint[] }[];
+    base.series = original.flatMap((series, index) => {
+      const measurement = data.series[index];
+      const color = index === 0 ? p.color : '#b75c25';
+      const name = labels[measurement.key] ?? label;
+      const styled = {
+        ...series, type: p.type,
+        itemStyle: { color },
+        lineStyle: { color, width: 2, type: index === 0 ? 'solid' : 'dashed' },
+        areaStyle: p.area ? { opacity: .16 } : undefined,
+        step: p.step ? 'end' : false,
+        showSymbol: p.symbols
+      };
+      return p.trend ? [styled, trendSeries(measurement.key, name, series.data, data.bucketSeconds, color)] : [styled];
+    }) as EChartsOption['series'];
   }
   return mergeOptions({
     ...base,
+    legend: data.series.length > 1 ? { type: 'scroll', top: 0 } : undefined,
     aria: {
       enabled: true,
       label: {

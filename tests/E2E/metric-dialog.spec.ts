@@ -163,14 +163,14 @@ test('smoothed trend starts enabled and metric opt-out persists', async ({ page 
   const toggle = dialog.getByRole('checkbox', { name: 'Geglättete Trendkurve (Fit)', exact: true });
   await expect(toggle).toBeChecked();
   const trend = dialog.locator('.metric-detail-chart svg path[stroke-width="3"][stroke-dasharray]');
-  await expect(trend).toHaveCount(1);
+  await expect(trend).toHaveCount(2);
   await toggle.focus(); await page.keyboard.press('Space');
   await expect(toggle).not.toBeChecked();
   await expect(trend).toHaveCount(0);
   await page.keyboard.press('Escape');
   await page.reload(); await openOverview(page); await open.click();
   await expect(toggle).not.toBeChecked();
-  await toggle.check(); await expect(trend).toHaveCount(1);
+  await toggle.check(); await expect(trend).toHaveCount(2);
 });
 
 async function fixtures(page: Page) {
@@ -250,15 +250,15 @@ test('five overview status tiles share a desktop row without overflow and remain
   }
 });
 
-test('overview temperatures show actual and target while opening only actual history', async ({ page, request }) => {
+test('overview temperatures pair actual and target in cards and charts', async ({ page, request }) => {
   const snapshot = await (await request.get('/api/v1/snapshot')).json();
   let targetQuality = 'valid';
   await page.route('**/api/v1/snapshot', route => route.fulfill({ json: {
     ...snapshot, revision: Number.MAX_SAFE_INTEGER,
     values: snapshot.values.map((v: { key: string }) => {
-      const values: Record<string, number> = { dhwTemperature: 46, dhwTargetTemperature: 53, indoorTemperature: 21, indoorTargetTemperature: 22 };
+      const values: Record<string, number> = { temperatureSpread: 4.5, heatDelta: 5, flowTemperature: 34.5, mainTargetTemperature: 36, dhwTemperature: 46, dhwTargetTemperature: 53, indoorTemperature: 21, indoorTargetTemperature: 22 };
       if (!(v.key in values)) return v;
-      const isTarget = v.key.endsWith('TargetTemperature');
+      const isTarget = v.key.endsWith('TargetTemperature') || v.key === 'heatDelta';
       return { ...v, value: isTarget && targetQuality === 'unknown' ? null : values[v.key],
         quality: isTarget ? targetQuality : 'valid', retained: false };
     })
@@ -270,22 +270,36 @@ test('overview temperatures show actual and target while opening only actual his
     if (url.pathname === '/api/v1/history') requestedKeys.push(url.searchParams.get('keys')!);
   });
   await page.goto('/'); await openOverview(page);
+  await expect(page.locator('.temperatureSpread .value')).toHaveText('4,50 K / 5,00 K');
+  await expect(page.locator('.temperatureSpread .metric-heading')).toHaveText('Spreizung / Soll');
+  await expect(page.locator('.flowTemperature .value')).toHaveText('34,50 °C / 36,00 °C');
+  await expect(page.locator('.flowTemperature .metric-heading')).toHaveText('Vorlauf / Soll');
+  await expect(page.locator('.dhwTemperature .metric-heading')).toHaveText('Warmwasser / Soll');
   await expect(page.locator('.dhwTemperature .value')).toHaveText('46 °C / 53 °C');
   await expect(page.locator('.indoorTemperature .value')).toHaveText('21 °C / 22 °C');
-  for (const [name, key] of [['Warmwasser', 'dhwTemperature'], ['Innen', 'indoorTemperature']]) {
+  for (const [name, key] of [['Spreizung', 'temperatureSpread'], ['Vorlauf', 'flowTemperature'], ['Warmwasser', 'dhwTemperature'], ['Innen', 'indoorTemperature']]) {
     await page.getByRole('button', { name: `${name} – Diagramm öffnen`, exact: true }).click();
-    await expect.poll(() => requestedKeys.includes(key)).toBeTruthy();
+    const target = key === 'temperatureSpread' ? 'heatDelta' : key === 'flowTemperature' ? 'mainTargetTemperature' : key === 'dhwTemperature' ? 'dhwTargetTemperature' : undefined;
+    await expect.poll(() => requestedKeys.includes(target ? `${key},${target}` : key)).toBeTruthy();
+    if (target) {
+      await expect(page.getByRole('dialog').locator('svg').getByText(name, { exact: true })).toBeVisible();
+      await expect(page.getByRole('dialog').locator('svg').getByText(target === 'heatDelta' ? 'Heiz-ΔT' : target === 'mainTargetTemperature' ? 'Vorlauf-Soll (Anlage)' : 'Warmwasser-Soll', { exact: true })).toBeVisible();
+    }
     await page.keyboard.press('Escape');
   }
+  expect(requestedKeys).not.toContain('mainTargetTemperature');
   expect(requestedKeys).not.toContain('dhwTargetTemperature');
   expect(requestedKeys).not.toContain('indoorTargetTemperature');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
   targetQuality = 'unknown';
   await page.reload(); await openOverview(page);
+  await expect(page.locator('.temperatureSpread .value')).toHaveText('4,50 K / —');
+  await expect(page.locator('.flowTemperature .value')).toHaveText('34,50 °C / —');
   await expect(page.locator('.dhwTemperature .value')).toHaveText('46 °C / —');
   await expect(page.locator('.indoorTemperature .value')).toHaveText('21 °C / —');
   targetQuality = 'stale';
   await page.reload(); await openOverview(page);
+  await expect(page.locator('.flowTemperature .target-quality')).toContainText('Veraltet');
   await expect(page.locator('.dhwTemperature .target-quality')).toContainText('Veraltet');
   await expect(page.locator('.indoorTemperature .target-quality')).toContainText('Veraltet');
 });

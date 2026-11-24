@@ -190,7 +190,7 @@ for (const mode of ['disabled', 'valid', 'stale', 'retained', 'offline', 'missin
   const expectedKey = mode === 'disabled' ? 'indoorTemperature' : 'mqttHouseTemperature';
   const historyRequest = page.waitForRequest(r => r.url().includes('/api/v1/history?') && !!new URL(r.url()).searchParams.get('keys')?.split(',').includes(expectedKey));
   await page.getByRole('navigation').getByRole('button', { name: 'Übersicht', exact: true }).click();
-  const tile = page.locator('.temperature-grid article').filter({ has: page.getByRole('heading', { name: 'Innen', exact: true }) });
+  const tile = page.locator('.temperature-grid article').filter({ has: page.getByRole('heading', { name: 'Innen / Soll', exact: true }) });
   await expect(tile).toContainText(mode === 'disabled' ? '26' : mode === 'missing' || mode === 'invalid' ? '—' : '19,5');
   await historyRequest;
 

@@ -1,7 +1,7 @@
 import { getLocale, text as localizeText, t as translate } from "../i18n/core.ts";
 import type { EChartsOption, LineSeriesOption, CustomSeriesOption } from 'echarts';
 import { format } from 'echarts/core.js';
-import { metricNumber, axisTime, chartNumber, chartTime, metricColor, stateColor, stateLabel } from './chartFormat.ts';
+import { twoDecimalMetrics, metricNumber, axisTime, chartNumber, chartTime, metricColor, stateColor, stateLabel } from './chartFormat.ts';
 import { trendSeries, type TrendPoint } from './trendOptions.ts';
 export type Point = {
   time: string;
@@ -163,7 +163,7 @@ export function lineOptions(data: History, labels: Record<string, string>, tempe
       position: index === 0 ? 'left' : 'right',
       ...numericScale(data.series.filter(s => s.unit === unit).flatMap(s => s.points.filter(validPoint).map(p => p.value!)), temperature, pressure),
       axisLabel: {
-        formatter: (value: number) => chartNumber(value, pressure || data.series.some(s => s.unit === unit && (s.key.startsWith('ds18b20_') || ['flowTemperature', 'returnTemperature', 'temperatureSpread', 'mainTargetTemperature', 'curveYCold', 'curveYWarm'].includes(s.key))))
+        formatter: (value: number) => chartNumber(value, pressure || data.series.some(s => s.unit === unit && (s.key.startsWith('ds18b20_') || twoDecimalMetrics.includes(s.key))))
       },
       splitLine: {
         show: index === 0,

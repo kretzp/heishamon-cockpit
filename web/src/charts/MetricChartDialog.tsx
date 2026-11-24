@@ -116,16 +116,19 @@ function ConfigurableChart({
 }
 export default function MetricChartDialog({
   metricKey,
+  companion,
   label,
   fromPlantModel,
   onClose
 }: {
   metricKey: string;
+  companion?: { key: string; label: string; actualLabel: string };
   label: string;
   fromPlantModel: boolean;
   onClose: () => void;
 }) {
   const language = useLanguage();
+  const requestedKeys = companion ? `${metricKey},${companion.key}` : metricKey;
   const dialog = useRef<HTMLDialogElement>(null);
   const isDallas = metricKey.startsWith('ds18b20_');
   const displayLabel = isDallas ? label : localizeText(label);
@@ -178,7 +181,7 @@ export default function MetricChartDialog({
         const bucket = Math.max(storage.sampleSeconds, Math.ceil((range.to - range.from) / 1000 / 800 / storage.sampleSeconds) * storage.sampleSeconds);
         const intervals = ['heatpumpState', 'internalHeaterState', 'threeWayValveState', 'relayOne', 'relayTwo'].includes(metricKey);
         const result = await get('/api/v1/history' + (intervals ? '/intervals' : '') + '?' + new URLSearchParams({
-          keys: metricKey,
+          keys: requestedKeys,
           from: new Date(range.from).toISOString(),
           to: new Date(range.to).toISOString(),
           bucketSeconds: String(bucket)
@@ -194,8 +197,8 @@ export default function MetricChartDialog({
       }
     })();
     return () => controller.abort();
-  }, [metricKey, range, refresh, isError, isModel]);
-  const option = useMemo(() => data?.series.length ? metricOptions(data, label, preferences) : null, [data, label, preferences, language]);
+  }, [metricKey, requestedKeys, range, refresh, isError, isModel]);
+  const option = useMemo(() => data?.series.length ? metricOptions(data, companion?.actualLabel ?? label, preferences, companion ? { [metricKey]: companion.actualLabel, [companion.key]: companion.label } : {}) : null, [data, label, companion?.key, companion?.label, companion?.actualLabel, preferences, language]);
   function save(next: Preferences) {
     setPreferences(next);
     try {
@@ -213,7 +216,7 @@ export default function MetricChartDialog({
   async function csv() {
     try {
       const response = await sessionFetch('/api/v1/export.csv?' + new URLSearchParams({
-        keys: metricKey,
+        keys: requestedKeys,
         from: new Date(range.from).toISOString(),
         to: new Date(range.to).toISOString()
       }));
@@ -248,7 +251,7 @@ export default function MetricChartDialog({
           } else setError('Gültigen Zeitraum bis jetzt wählen (höchstens 700 Tage).');
         }}>{t("Zeitraum anwenden")}</Button>
         <Button onClick={() => setRefresh(n => n + 1)}>{t("Neu laden")}</Button>
-        <Button disabled={!data || loading || !csvAllowed(range, 1, step)} onClick={() => void csv()}>{t("Messwerte als CSV")}</Button>
+        <Button disabled={!data || loading || !csvAllowed(range, companion ? 2 : 1, step)} onClick={() => void csv()}>{t("Messwerte als CSV")}</Button>
       </div>
       {error && <p className="warning" role="alert">{localizeText(error)}</p>}{loading && <p role="status">{t("Messwertverlauf wird geladen …")}</p>}
       {data && <p className="field-note">{data.series[0]?.source === 'simulator' ? localizeText('SIMULATION · Simulierte Messwerte') : localizeText('MQTT · Aufgezeichnete Messwerte')} · {localizeText(chartTime(data.from))} – {localizeText(chartTime(data.to))}{t(" · Raster ")}{localizeText(data.bucketSeconds)}{t(" s · Einheit ")}{data.series[0]?.unit || localizeText('ohne Einheit')}</p>}
@@ -309,7 +312,7 @@ export default function MetricChartDialog({
         }}>{t("Einstellungen zurücksetzen")}</Button>
       {notice && <p role="status">{localizeText(notice)}</p>}</details>
       {preferences.advanced.trim() !== '{}' && <p className="warning">{t("Benutzerdefinierte ECharts-Optionen aktiv. Maßgeblich bleiben die Originalwerte in Tabelle und CSV.")}</p>}
-      {data && <details><summary>{t("Originalwerte und Qualität (letzte 100 Einträge)")}</summary><div className="history-table-wrap"><table><thead><tr><th>{t("Zeit · Berlin")}</th><th>{t("Wert")}</th><th>{t("Qualität")}</th></tr></thead><tbody>{localizeText(data.series.flatMap(s => s.intervals ? s.intervals.slice(-100).map(p => <tr key={p.from}><td>{localizeText(chartTime(p.from))} – {localizeText(chartTime(p.to))}</td><td>{localizeText(stateLabel(s.key, p.value) ?? p.value)}</td><td>{p.quality === 'valid' ? localizeText('Gültig') : localizeText('Unbekannt')}</td></tr>) : s.points.slice(-100).map(p => <tr key={p.time}><td>{localizeText(chartTime(p.time))}</td><td>{validPoint(p) ? localizeText(metricNumber(p.value!, s.key)) + localizeText(' ') + localizeText(s.unit) : localizeText('—')}</td><td>{localizeText({
+      {data && <details><summary>{t("Originalwerte und Qualität (letzte 100 Einträge)")}</summary><div className="history-table-wrap"><table><thead><tr><th>{t("Zeit · Berlin")}</th>{companion && <th>{t("Messwert")}</th>}<th>{t("Wert")}</th><th>{t("Qualität")}</th></tr></thead><tbody>{localizeText(data.series.flatMap(s => s.intervals ? s.intervals.slice(-100).map(p => <tr key={`${s.key}:${p.from}`}><td>{localizeText(chartTime(p.from))} – {localizeText(chartTime(p.to))}</td>{companion && <td>{localizeText(s.key === companion.key ? companion.label : companion.actualLabel)}</td>}<td>{localizeText(stateLabel(s.key, p.value) ?? p.value)}</td><td>{p.quality === 'valid' ? localizeText('Gültig') : localizeText('Unbekannt')}</td></tr>) : s.points.slice(-100).map(p => <tr key={`${s.key}:${p.time}`}><td>{localizeText(chartTime(p.time))}</td>{companion && <td>{localizeText(s.key === companion.key ? companion.label : companion.actualLabel)}</td>}<td>{validPoint(p) ? localizeText(metricNumber(p.value!, s.key)) + localizeText(' ') + localizeText(s.unit) : localizeText('—')}</td><td>{localizeText({
                     valid: 'Gültig',
                     unknown: 'Unbekannt',
                     invalid: 'Ungültig',

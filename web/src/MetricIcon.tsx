@@ -2,6 +2,9 @@ import type { ReactNode } from 'react';
 
 // Approved style B: exact geometry from design/icon-proposals/symbols-b.svg.
 const shapes = {
+  "pipeTemperature": <><path d="M5 10h20v7H12v21H5Z M30 27V12a4 4 0 0 1 8 0v15a7 7 0 1 1-8 0Z M34 15v18" /><circle cx="34" cy="34" r="2" /></>,
+  "evaporatorOutlet": <><rect x="5" y="10" width="23" height="29" rx="4" /><path d="M11 15v19 M17 15v19 M23 15v19 M28 24h15 M38 19l5 5-5 5 M11 5v5 M23 39v5" /></>,
+  "compressorDischarge": <><rect x="5" y="15" width="23" height="25" rx="6" /><path d="M11 15V9h11v6 M10 40v4 M23 40v4 M28 22h15 M38 17l5 5-5 5 M33 12c-4-4 4-5 0-9 M40 12c-4-4 4-5 0-9" /></>,
   "relay": <><rect x="7" y="7" width="34" height="34" rx="5" /><path d="M3 30h12 M33 30h12 M17 28l14-11 M17 7V3 M31 7V3 M17 41v4 M31 41v4" /><circle cx="17" cy="30" r="2" /><circle cx="31" cy="30" r="2" /></>,
   "flow": <><path d="M12 29V11a5 5 0 0 1 10 0v18a8 8 0 1 1-10 0Z M17 14v20"></path><circle cx="17" cy="35" r="2"></circle><path d="M28 18h14 M37 13l5 5-5 5"></path></>,
   "return": <><path d="M12 29V11a5 5 0 0 1 10 0v18a8 8 0 1 1-10 0Z M17 14v20"></path><circle cx="17" cy="35" r="2"></circle><path d="M42 18H28 M33 13l-5 5 5 5"></path></>,
@@ -37,6 +40,10 @@ export const metricIconNames: Record<string, MetricIconName> = {
   "alternativeHeaterPower": "heater",
   "heishamonCop": "regulation",
   "flowTemperature": "flow",
+  "mainTargetTemperature": "flow",
+  "outsidePipeTemperature": "pipeTemperature",
+  "evaporatorOutletTemperature": "evaporatorOutlet",
+  "dischargeTemperature": "compressorDischarge",
   "returnTemperature": "return",
   "temperatureSpread": "spread",
   "outsideTemperature": "outside",
