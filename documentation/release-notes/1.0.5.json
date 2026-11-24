@@ -1,0 +1,55 @@
+{
+  "sourceSha256": "e7c6a5463080182452d08a27f937af8f11dfac1e630c779ed82a011e4ad39410",
+  "translations": {
+    "de": {
+      "title": "Optionale Übersichtstemperaturen und Diagrammkompatibilität",
+      "items": [
+        "Optionale Übersichtskacheln zeigen Vorlauf-Soll (TOP7), Rohrtemperatur des Außengeräts (TOP21), Verdampferaustrittstemperatur (TOP53) und Verdichteraustrittstemperatur (TOP50). Diese Kacheln sind zunächst ausgeblendet.",
+        "Unter Kacheln anordnen lassen sich die sichtbaren oberen Messwert- und Anlagenstatuskacheln getrennt auswählen. Sichtbarkeit und Reihenfolge werden im aktuellen Browser gespeichert; vorhandene Reihenfolgen bleiben erhalten. Ausblenden beendet die Aufzeichnung nicht.",
+        "Die drei zusätzlichen Temperaturen werden über MQTT gelesen und sind im gespeicherten Verlauf, in Messwertdiagrammen und im CSV-Export verfügbar. Simulatorwerte und Beschriftungen stehen in allen sechs unterstützten Sprachen bereit.",
+        "echarts-for-react wird auf 3.1.0, tailwind-merge auf 3.7.1 und Playwright auf 1.65.1 aktualisiert. Der exportierte Diagramm-Core-Import behebt den Frontend-, Docker- und E2E-Build.",
+        "Erweiterte MQTT-Abonnement-, Verlaufs- und Desktop-/Mobiltests prüfen die optionalen Temperaturen und gespeicherte Kachelsichtbarkeit. Keine Datenbankmigration erforderlich."
+      ]
+    },
+    "fr": {
+      "title": "Températures optionnelles dans la vue d’ensemble et compatibilité des graphiques",
+      "items": [
+        "Ajout de cartes optionnelles pour la température de départ cible (TOP7), le tuyau de l’unité extérieure (TOP21), la sortie de l’évaporateur (TOP53) et le refoulement du compresseur (TOP50). Ces cartes sont masquées par défaut.",
+        "Dans Organiser les cartes, choisissez séparément les cartes visibles des mesures supérieures et de l’état du système. La visibilité et l’ordre sont enregistrés dans le navigateur actuel, en conservant l’ordre existant. Masquer une carte n’arrête pas l’enregistrement.",
+        "Les trois températures supplémentaires sont lues par MQTT et disponibles dans l’historique, les graphiques de mesure et l’export CSV. Des valeurs de simulation et des libellés sont ajoutés dans les six langues prises en charge.",
+        "Mise à jour d’echarts-for-react vers 3.1.0, de tailwind-merge vers 3.7.1 et de Playwright vers 1.65.1. L’import du cœur des graphiques via le chemin exporté rétablit les compilations frontend, Docker et E2E.",
+        "Les tests des abonnements MQTT, de l’historique et des interfaces de bureau et mobile couvrent les températures optionnelles et la visibilité enregistrée. Aucune migration de base de données n’est nécessaire."
+      ]
+    },
+    "es": {
+      "title": "Temperaturas opcionales en el resumen y compatibilidad de gráficos",
+      "items": [
+        "Se añaden tarjetas opcionales para la temperatura objetivo de impulsión (TOP7), el tubo de la unidad exterior (TOP21), la salida del evaporador (TOP53) y la descarga del compresor (TOP50). Estas tarjetas empiezan ocultas.",
+        "En Organizar tarjetas, elija por separado las tarjetas visibles de las lecturas superiores y del estado del sistema. La visibilidad y el orden se guardan en el navegador actual, conservando el orden existente. Ocultar tarjetas no detiene el registro.",
+        "Las tres temperaturas adicionales se leen por MQTT y aparecen en el historial almacenado, los gráficos de medición y la exportación CSV. Se añaden valores del simulador y etiquetas en los seis idiomas disponibles.",
+        "Se actualizan echarts-for-react a 3.1.0, tailwind-merge a 3.7.1 y Playwright a 1.65.1. La importación del núcleo de gráficos mediante la ruta exportada restaura las compilaciones frontend, Docker y E2E.",
+        "Se amplían las pruebas de suscripciones MQTT, historial y escritorio/móvil para las temperaturas opcionales y la visibilidad guardada. No se requiere migración de la base de datos."
+      ]
+    },
+    "it": {
+      "title": "Temperature opzionali nella panoramica e compatibilità dei grafici",
+      "items": [
+        "Aggiunte schede opzionali per la temperatura di mandata obiettivo (TOP7), il tubo dell’unità esterna (TOP21), l’uscita dell’evaporatore (TOP53) e la mandata del compressore (TOP50). Queste schede sono inizialmente nascoste.",
+        "In Disponi schede è possibile scegliere separatamente le schede visibili delle letture superiori e dello stato dell’impianto. Visibilità e ordine vengono salvati nel browser corrente, conservando l’ordine esistente. Nascondere le schede non interrompe la registrazione.",
+        "Le tre temperature aggiuntive vengono lette tramite MQTT e incluse nello storico, nei grafici di misura e nell’esportazione CSV. Aggiunti valori del simulatore ed etichette in tutte le sei lingue supportate.",
+        "Aggiornati echarts-for-react a 3.1.0, tailwind-merge a 3.7.1 e Playwright a 1.65.1. L’importazione del nucleo dei grafici tramite il percorso esportato ripristina le compilazioni frontend, Docker ed E2E.",
+        "Ampliati i test degli abbonamenti MQTT, dello storico e delle interfacce desktop/mobile per le temperature opzionali e la visibilità salvata. Non è necessaria alcuna migrazione del database."
+      ]
+    },
+    "pt": {
+      "title": "Temperaturas opcionais na visão geral e compatibilidade dos gráficos",
+      "items": [
+        "Adicionados cartões opcionais para a temperatura de ida pretendida (TOP7), o tubo da unidade exterior (TOP21), a saída do evaporador (TOP53) e a descarga do compressor (TOP50). Estes cartões começam ocultos.",
+        "Em Organizar cartões, escolha separadamente os cartões visíveis das leituras superiores e do estado do sistema. A visibilidade e a ordem são guardadas no navegador atual, preservando a ordem existente. Ocultar cartões não interrompe o registo.",
+        "As três temperaturas adicionais são lidas por MQTT e incluídas no histórico guardado, nos gráficos de medição e na exportação CSV. Adicionados valores do simulador e legendas nos seis idiomas suportados.",
+        "Atualizados echarts-for-react para 3.1.0, tailwind-merge para 3.7.1 e Playwright para 1.65.1. A importação do núcleo dos gráficos pelo caminho exportado repõe as compilações frontend, Docker e E2E.",
+        "Alargados os testes de subscrições MQTT, histórico e interfaces de computador/telemóvel para as temperaturas opcionais e a visibilidade guardada. Não é necessária migração da base de dados."
+      ]
+    }
+  }
+}

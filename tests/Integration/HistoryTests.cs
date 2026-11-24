@@ -62,6 +62,9 @@ public sealed class HistoryTests : IDisposable
     }
     [Theory]
     [InlineData("pumpSpeed", "main/Pump_Speed", "1750.25", 1750.25, "U/min")]
+    [InlineData("outsidePipeTemperature", "main/Outside_Pipe_Temp", "-3", -3, "°C")]
+    [InlineData("evaporatorOutletTemperature", "main/Eva_Outlet_Temp", "-1", -1, "°C")]
+    [InlineData("dischargeTemperature", "main/Discharge_Temp", "42", 42, "°C")]
     [InlineData("fanSpeed", "main/Fan1_Motor_Speed", "0", 0, "U/min")]
     [InlineData("compressorCurrent", "main/Compressor_Current", "4.44", 4.44, "A")]
     [InlineData("highPressure", "main/High_Pressure", "10.24", 10.24, "kgf/cm²")]

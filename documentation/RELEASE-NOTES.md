@@ -1,5 +1,21 @@
 # Release notes
 
+## 1.0.5 — Optional overview temperatures and chart compatibility, 2026-11-24
+
+- Add optional overview cards for the flow target temperature (TOP7), outdoor
+  unit pipe temperature (TOP21), evaporator outlet temperature (TOP53) and
+  compressor discharge temperature (TOP50). These cards start hidden.
+- Under Arrange tiles, choose visible cards separately for the upper readings
+  and system status. Save visibility and order in the current browser while
+  preserving existing order preferences. Hiding cards does not stop recording.
+- Read the three additional temperatures from MQTT and include them in stored
+  history, measurement charts and CSV export. Add simulator readings and labels
+  in all six supported languages.
+- Update echarts-for-react to 3.1.0, tailwind-merge to 3.7.1 and Playwright to
+  1.65.1. Use the exported chart-core import to restore frontend, Docker and E2E builds.
+- Extend MQTT subscription, history and desktop/mobile regression coverage for
+  the optional temperatures and saved card visibility. No database migration is required.
+
 ## 1.0.4 — MQTT temperature sources and remembered sign-in, 2026-11-23
 
 - Move the MQTT house-temperature configuration from Configure model to the new

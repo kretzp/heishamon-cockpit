@@ -91,6 +91,10 @@ const labels: Record<string, string> = {
   threeWayValveState: '3-Wege-Ventil',
   waterPressure: 'Wasserdruck',
   pumpSpeed: 'Pumpendrehzahl',
+  mainTargetTemperature: 'Vorlauf-Soll (Anlage)',
+  outsidePipeTemperature: 'Rohrtemperatur Außengerät',
+  evaporatorOutletTemperature: 'Verdampferaustrittstemperatur',
+  dischargeTemperature: 'Verdichteraustrittstemperatur',
   fanSpeed: 'Ventilatordrehzahl',
   compressorCurrent: 'Verdichterstrom',
   highPressure: 'Hochdruck',
@@ -115,6 +119,9 @@ const modes = ['Heizen', 'Kühlen', 'Auto (Heizen)', 'Warmwasser', 'Heizen + War
 const tabs = ['Anlagenmodell', 'Übersicht', 'Verlauf', 'Steuerung', 'Heizkurve', 'Dallas-1-Wire', 'Ereignisse', 'Einstellungen', 'Über…'];
 const tabIcons: IconName[] = ['pump', 'home', 'chart', 'sliders', 'chart', 'chart', 'bell', 'settings', 'info'];
 const temperatureKeys = ['flowTemperature', 'returnTemperature', 'temperatureSpread', 'outsideTemperature', 'indoorTemperature', 'dhwTemperature'];
+const optionalTemperatureKeys = ['mainTargetTemperature'];
+const optionalPlantKeys = ['outsidePipeTemperature', 'evaporatorOutletTemperature', 'dischargeTemperature'];
+const hiddenByDefault = [...optionalTemperatureKeys, ...optionalPlantKeys];
 const powerKeys = ['heatPowerConsumption', 'heatPowerProduction', 'dhwPowerConsumption', 'dhwPowerProduction'];
 const detailKeys = ['heatpumpState', 'internalHeaterState', 'heatingControlMode', 'quietMode', 'activeError'];
 const technicalKeys = ['pumpSpeed', 'fanSpeed', 'compressorCurrent', 'highPressure'];
@@ -298,6 +305,25 @@ function App() {
   const visiblePlantKeys = [...plantKeys,
     ...(currentValue('alternativePowerEnabled')?.value === 1 ? ['alternativeHeatpumpPower', 'alternativeHeaterPower'] : []),
     ...(system?.enableRelaySwitching ? ['relayOne', 'relayTwo'] : [])];
+  const visibilityOverrides = layout.orders['overview-visibility'] ?? [];
+  const isVisible = (key: string) => hiddenByDefault.includes(key) === visibilityOverrides.includes(key);
+  const temperatureOrder = normalizeOrder(layout.orders.temperatures, [...temperatureKeys, ...optionalTemperatureKeys]);
+  const plantOrder = normalizeOrder(layout.orders.plant, [...visiblePlantKeys, ...optionalPlantKeys]);
+  function visibilityOptions(label: string, keys: string[]) {
+    if (!editingOrder) return null;
+    return <fieldset className="panel metric-visibility"><legend>{t(label)}</legend>
+      {keys.map(key => <label key={key}><input type="checkbox" checked={isVisible(key)} onChange={() =>
+        layout.save('overview-visibility', visibilityOverrides.includes(key)
+          ? visibilityOverrides.filter(item => item !== key)
+          : [...visibilityOverrides, key])} />{t(labels[key])}</label>)}
+    </fieldset>;
+  }
+  function saveVisibleOrder(group: string, keys: string[]) {
+    const order = { temperatures: temperatureOrder, plant: plantOrder, details: detailOrder }[group];
+    if (!order) return;
+    let index = 0;
+    layout.save(group, order.map(key => isVisible(key) ? keys[index++] : key));
+  }
   const mode = currentValue('operatingMode');
   const deviceOnline = live && snapshot?.deviceAvailability === 'online';
   async function switchRelay(key: string) {
@@ -389,10 +415,12 @@ function App() {
       </>}
       {tab === 'Übersicht' && <>
         <div className="overview-layout"><div className="overview-main">
-          <SortableMetrics group="temperatures" label={t("Messwerte")} className="temperature-grid" editing={editingOrder} keys={normalizeOrder(layout.orders.temperatures, temperatureKeys)} labels={labels} save={layout.save} render={(key, attrs, controls) => card(key, "", attrs, controls, 2)} />
+          {visibilityOptions('Sichtbare obere Kacheln', temperatureOrder)}
+          <SortableMetrics group="temperatures" label={t("Messwerte")} className="temperature-grid" editing={editingOrder} keys={temperatureOrder.filter(isVisible)} labels={labels} save={saveVisibleOrder} render={(key, attrs, controls) => card(key, "", attrs, controls, 2)} />
           <section className="panel plant-panel" aria-label={t("Anlagenstatus")}><h2>{t("Anlagenstatus")}</h2>
-            <SortableMetrics group="plant" label={t("Anlagenmesswerte")} className="plant-grid" editing={editingOrder} keys={normalizeOrder(layout.orders.plant, visiblePlantKeys)} labels={labels} save={layout.save} render={(key, attrs, controls) => card(key, "plant-metric", attrs, controls)} />
-            <SortableMetrics group="details" label={t("Betriebszustände")} className="plant-details" editing={editingOrder} keys={detailOrder} labels={labels} save={layout.save} render={(key, attrs, controls) => card(key, "compact", attrs, controls)} />
+            {visibilityOptions('Sichtbare Kacheln im Anlagenstatus', [...plantOrder, ...detailOrder])}
+            <SortableMetrics group="plant" label={t("Anlagenmesswerte")} className="plant-grid" editing={editingOrder} keys={plantOrder.filter(isVisible)} labels={labels} save={saveVisibleOrder} render={(key, attrs, controls) => card(key, "plant-metric", attrs, controls)} />
+            <SortableMetrics group="details" label={t("Betriebszustände")} className="plant-details" editing={editingOrder} keys={detailOrder.filter(isVisible)} labels={labels} save={saveVisibleOrder} render={(key, attrs, controls) => card(key, "compact", attrs, controls)} />
           </section>
           <HistoryPanel compact /><EventsPanel compact />
         </div></div>

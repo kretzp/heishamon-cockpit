@@ -29,6 +29,7 @@ by [Sturmi77](https://github.com/Sturmi77).
 - COP calculated from HeishaMon Extra power readings, with separate heating and hot-water history.
 - Optional [external MQTT power measurements](documentation/alternative-power.md) for historical COP and daily electrical energy, including imported Shelly history.
 - Optional [MQTT room and target temperatures](documentation/systemmodel.md#house-temperature-from-mqtt) with separate sources under Settings → Temperature data.
+- In Overview → Arrange tiles, choose [visible upper and system-status cards](documentation/OVERVIEW.md). Flow target (TOP7), outdoor pipe (TOP21), evaporator outlet (TOP53) and compressor discharge (TOP50) temperature cards start hidden. Visibility and order are stored in the current browser; hidden cards continue recording history. Enable a card to open its measurement chart and CSV export.
 - Administrator, reader and reader/writer accounts with hashed passwords and optional [30-day remembered sign-in](documentation/INSTALLATION.md#remembered-sign-in).
 - Administrator settings for users, MQTT connection, HeishaMon topic base and control mode.
 - Control activation and deactivation without an application restart, with separate confirmation for heat-pump commands.

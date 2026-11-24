@@ -6,3 +6,6 @@
 .sort-source { outline: 2px dashed var(--blue); outline-offset: -3px; }
 .sort-target { outline: 3px solid var(--blue); outline-offset: -3px; background: var(--blue-soft) !important; }
 .sort-announcement { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.metric-visibility { margin-bottom: 16px; }
+.metric-visibility label { display: inline-flex; align-items: center; gap: 8px; margin: 4px 16px 4px 0; }
+.metric-visibility input { flex-shrink: 0; }

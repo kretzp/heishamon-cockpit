@@ -65,7 +65,7 @@ public static class Catalog
         new("activeError", "", "main/Error", "error"),
         new("dhwHeatDelta", Kelvin, "main/DHW_Heat_Delta", "dhwDelta")
     }.Concat(HeatingCurve.Fields.Select(f => new Metric(f.Key, f.Unit, f.Topic, "curve"))).Concat([
-        new Metric("mainTargetTemperature", Celsius, "main/Main_Target_Temp", "number"),
+        new Metric("mainTargetTemperature", Celsius, "main/Main_Target_Temp", "number", Top: 7),
         new Metric("zonesState", "enum", "main/Zones_State", "enum", 2),
         new Metric("pumpSpeed", Rpm, "main/Pump_Speed", "positive", Optional: true, Top: 65),
         new Metric("fanSpeed", Rpm, "main/Fan1_Motor_Speed", "positive", Optional: true, Top: 62),
@@ -77,6 +77,9 @@ public static class Catalog
         new Metric("relayOne", "enum", "gpio/relay/one/state", "relay", 1, Optional: true),
         new Metric("relayTwo", "enum", "gpio/relay/two/state", "relay", 1, Optional: true),
         new Metric("quietMode", "enum", "main/Quiet_Mode_Level", "enum", 3, Optional: true, Top: 18),
-        new Metric("heatPumpModel", "", "main/Heat_Pump_Model", "model", Optional: true, Top: 92)
+        new Metric("heatPumpModel", "", "main/Heat_Pump_Model", "model", Optional: true, Top: 92),
+        new Metric("outsidePipeTemperature", Celsius, "main/Outside_Pipe_Temp", "number", Optional: true, Top: 21),
+        new Metric("evaporatorOutletTemperature", Celsius, "main/Eva_Outlet_Temp", "number", Optional: true, Top: 53),
+        new Metric("dischargeTemperature", Celsius, "main/Discharge_Temp", "number", Optional: true, Top: 50)
     ]).ToArray());
 }

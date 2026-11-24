@@ -45,8 +45,11 @@ public sealed class MqttReadTests
     public void AcceptsExplicitLiveReadOnlyConfigurationWithoutConnecting(string host, string prefix, bool tls)
     {
         var source = new MqttReadSource(new() { Host = host, Prefix = prefix, Port = 1883, LiveReadOnly = true, UseTls = tls });
-        Assert.Equal(49, source.Subscriptions.Count);
+        Assert.Equal(52, source.Subscriptions.Count);
         Assert.Contains(prefix + "/main/Heat_Pump_Model", source.Subscriptions);
+        Assert.Contains(prefix + "/main/Outside_Pipe_Temp", source.Subscriptions);
+        Assert.Contains(prefix + "/main/Eva_Outlet_Temp", source.Subscriptions);
+        Assert.Contains(prefix + "/main/Discharge_Temp", source.Subscriptions);
         Assert.All(source.Subscriptions, topic => Assert.StartsWith(prefix + "/", topic));
     }
 

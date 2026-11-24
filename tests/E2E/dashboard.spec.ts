@@ -4,6 +4,36 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test, expect, chromium } from './coverage-fixture';
 
+test('overview visibility keeps new tiles opt-in and persists both sections', async ({ page }) => {
+  await page.addInitScript(() => {
+    const key = 'heishamon-cockpit.overview-order.v1';
+    if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify({ temperatures: ['dhwTemperature', 'flowTemperature'] }));
+  });
+  await page.goto('/');
+  await openOverview(page);
+  const newTiles = [
+    ['mainTargetTemperature', 'Vorlauf-Soll (Anlage)'],
+    ['outsidePipeTemperature', 'Rohrtemperatur Außengerät'],
+    ['evaporatorOutletTemperature', 'Verdampferaustrittstemperatur'],
+    ['dischargeTemperature', 'Verdichteraustrittstemperatur'],
+  ];
+  await page.getByRole('button', { name: 'Kacheln anordnen', exact: true }).click();
+  for (const [key, label] of newTiles) {
+    await expect(page.locator(`[data-sort-key="${key}"]`)).toHaveCount(0);
+    const checkbox = page.getByRole('checkbox', { name: label, exact: true });
+    await expect(checkbox).not.toBeChecked();
+    await checkbox.check();
+  }
+  await page.getByRole('checkbox', { name: 'Durchfluss', exact: true }).uncheck();
+  await page.reload();
+  await openOverview(page);
+  await expect(page.locator('[data-sort-group="temperatures"] article').first()).toHaveAttribute('data-sort-key', 'dhwTemperature');
+  for (const [key] of newTiles) await expect(page.locator(`[data-sort-key="${key}"] .value`)).toContainText('°C');
+  await expect(page.locator('[data-sort-key="waterFlow"]')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Rohrtemperatur Außengerät – Diagramm öffnen' }).click();
+  await expect(page.getByRole('dialog')).toContainText('Rohrtemperatur Außengerät');
+});
+
 test('desktop model balances readable animation and wider status', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop', 'Desktop-specific layout');
   await page.setViewportSize({ width: 1440, height: 900 });
