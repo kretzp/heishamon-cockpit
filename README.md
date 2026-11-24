@@ -10,8 +10,8 @@ Windows x64, Linux x64 and Raspberry Pi ARM64 installation targets are available
 ## System model
 
 The animated Aquarea system model shows the detected outdoor and indoor units,
-hydraulic connections and live measurements. The screenshot below shows a preview
-with simulated readings.
+hydraulic connections and live measurements. The screenshot below shows version
+1.0.5 with MQTT measurements in the Nordic theme.
 
 See the [System model guide](documentation/systemmodel.md) for configuration,
 measurement handling and diagram limitations.
@@ -19,7 +19,7 @@ measurement handling and diagram limitations.
 Inspired by [heatpump-hydraulic-card](https://github.com/Sturmi77/heatpump-hydraulic-card)
 by [Sturmi77](https://github.com/Sturmi77).
 
-![Aquarea system model with animated hydraulics, temperature readings and system status](documentation/images/system-model.png)
+![HeishaMon Cockpit 1.0.5 system model in the Nordic theme with MQTT readings and system status](documentation/images/system-model.png)
 
 ## Features
 
