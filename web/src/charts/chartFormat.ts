@@ -23,12 +23,12 @@ export const axisTime = (value: number) => new Intl.DateTimeFormat(getLocale(), 
   minute: '2-digit'
 }).format(new Date(value)).replace(', ', '\n');
 const colors: Record<string, string> = {
-  flowTemperature: '#0964d8',
-  returnTemperature: '#a63b15',
+  flowTemperature: '#a63b15',
+  returnTemperature: '#0964d8',
   outsideTemperature: '#247642',
   indoorTemperature: '#784ac2',
   mqttHouseTemperature: '#784ac2',
-  dhwTemperature: '#aa2865',
+  dhwTemperature: '#c65d00',
   dhwTargetTemperature: '#71611a',
   temperatureSpread: '#177b83',
   dhwHeatDelta: '#7f4933',
@@ -44,7 +44,14 @@ const colors: Record<string, string> = {
   dhwPowerConsumption: '#aa2865',
   dhwPowerProduction: '#71611a'
 };
-export const metricColor = (key: string) => colors[key] ?? '#40536b';
+export const defaultMetricColor = (key: string) => colors[key] ?? '#40536b';
+export function metricColor(key: string): string {
+  try {
+    const saved = JSON.parse(localStorage.getItem('heishamon-cockpit.chart.v1.' + key) ?? 'null');
+    if (typeof saved?.color === 'string' && /^#[0-9a-f]{6}$/i.test(saved.color)) return saved.color;
+  } catch { /* Use the default when browser storage is unavailable or invalid. */ }
+  return defaultMetricColor(key);
+}
 const operatingModes = ['Heizen', 'Kühlen', 'Auto (Heizen)', 'Warmwasser', 'Heizen + Warmwasser', 'Kühlen + Warmwasser', 'Auto (Heizen) + Warmwasser', 'Auto (Kühlen)', 'Auto (Kühlen) + Warmwasser'];
 export function stateLabel(key: string, value: number): string | null {
   const names = key === 'quietMode' ? ['Aus', 'Stufe 1', 'Stufe 2', 'Stufe 3'] : key === 'heatingControlMode' ? [translate("Heizkurve"), translate("Festwert")] : key === 'operatingMode' ? operatingModes : key === 'threeWayValveState' ? [translate("Raumheizung"), translate("Warmwasser")] : key === 'sterilizationState' ? [translate("Inaktiv"), translate("Aktiv")] : ['heatpumpState', 'internalHeaterState', 'defrostState', 'relayOne', 'relayTwo'].includes(key) ? [translate("Aus"), translate("Ein")] : [];

@@ -18,8 +18,10 @@ test('build includes current release notes in all six languages', () => {
   const notes = readReleaseNotes(root);
   assert.deepEqual(Object.keys(notes.translations).sort(), ['de', 'en', 'es', 'fr', 'it', 'pt']);
   assert.equal(notes.version, JSON.parse(readFileSync(resolve(root, 'web/package.json'), 'utf8')).version);
-  assert.ok(notes.translations.en.items[0].includes('TOP7'));
-  assert.ok(notes.translations.de.items[0].includes('TOP7'));
+  const localized = JSON.parse(readFileSync(resolve(root, `documentation/release-notes/${notes.version}.json`), 'utf8'));
+  assert.deepEqual(notes.translations.de, localized.translations.de);
+  assert.ok(notes.translations.en.items.length > 0);
+  assert.ok(notes.translations.en.items.every(item => item.trim().length > 0));
 });
 for (const change of ['source', 'missing-language', 'version']) test(`build rejects outdated release data: ${change}`, () => {
   const { temporary, version } = fixture();

@@ -10,7 +10,8 @@ import * as echarts from 'echarts';
 import type { EChartsOption } from 'echarts';
 import { sessionFetch } from '../Access';
 import { EventsPanel } from '../History';
-import { metricNumber, chartNumber, chartTime, stateLabel } from './chartFormat';
+import { metricNumber, chartNumber, chartTime, stateLabel, defaultMetricColor } from './chartFormat';
+import { chartPreferencesChanged } from './useChartPreferences';
 import { validPoint, type History } from './historyOptions';
 import { boundedRange, csvAllowed } from './historyRange';
 import { defaults, metricOptions, mergeOptions, parseOptions, readPreferences, type Preferences } from './metricChartOptions';
@@ -133,6 +134,19 @@ export default function MetricChartDialog({
   const isDallas = metricKey.startsWith('ds18b20_');
   const displayLabel = isDallas ? label : localizeText(label);
   const [preferences, setPreferences] = useState(() => readPreferences(metricKey));
+  useEffect(() => {
+    const update = (event: Event) => {
+      if (event instanceof StorageEvent ? event.key !== null && event.key !== 'heishamon-cockpit.chart.v1.' + metricKey
+        : (event as CustomEvent).detail !== metricKey) return;
+      setPreferences(readPreferences(metricKey));
+    };
+    window.addEventListener(chartPreferencesChanged, update);
+    window.addEventListener('storage', update);
+    return () => {
+      window.removeEventListener(chartPreferencesChanged, update);
+      window.removeEventListener('storage', update);
+    };
+  }, [metricKey]);
   const [draft, setDraft] = useState(preferences.advanced);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
@@ -203,6 +217,7 @@ export default function MetricChartDialog({
     setPreferences(next);
     try {
       localStorage.setItem('heishamon-cockpit.chart.v1.' + metricKey, JSON.stringify(next));
+      window.dispatchEvent(new CustomEvent(chartPreferencesChanged, { detail: metricKey }));
       setNotice('Einstellungen für diesen Messwert gespeichert.');
     } catch {
       setNotice('Einstellungen gelten nur für diese Sitzung; Browserspeicher nicht verfügbar.');
@@ -304,7 +319,8 @@ export default function MetricChartDialog({
         }}>{t("Optionen anwenden")}</Button>{localizeText(' ')}
       <Button onClick={() => {
           const next = {
-            ...defaults
+            ...defaults,
+            color: defaultMetricColor(metricKey)
           };
           setDraft('{}');
           save(next);

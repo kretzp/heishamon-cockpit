@@ -1,6 +1,8 @@
 import { t, text as localizeText, getLocale } from "../i18n/core";
 import { useLanguage } from "../i18n/Language";
 import { useMemo, useState } from 'react';
+import { readPreferences } from './metricChartOptions';
+import { chartPreferencesChanged, useChartPreferencesRevision, useTrendPreference } from './useChartPreferences';
 import { TrendToggle } from './TrendToggle';
 import { ChartFrame, type ChartSync } from './ChartFrame';
 import { metricNumber, chartNumber, chartTime, metricColor, stateColor } from './chartFormat';
@@ -21,7 +23,8 @@ export function HistoryChart({
   height = 640,
   sync,
   pairs,
-  events
+  events,
+  preferenceKey = 'temperature'
 }: {
   data: History;
   title: string;
@@ -32,16 +35,32 @@ export function HistoryChart({
   sync?: ChartSync;
   pairs?: PairResult | null;
   events?: History | null;
+  preferenceKey?: string;
 }) {
   const language = useLanguage();
-  const [trend, setTrend] = useState(true);
+  const revision = useChartPreferencesRevision();
+  const [trend, setTrend, trendNotice] = useTrendPreference(preferenceKey);
+  const [colorNotice, setColorNotice] = useState('');
+  function saveColor(key: string, color: string) {
+    try {
+      localStorage.setItem('heishamon-cockpit.chart.v1.' + key, JSON.stringify({ ...readPreferences(key), color }));
+      window.dispatchEvent(new CustomEvent(chartPreferencesChanged, { detail: key }));
+      setColorNotice('Einstellungen für diesen Messwert gespeichert.');
+    } catch {
+      setColorNotice('Einstellungen konnten nicht gespeichert werden; Browserspeicher nicht verfügbar.');
+    }
+  }
   const option = useMemo(() => {
     const base = lineOptions(data, labels, temperatureAxis, pressureAxis, trend);
     return temperatureAxis ? addAnalysis(base, data, pairs, events) : base;
-  }, [data, labels, temperatureAxis, pressureAxis, pairs, events, language, trend]);
+  }, [data, labels, temperatureAxis, pressureAxis, pairs, events, language, trend, revision]);
   const states = data.series.length > 0 && data.series.every(s => s.aggregation === 'stableState' || s.aggregation === 'observedIntervals');
   return <>
     {!states && <TrendToggle checked={trend} onChange={setTrend} />}
+    {trendNotice && <p role="status">{localizeText(trendNotice)}</p>}
+    {!states && <details><summary>{t('Farben')}</summary><div className="toolbar">
+      {data.series.map(s => <label key={s.key}>{localizeText(labels[s.key] ?? s.key)} · {t('Farbe')}<input type="color" value={metricColor(s.key)} onChange={e => saveColor(s.key, e.target.value)} /></label>)}
+    </div>{colorNotice && <p role="status">{localizeText(colorNotice)}</p>}</details>}
     {data.resolution === 'bucketed' && <p className="warning">{t("Zustände verdichtet: Wechsel innerhalb eines Rasters bleiben unbekannt. Für mehr Details Zeitraum verkleinern.")}</p>}
     {states ? localizeText(data.series.map(s => {
       const intervals = stateIntervals(data, s);

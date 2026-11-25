@@ -10,6 +10,7 @@ import { copOptions, copDisplayPoints, energyOptions, energySourceLabel, dayStat
 import type { TimeRange } from './historyRange';
 import { energyCsv } from './energyCsv';
 import { TrendToggle } from './TrendToggle';
+import { useTrendPreference } from './useChartPreferences';
 async function get<T>(url: string, signal: AbortSignal): Promise<T> {
   const response = await sessionFetch(url, {
     signal,
@@ -38,7 +39,7 @@ export function EfficiencyPanel({
   const [window, setWindow] = useState(15);
   const [height, setHeight] = useState(640);
   const [calendarHeight, setCalendarHeight] = useState(1760);
-  const [trend, setTrend] = useState(true);
+  const [trend, setTrend, trendNotice] = useTrendPreference('efficiency');
   const [cop, setCop] = useState<CopResult | null>(null);
   const [energy, setEnergy] = useState<EnergyResult | null>(null);
   const [copError, setCopError] = useState('');
@@ -128,6 +129,7 @@ export function EfficiencyPanel({
     {cop && <>
       <p>{cop.source === 'simulator' ? localizeText('Simulation · synthetische Messgrenze') : localizeText('MQTT')}{t(" · Quelle: ")}{t(cop.electricalSource === 'alternative-mqtt' ? 'Alternative Leistungsdaten' : cop.electricalSource === 'mixed' ? 'Gemischte Quellen im Zeitraum' : 'HeishaMon-Extra')}{t(" · Mindestleistung ")}{localizeText(cop.minimumElectricalWatts)}{t(" W · Empfangsabstand ≤ ")}{localizeText(cop.maxPairSeconds)}{t(" s")}</p>
         <TrendToggle checked={trend} onChange={setTrend} />
+        {trendNotice && <p role="status">{localizeText(trendNotice)}</p>}
         <ChartFrame sync={sync} option={copOption} height={height} title={t("COP und gleitender Mittelwert; Heizen blau, Warmwasser violett. Werte auch in Tabelle.")} />
         {!copDisplayPoints(cop).some(p => p.cop !== null) && <p>{t("Keine ausreichend gültigen Leistungsintervalle für COP.")}</p>}
       <p className="field-note">{t("Gültige Dauer: ")}{localizeText(chartNumber(cop.validSeconds / 3600))} / {localizeText(chartNumber(cop.expectedSeconds / 3600))}{t(" h. Energieverhältnis dieser Intervalle: ")}{cop.energyRatio === null ? localizeText('unbekannt') : localizeText(chartNumber(cop.energyRatio))}{t(". Kein Mittelwert der COP-Linie und keine Jahresarbeitszahl.")}</p>

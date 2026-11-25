@@ -24,6 +24,30 @@ async function fixtures(page: Page) {
   return requests;
 }
 
+test('history colours and independent trend choices survive reload', async ({ page }) => {
+  await fixtures(page);
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Verlauf', exact: true }).click();
+  const temperature = page.locator('[data-history-kind="temperature"]');
+  const pressure = page.locator('[data-history-kind="pressure"]');
+  const trend = temperature.getByRole('checkbox', { name: 'Geglättete Trendkurve (Fit)', exact: true });
+  await temperature.getByText('Farben', { exact: true }).click();
+  const flow = temperature.getByLabel('Vorlauf · Farbe', { exact: true });
+  await expect(flow).toHaveValue('#a63b15');
+  await expect(temperature.getByLabel('Rücklauf · Farbe', { exact: true })).toHaveValue('#0964d8');
+  await expect(temperature.getByLabel('Warmwasser · Farbe', { exact: true })).toHaveValue('#c65d00');
+  await flow.fill('#112233');
+  await trend.uncheck();
+  await expect(temperature.locator('.history-chart svg path[stroke="#112233"]').first()).toBeVisible();
+  await page.reload();
+  await page.getByRole('button', { name: 'Verlauf', exact: true }).click();
+  await expect(trend).not.toBeChecked();
+  await expect(pressure.getByRole('checkbox', { name: 'Geglättete Trendkurve (Fit)', exact: true })).toBeChecked();
+  await temperature.getByText('Farben', { exact: true }).click();
+  await expect(flow).toHaveValue('#112233');
+  await expect(temperature.locator('.history-chart svg path[stroke="#112233"]').first()).toBeVisible();
+});
+
 test('each history chart owns its range, zoom, refresh, height and CSV selection', async ({ page }) => {
   const requests = await fixtures(page);
   await page.goto('/'); await page.getByRole('button', { name: 'Verlauf', exact: true }).click();

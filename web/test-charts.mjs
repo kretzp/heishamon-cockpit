@@ -7,6 +7,47 @@ import { boundedRange, csvAllowed, zoomRange } from './src/charts/historyRange.t
 import { copOptions, copDisplayPoints, energyOptions, energySourceLabel } from './src/charts/efficiencyOptions.ts';
 import { metricOptions, defaults, parseOptions, readPreferences } from './src/charts/metricChartOptions.ts';
 import { trendPoints } from './src/charts/trendOptions.ts';
+import { readTrendPreference } from './src/charts/useChartPreferences.ts';
+
+test('saved metric colours override defaults in measurements and trend lines', () => {
+  const previous = globalThis.localStorage;
+  const stored = new Map();
+  try {
+    globalThis.localStorage = { getItem: key => stored.get(key) ?? null };
+    assert.equal(metricColor('flowTemperature'), '#a63b15');
+    assert.equal(metricColor('returnTemperature'), '#0964d8');
+    assert.equal(metricColor('dhwTemperature'), '#c65d00');
+    stored.set('heishamon-cockpit.chart.v1.flowTemperature', JSON.stringify({ ...defaults, color: '#112233', trend: false }));
+    assert.equal(readPreferences('flowTemperature').color, '#112233');
+    const option = lineOptions(history([point(0, 1), point(30, 3), point(60, 1)]), {}, true, false, true);
+    assert.equal(option.series[0].itemStyle.color, '#112233');
+    assert.equal(option.series[1].lineStyle.color, '#112233');
+    stored.set('heishamon-cockpit.chart.v1.flowTemperature', '{broken');
+    assert.equal(metricColor('flowTemperature'), '#a63b15');
+    stored.set('heishamon-cockpit.chart.v1.flowTemperature', '{"color":"invalid"}');
+    assert.equal(metricColor('flowTemperature'), '#a63b15');
+    globalThis.localStorage = { getItem: () => { throw new Error('blocked'); } };
+    assert.equal(metricColor('returnTemperature'), '#0964d8');
+  } finally { if (previous === undefined) delete globalThis.localStorage; else globalThis.localStorage = previous; }
+});
+
+test('history trend choices restore false independently and tolerate invalid storage', () => {
+  const previous = globalThis.localStorage;
+  try {
+    const stored = new Map([
+      ['heishamon-cockpit.trend.v1.temperature', 'false'],
+      ['heishamon-cockpit.trend.v1.power', 'true'],
+      ['heishamon-cockpit.trend.v1.efficiency', '"false"']
+    ]);
+    globalThis.localStorage = { getItem: key => stored.get(key) ?? null };
+    assert.equal(readTrendPreference('temperature'), false);
+    assert.equal(readTrendPreference('power'), true);
+    assert.equal(readTrendPreference('efficiency'), true);
+    assert.equal(readTrendPreference('pressure'), true);
+    globalThis.localStorage = { getItem: () => { throw new Error('blocked'); } };
+    assert.equal(readTrendPreference('temperature'), true);
+  } finally { if (previous === undefined) delete globalThis.localStorage; else globalThis.localStorage = previous; }
+});
 
 test('COP table preserves missing intervals and both modes in mixed buckets', () => {
   const point = (time, mode, cop, validSeconds) => ({ time, mode, cop, average: null, validSeconds, expectedSeconds: 120 });
@@ -193,7 +234,7 @@ test('unknown enum, stale values and invalid state do not become off', () => {
   assert.equal(stateLabel('threeWayValveState', 1), 'Warmwasser (1)');
   assert.equal(stateLabel('operatingMode', 8), 'Auto (Kühlen) + Warmwasser (8)');
   assert.notEqual(stateColor(0), stateColor(1));
-  assert.equal(metricColor('flowTemperature'), '#0964d8');
+  assert.equal(metricColor('flowTemperature'), '#a63b15');
 });
 test('Berlin timestamps distinguish repeated autumn hours regardless of host timezone', () => {
   assert.match(chartTime('2026-10-25T00:30:00Z'), /02:30:00.*GMT\+2/);

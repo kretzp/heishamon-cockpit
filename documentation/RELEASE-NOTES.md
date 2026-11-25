@@ -1,5 +1,20 @@
 # Release notes
 
+## 1.0.6 — Saved chart colours and trend preferences, 2026-11-26
+
+- Use red for flow temperature, blue for return temperature and orange for hot water
+  temperature by default. Preserve previously saved custom colours.
+- Add a Colours section above each numeric history chart to choose colours per
+  measurement. Save choices in the current browser and share them with the
+  corresponding single-measurement chart, including legends and trend lines.
+- Remember the Smoothed trend curve (fit) selection separately for temperature,
+  technical values, water pressure, power and COP history after navigation or reload.
+- Synchronize saved colour changes between open views and browser tabs. Resetting
+  a measurement chart restores its own default colour. Report unavailable browser
+  storage without interrupting chart rendering.
+- Add colour and preference regression tests and translated controls. No database
+  migration is required; measurements, recording and CSV values remain unchanged.
+
 ## 1.0.5 — Optional overview temperatures and chart compatibility, 2026-11-24
 
 - Show flow actual/target (TOP7) together as Flow / Target and hot water actual/target

@@ -1,0 +1,55 @@
+{
+  "sourceSha256": "96211167273d69eb1863049f7129ef51464851916daf790fca257d2d9bbba2af",
+  "translations": {
+    "de": {
+      "title": "Gespeicherte Diagrammfarben und Trendeinstellungen",
+      "items": [
+        "Vorlauftemperatur ist standardmäßig rot, Rücklauftemperatur blau und Warmwassertemperatur orange. Bereits gespeicherte Wunschfarben bleiben erhalten.",
+        "Über jedem numerischen Verlaufsdiagramm lassen sich unter Farben die Messgrößen einzeln einfärben. Die Auswahl bleibt im aktuellen Browser gespeichert und gilt auch im zugehörigen Einzelwertdiagramm samt Legenden und Trendlinien.",
+        "Die Auswahl Geglättete Trendkurve (Fit) bleibt für Temperatur, technische Werte, Wasserdruck, Leistung und COP getrennt nach Navigation oder Neuladen erhalten.",
+        "Gespeicherte Farbänderungen werden zwischen offenen Ansichten und Browser-Tabs synchronisiert. Das Zurücksetzen eines Messwertdiagramms stellt dessen eigene Standardfarbe wieder her. Nicht verfügbarer Browserspeicher wird gemeldet, ohne die Diagrammdarstellung zu unterbrechen.",
+        "Regressionstests prüfen Farben und Einstellungen; Bedienelemente sind übersetzt. Keine Datenbankmigration erforderlich; Messwerte, Aufzeichnung und CSV-Werte bleiben unverändert."
+      ]
+    },
+    "fr": {
+      "title": "Couleurs des graphiques et préférences de tendance enregistrées",
+      "items": [
+        "Par défaut, la température de départ est rouge, le retour bleu et l’eau chaude orange. Les couleurs personnalisées déjà enregistrées sont conservées.",
+        "Une section Couleurs au-dessus de chaque graphique historique numérique permet de choisir la couleur de chaque mesure. Les choix sont enregistrés dans le navigateur et partagés avec le graphique individuel correspondant, ses légendes et ses courbes de tendance.",
+        "Le choix de la courbe de tendance lissée est conservé séparément pour les températures, valeurs techniques, pression d’eau, puissance et COP après navigation ou rechargement.",
+        "Les changements de couleur enregistrés sont synchronisés entre les vues et onglets ouverts. Réinitialiser un graphique individuel restaure sa couleur par défaut. Un stockage indisponible est signalé sans interrompre l’affichage.",
+        "Ajout de tests de régression des couleurs et préférences et de commandes traduites. Aucune migration de base de données ; mesures, enregistrement et valeurs CSV restent inchangés."
+      ]
+    },
+    "es": {
+      "title": "Colores de gráficos y preferencias de tendencia guardados",
+      "items": [
+        "La temperatura de impulsión es roja, la de retorno azul y la de agua caliente naranja por defecto. Se conservan los colores personalizados guardados.",
+        "La sección Colores sobre cada gráfico histórico numérico permite elegir colores por medida. Se guardan en el navegador y se comparten con el gráfico individual correspondiente, incluidas las leyendas y tendencias.",
+        "La selección de curva de tendencia suavizada se conserva por separado para temperaturas, valores técnicos, presión del agua, potencia y COP tras navegar o recargar.",
+        "Los cambios de color guardados se sincronizan entre vistas y pestañas abiertas. Restablecer un gráfico individual recupera su color predeterminado. Se informa si el almacenamiento no está disponible sin interrumpir el gráfico.",
+        "Se añaden pruebas de regresión de colores y preferencias y controles traducidos. No se requiere migración de base de datos; las medidas, la grabación y los valores CSV no cambian."
+      ]
+    },
+    "it": {
+      "title": "Colori dei grafici e preferenze delle tendenze salvati",
+      "items": [
+        "Per impostazione predefinita la mandata è rossa, il ritorno blu e l’acqua calda arancione. I colori personalizzati già salvati vengono mantenuti.",
+        "La sezione Colori sopra ogni grafico storico numerico consente di scegliere i colori per misura. Le scelte vengono salvate nel browser e condivise con il grafico individuale corrispondente, comprese legende e tendenze.",
+        "La scelta della curva di tendenza smussata viene mantenuta separatamente per temperature, valori tecnici, pressione dell’acqua, potenza e COP dopo navigazione o ricaricamento.",
+        "Le modifiche ai colori salvate vengono sincronizzate tra viste e schede aperte. Il ripristino di un grafico individuale recupera il suo colore predefinito. La memoria non disponibile viene segnalata senza interrompere il grafico.",
+        "Aggiunti test di regressione per colori e preferenze e controlli tradotti. Nessuna migrazione del database; misure, registrazione e valori CSV restano invariati."
+      ]
+    },
+    "pt": {
+      "title": "Cores dos gráficos e preferências de tendência guardadas",
+      "items": [
+        "Por predefinição, a temperatura de ida é vermelha, a de retorno azul e a de água quente laranja. As cores personalizadas já guardadas são mantidas.",
+        "A secção Cores acima de cada gráfico histórico numérico permite escolher cores por medição. As escolhas são guardadas no navegador e partilhadas com o gráfico individual correspondente, incluindo legendas e tendências.",
+        "A seleção da curva de tendência suavizada é mantida separadamente para temperaturas, valores técnicos, pressão da água, potência e COP após navegação ou recarregamento.",
+        "As alterações de cor guardadas são sincronizadas entre vistas e separadores abertos. Repor um gráfico individual restaura a sua cor predefinida. O armazenamento indisponível é indicado sem interromper o gráfico.",
+        "Adicionados testes de regressão de cores e preferências e controlos traduzidos. Não é necessária migração da base de dados; medições, gravação e valores CSV permanecem inalterados."
+      ]
+    }
+  }
+}
