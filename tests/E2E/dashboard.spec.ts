@@ -595,7 +595,7 @@ test('temperature chart does not connect a missing interval', async ({ page }) =
     { time: new Date(Date.parse(from) + 60000).toISOString(), value: 35, quality: 'valid', samples: 1 }
   ] }] } }); });
   await page.goto('/'); await openOverview(page);
-  const path = page.locator('.history-chart path[stroke="#0964d8"][fill="none"]').first();
+  const path = page.locator('.history-chart path[stroke="#a63b15"][fill="none"]').first();
   await expect(path).toHaveAttribute('d', /M/);
   const d = await path.getAttribute('d');
   expect(d?.match(/M/g)).toHaveLength(2);
@@ -794,7 +794,7 @@ test('pressure history has its own scale units gaps and independent time range',
   expect((await pressurePath.getAttribute('d'))?.match(/M/g)).toHaveLength(2);
   const pressureTicks = panel.locator('svg text').filter({ hasText: /^\d+,\d{2}$/ });
   expect(await pressureTicks.count()).toBeGreaterThan(1);
-  await panel.locator('summary').click();
+  await panel.getByText('Wertetabelle (letzte 20 Intervalle je Reihe)', { exact: true }).click();
   await expect(panel.locator('table')).toContainText('1,60 bar');
   await expect(panel.locator('table')).toContainText('1,65 bar');
   await panel.getByRole('button', { name: '1 h', exact: true }).click();
