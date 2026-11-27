@@ -1,0 +1,45 @@
+{
+  "sourceSha256": "dbe23d478fb41f739715209251cf6a0af003c3b7453e160ea71b416ddf269ed9",
+  "translations": {
+    "de": {
+      "title": "Tagesverbrauch und Außentemperatur",
+      "items": [
+        "Abgeschlossene Tage werden beim ersten Abruf gespeichert. Der laufende Tag wird neu berechnet. Das Temperaturmittel verwendet gültige Außenmesswerte.",
+        "Der Verbrauchskalender hat einen eigenen Bereich. Die Kachelfarbe zeigt Verbrauch, Temperatur von −15 bis +30 °C oder oben Verbrauch und unten Temperatur.",
+        "Die Tages-CSV enthält die mittlere Außentemperatur. COP-Verlauf und Heizkurve lassen sich als CSV exportieren."
+      ]
+    },
+    "fr": {
+      "title": "Consommation quotidienne et température extérieure",
+      "items": [
+        "Les journées terminées sont enregistrées à la première consultation. Le jour en cours est recalculé. La moyenne utilise les températures extérieures valides.",
+        "Le calendrier dispose de sa propre section. Les couleurs représentent la consommation, la température de −15 à +30 °C ou les deux, consommation en haut et température en bas.",
+        "Le CSV quotidien inclut la température extérieure moyenne. L’historique du COP et la courbe de chauffe sont exportables en CSV."
+      ]
+    },
+    "es": {
+      "title": "Consumo diario y temperatura exterior",
+      "items": [
+        "Los días terminados se guardan en la primera consulta. El día actual se recalcula. La media utiliza las temperaturas exteriores válidas.",
+        "El calendario tiene una sección propia. Los colores indican consumo, temperatura de −15 a +30 °C o ambos, con el consumo arriba y la temperatura abajo.",
+        "El CSV diario incluye la temperatura exterior media. El historial del COP y la curva de calefacción se pueden exportar a CSV."
+      ]
+    },
+    "it": {
+      "title": "Consumo giornaliero e temperatura esterna",
+      "items": [
+        "I giorni conclusi vengono salvati alla prima consultazione. Il giorno corrente viene ricalcolato. La media utilizza le temperature esterne valide.",
+        "Il calendario ha una sezione dedicata. I colori indicano consumo, temperatura da −15 a +30 °C o entrambi, con il consumo sopra e la temperatura sotto.",
+        "Il CSV giornaliero include la temperatura esterna media. È possibile esportare in CSV lo storico del COP e la curva di riscaldamento."
+      ]
+    },
+    "pt": {
+      "title": "Consumo diário e temperatura exterior",
+      "items": [
+        "Os dias concluídos são guardados na primeira consulta. O dia atual é recalculado. A média usa as temperaturas exteriores válidas.",
+        "O calendário tem uma secção própria. As cores indicam consumo, temperatura de −15 a +30 °C ou ambos, com consumo em cima e temperatura em baixo.",
+        "O CSV diário inclui a temperatura exterior média. O histórico do COP e a curva de aquecimento podem ser exportados em CSV."
+      ]
+    }
+  }
+}

@@ -119,11 +119,46 @@ public sealed class EfficiencyTests : IDisposable
         var result = await store.EnergyAsync(2026, 10, end.AddDays(1), default);
         var day = result.Days.Single(d => d.Date == date);
         Assert.Equal(-5, day.MinOutdoorTemperatureC);
+        Assert.Equal(-2.5, day.AverageOutdoorTemperatureC);
         Assert.Equal(2, day.OutdoorTemperatureSamples);
         var next = result.Days.Single(d => d.From == end);
         Assert.Equal(-10, next.MinOutdoorTemperatureC);
         Assert.Null(result.Days[0].MinOutdoorTemperatureC);
         Assert.Equal(0, result.Days[0].OutdoorTemperatureSamples);
+    }
+
+    [Fact]
+    public async Task ClosedDaysSurviveReopenAndRawDeletionWhileTodayRefreshes()
+    {
+        EnergyDay closed;
+        using (var store = Open())
+        {
+            await store.InitializeAsync(default);
+            await Seed(Start, 3, change: (_, v) => v["outsideTemperature"] = 3.5);
+            await Seed(Start.AddDays(1), 2, change: (_, v) => v["outsideTemperature"] = 5);
+            var initial = await store.EnergyAsync(2026, 10, Start.AddDays(1).AddMinutes(1), default);
+            closed = initial.Days.Single(d => d.Date == "2026-01-10");
+            Assert.Equal(3.5, closed.AverageOutdoorTemperatureC);
+            await Seed(Start.AddDays(1).AddMinutes(1), 2, change: (_, v) => v["outsideTemperature"] = 7);
+        }
+        await using (var db = new SqliteConnection($"Data Source={Path.Combine(folder, "test.db")}"))
+        {
+            await db.OpenAsync(); using var command = db.CreateCommand();
+            command.CommandText = "DELETE FROM Samples WHERE Time < $midnight";
+            command.Parameters.AddWithValue("$midnight", EnergyCalendar.Midnight(new DateOnly(2026, 1, 11)).ToUnixTimeSeconds());
+            await command.ExecuteNonQueryAsync();
+        }
+        using var reopened = Open(); await reopened.InitializeAsync(default);
+        var refreshed = await reopened.EnergyAsync(2026, 10, Start.AddDays(1).AddMinutes(2), default);
+        Assert.Equal(closed, refreshed.Days.Single(d => d.Date == "2026-01-10"));
+        var today = refreshed.Days.Single(d => d.Date == "2026-01-11");
+        Assert.Equal(90, today.ValidSeconds); Assert.Equal(6, today.AverageOutdoorTemperatureC);
+        var finalized = await reopened.EnergyAsync(2026, 10, Start.AddDays(2), default);
+        Assert.Equal(today.Kwh, finalized.Days.Single(d => d.Date == today.Date).Kwh);
+        await using var check = new SqliteConnection($"Data Source={Path.Combine(folder, "test.db")}");
+        await check.OpenAsync(); using var query = check.CreateCommand();
+        query.CommandText = "SELECT COUNT(*) FROM DailyEnergy WHERE Date >= '2026-01-12'";
+        Assert.Equal(0L, await query.ExecuteScalarAsync());
     }
 
     [Fact]

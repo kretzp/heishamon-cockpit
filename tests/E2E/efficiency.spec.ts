@@ -12,7 +12,7 @@ test('partial COP buckets show heating and hot water separately', async ({ page 
   });
   await page.goto('/');
   await page.getByRole('button', { name: 'Verlauf', exact: true }).click();
-  const panel = page.getByRole('region', { name: 'Effizienz und Tagesenergie' });
+  const panel = page.getByRole('region', { name: 'COP · Heizen und Warmwasser', exact: true });
   await panel.getByText('COP-Wertetabelle (letzte 20 Intervalle)', { exact: true }).click();
   await expect(panel.locator('tbody tr').filter({ hasText: 'Heizen' })).toContainText('30 / 120 s');
   await expect(panel.locator('tbody tr').filter({ hasText: 'Warmwasser' })).toContainText('30 / 120 s');
@@ -58,7 +58,7 @@ async function fixtures(page: Page, electricalSource = 'heishamon-extra') {
         const date = new Date(Date.UTC(year, 0, i + 1)).toISOString().slice(0, 10);
         const from = date === '2026-03-29' ? '2026-03-28T23:00:00Z' : date + 'T00:00:00Z';
         const to = date === '2026-03-29' ? '2026-03-29T22:00:00Z' : new Date(Date.parse(from) + 86400000).toISOString();
-        return { date, from, to, minOutdoorTemperatureC: -5.25, outdoorTemperatureSamples: 2, kwh: i % 10 === 0 ? null : i % 5 === 0 ? 0 : 8 + i % 20,
+        return { date, from, to, averageOutdoorTemperatureC: 3.5, minOutdoorTemperatureC: -5.25, outdoorTemperatureSamples: 2, kwh: i % 10 === 0 ? null : i % 5 === 0 ? 0 : 8 + i % 20,
           heatpumpKwh: null, heaterKwh: null, heatpumpValidSeconds: 3600, heaterValidSeconds: 3600,
           validSeconds: i % 10 === 0 ? 0 : i % 7 === 0 ? 3600 : (Date.parse(to) - Date.parse(from)) / 1000,
           expectedSeconds: (Date.parse(to) - Date.parse(from)) / 1000,
@@ -81,18 +81,18 @@ for (const [source, label] of [['shelly-ac', 'Shelly · C + A'], ['alternative-m
 test('E3 COP lines, window selection and calendar distinguish incomplete and zero days', async ({ page }, info) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await fixtures(page); await page.goto('/'); await page.getByRole('button', { name: 'Verlauf', exact: true }).click();
-  const panel = page.getByRole('region', { name: 'Effizienz und Tagesenergie' });
+  const panel = page.getByRole('region', { name: 'COP · Heizen und Warmwasser', exact: true });
   await expect(panel.getByText('Simulation · synthetische Messgrenze', { exact: false })).toBeVisible();
   await expect(panel.locator('.history-chart path[stroke="#0964d8"]')).not.toHaveCount(0);
   const request = page.waitForRequest(r => r.url().includes('/history/cop?') && r.url().includes('windowMinutes=5'));
   await page.getByRole('combobox', { name: /^Gleitender Mittelwert/ }).selectOption('5'); await request;
-  await panel.locator('.energy-calendar').scrollIntoViewIfNeeded();
-  await expect(panel.locator('.energy-calendar svg')).toBeVisible();
-  await panel.locator('.energy-calendar').screenshot({ path: info.outputPath('energy-calendar.png') });
+  await page.getByRole('region', { name: 'Tagesverbrauch', exact: true }).locator('.energy-calendar').scrollIntoViewIfNeeded();
+  await expect(page.getByRole('region', { name: 'Tagesverbrauch', exact: true }).locator('.energy-calendar svg')).toBeVisible();
+  await page.getByRole('region', { name: 'Tagesverbrauch', exact: true }).locator('.energy-calendar').screenshot({ path: info.outputPath('energy-calendar.png') });
   await panel.locator('.history-chart').screenshot({ path: info.outputPath('cop.png') });
   await page.getByText('Tagestabelle und Tagesauswahl', { exact: true }).click();
-  await expect(panel.locator('tr').filter({ hasText: '2026-01-06' })).toContainText('0 kWh');
-  await expect(panel.locator('tr').filter({ hasText: '2026-01-08' })).toContainText('Unvollständig');
+  await expect(page.getByRole('region', { name: 'Tagesverbrauch', exact: true }).locator('tr').filter({ hasText: '2026-01-06' })).toContainText('0 kWh');
+  await expect(page.getByRole('region', { name: 'Tagesverbrauch', exact: true }).locator('tr').filter({ hasText: '2026-01-08' })).toContainText('Unvollständig');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
   expect(errors).toEqual([]);
 });
@@ -134,10 +134,10 @@ test('E3 MQTT COP is shown without a boundary confirmation', async ({ page }) =>
     minimumElectricalWatts: 200, maxPairSeconds: 60, validSeconds: 30, expectedSeconds: 30, energyRatio: 4, windowMinutes: 15,
     points: [{ time: '2026-01-01T12:00:00Z', mode: 'heat', cop: 4, average: null, validSeconds: 30, expectedSeconds: 30 }] } }));
   await page.goto('/'); await page.getByRole('button', { name: 'Verlauf', exact: true }).click();
-  const panel = page.getByRole('region', { name: 'Effizienz und Tagesenergie' });
+  const panel = page.getByRole('region', { name: 'COP · Heizen und Warmwasser', exact: true });
   await expect(panel).not.toContainText('COP unbekannt: Messgrenze');
   await expect(panel.locator('.history-chart')).toBeVisible();
-  await expect(panel.locator('.energy-calendar svg')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Tagesverbrauch', exact: true }).locator('.energy-calendar svg')).toBeVisible();
 });
 
 
@@ -147,7 +147,7 @@ test('calendar refresh and COP controls do not reload other diagrams', async ({ 
   page.on('request', request => { if (request.url().includes('/api/v1/history/')) queries.push(new URL(request.url())); });
   await page.goto('/'); await page.getByRole('button', { name: 'Verlauf', exact: true }).click();
   const cop = page.locator('[data-history-kind="efficiency"]');
-  const calendar = cop.getByRole('region', { name: 'Tagesverbrauch', exact: true });
+  const calendar = page.getByRole('region', { name: 'Tagesverbrauch', exact: true });
   await expect(calendar.locator('svg')).toBeVisible();
   const energyBefore = queries.filter(q => q.pathname.endsWith('/energy')).length;
   const response = page.waitForResponse(r => r.url().includes('/history/cop?') && r.url().includes('windowMinutes=5'));
@@ -177,4 +177,33 @@ test('calendar downloads the selected year with consumption and outdoor minima',
   expect(csv).toContain('"2025-01-02";9;-5,25;2');
   expect(csv).toContain('"simulator";"heishamon-extra";;');
   expect(csv).not.toContain('2026-');
+});
+
+test('daily consumption is separate and switches between temperature and split tiles', async ({ page }, info) => {
+  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+  await fixtures(page); await page.goto('/');
+  await page.getByRole('button', { name: 'Verlauf', exact: true }).click();
+  const daily = page.getByRole('region', { name: 'Tagesverbrauch', exact: true });
+  await expect(page.locator('[data-history-kind="efficiency"]').getByRole('region', { name: 'Tagesverbrauch', exact: true })).toHaveCount(0);
+  const colors = daily.getByRole('combobox', { name: 'Kachelfarben', exact: true });
+  await colors.selectOption('temperature');
+  await expect(daily.locator('svg').getByText('+30 °C', { exact: true })).toBeVisible();
+  await colors.selectOption('split');
+  await expect(daily.locator('svg').getByText('3,5°C', { exact: true }).first()).toBeVisible();
+  await daily.locator('.energy-calendar-scroll').screenshot({ path: info.outputPath('split-calendar.png') });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+  expect(errors).toEqual([]);
+});
+
+test('COP exports calculated series as CSV', async ({ page }) => {
+  await fixtures(page); await page.goto('/');
+  await page.getByRole('button', { name: 'Verlauf', exact: true }).click();
+  const button = page.locator('[data-history-kind="efficiency"]').getByRole('button', { name: 'CSV exportieren', exact: true });
+  await expect(button).toBeEnabled();
+  const downloaded = page.waitForEvent('download'); await button.click();
+  const download = await downloaded;
+  expect(download.suggestedFilename()).toMatch(/^COP-Verlauf-\d{8}-\d{6}\.csv$/);
+  const stream = await download.createReadStream();
+  const chunks: Buffer[] = []; for await (const chunk of stream!) chunks.push(Buffer.from(chunk));
+  expect(Buffer.concat(chunks).toString('utf8')).toContain('timeUtc;mode;cop;average;validSeconds');
 });

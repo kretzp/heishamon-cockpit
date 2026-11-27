@@ -29,14 +29,23 @@ public sealed class StoreMetadata
     public string Source { get; set; } = "";
     public int SampleSeconds { get; set; }
 }
+public sealed class DailyEnergyRow
+{
+    public string Date { get; set; } = "";
+    public string Payload { get; set; } = "";
+    public string ElectricalSource { get; set; } = "";
+    public int? MaxGapSeconds { get; set; }
+}
 public sealed class HistoryDb(DbContextOptions<HistoryDb> options) : DbContext(options)
 {
+    public DbSet<DailyEnergyRow> DailyEnergy => Set<DailyEnergyRow>();
     public DbSet<SampleRow> Samples => Set<SampleRow>();
     public DbSet<EventRow> Events => Set<EventRow>();
     public DbSet<StoreMetadata> Metadata => Set<StoreMetadata>();
     protected override void OnModelCreating(ModelBuilder model) => Configure(model);
     internal static void Configure(ModelBuilder model)
     {
+        model.Entity<DailyEnergyRow>().ToTable("DailyEnergy").HasKey(x => x.Date);
         model.Entity<SampleRow>().ToTable("Samples").HasKey(x => new { x.Key, x.Time });
         model.Entity<SampleRow>().HasIndex(x => x.Time);
         model.Entity<EventRow>().ToTable("Events").HasKey(x => x.Id);

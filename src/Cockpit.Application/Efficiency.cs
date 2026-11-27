@@ -24,6 +24,7 @@ public sealed record CopResult(DateTimeOffset From, DateTimeOffset To, int Bucke
 public sealed record EnergyDay(string Date, DateTimeOffset From, DateTimeOffset To, double? Kwh,
     double ValidSeconds, double ExpectedSeconds, string Status)
 {
+    public double? AverageOutdoorTemperatureC { get; init; }
     public double? MinOutdoorTemperatureC { get; init; }
     public int OutdoorTemperatureSamples { get; init; }
     public double? HeatpumpKwh { get; init; }

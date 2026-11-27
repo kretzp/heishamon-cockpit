@@ -1,5 +1,6 @@
 import { getLocale, text as localizeText, t as translate } from "../i18n/core.ts";
 import type { EChartsOption } from 'echarts';
+import { calendarModeSeries, temperatureLegend, type EnergyCalendarMode } from './energyCalendarModes.ts';
 import { axisTime, chartNumber, chartTime } from './chartFormat.ts';
 import { trendSeries, type TrendPoint } from './trendOptions.ts';
 export type CopPoint = {
@@ -26,6 +27,7 @@ export type CopResult = {
   series?: { mode: 'heat' | 'dhw'; points: CopPoint[] }[];
 };
 export type EnergyDay = {
+  averageOutdoorTemperatureC?: number | null;
   minOutdoorTemperatureC?: number | null;
   outdoorTemperatureSamples?: number;
   heatpumpKwh?: number | null;
@@ -138,10 +140,17 @@ export function copOptions(result: CopResult, trend = false): EChartsOption {
   }
   return option;
 }
-export function energyOptions(result: EnergyResult): EChartsOption {
+export function energyDayLabel(day: EnergyDay): string {
+  if (day.status === 'future') return '';
+  const energy = day.kwh == null ? '—' : new Intl.NumberFormat(getLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(day.kwh);
+  const temperature = day.averageOutdoorTemperatureC == null ? '—' : new Intl.NumberFormat(getLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(day.averageOutdoorTemperatureC);
+  const marker = day.status === 'partial' ? '! ' : day.status === 'current' ? '… ' : '';
+  return `${marker}${energy} kWh / ${temperature}°C`;
+}
+export function energyOptions(result: EnergyResult, mode: EnergyCalendarMode = 'consumption'): EChartsOption {
   const colored = (d: EnergyDay) => d.kwh !== null && (d.status === 'complete' || d.status === 'partial' && d.validSeconds >= Math.min((result.dailyCompletenessHours ?? 20) * 3600, d.expectedSeconds ?? 86400));
   const maximum = Math.max(1, ...result.days.filter(colored).map(d => d.kwh ?? 0));
-  return {
+  const option: EChartsOption = {
     animation: false,
     aria: {
       enabled: true
@@ -156,7 +165,7 @@ export function energyOptions(result: EnergyResult): EChartsOption {
         if (!d) return '';
         const channels = d.heatpumpKwh != null || d.heaterKwh != null
           ? `\n${translate('Wärmepumpe elektrisch')}: ${d.heatpumpKwh == null ? '—' : chartNumber(d.heatpumpKwh)} kWh\n${translate('Heizstab elektrisch')}: ${d.heaterKwh == null ? '—' : chartNumber(d.heaterKwh)} kWh` : '';
-        return `${d.date} · ${translate(dayStatus[d.status])}\n${d.kwh === null ? translate("Keine erfasste Energie") : chartNumber(d.kwh) + translate(' kWh erfasst')}\n${chartNumber(d.validSeconds / 3600)} / ${chartNumber(d.expectedSeconds / 3600)} h${channels}`;
+        return `${d.date} · ${translate(dayStatus[d.status])}\n${d.kwh === null ? translate("Keine erfasste Energie") : chartNumber(d.kwh) + translate(' kWh erfasst')}\n${chartNumber(d.validSeconds / 3600)} / ${chartNumber(d.expectedSeconds / 3600)} h${channels}\nØ ${d.averageOutdoorTemperatureC == null ? '—' : chartNumber(d.averageOutdoorTemperatureC)} °C`;
       }
     },
     visualMap: {
@@ -208,7 +217,7 @@ export function energyOptions(result: EnergyResult): EChartsOption {
         calendarIndex: q,
         data: days.filter(colored).map(d => ({
           value: [d.date, d.kwh],
-          label: { show: d.status === 'partial', formatter: '!', color: '#fff', fontSize: 11, textBorderColor: '#35445a', textBorderWidth: 2 }
+          label: { show: true, formatter: energyDayLabel(d).replace(' / ', '\n/ '), color: '#fff', fontSize: 10, textBorderColor: '#35445a', textBorderWidth: 2 }
         }))
       }, {
         type: 'heatmap' as const,
@@ -223,10 +232,18 @@ export function energyOptions(result: EnergyResult): EChartsOption {
             show: true,
             color: '#35445a',
             fontSize: 11,
-            formatter: d.status === 'partial' ? '!' : d.status === 'current' ? '…' : d.status === 'missing' ? '–' : ''
+            formatter: d.status === 'missing' && d.averageOutdoorTemperatureC == null ? '–' : energyDayLabel(d).replace(' / ', '\n/ ')
           }
         }))
       }];
     })
   };
+  if (mode !== 'consumption') {
+    option.series = calendarModeSeries(result, mode, maximum, colored);
+    const temperature = temperatureLegend(mode === 'temperature' ? [0, 1, 2, 3] : []);
+    if (mode === 'temperature') option.visualMap = temperature;
+    else option.visualMap = [{ ...(option.visualMap as object), seriesIndex: [], bottom: 38 }, temperature];
+  }
+  return option;
+
 }

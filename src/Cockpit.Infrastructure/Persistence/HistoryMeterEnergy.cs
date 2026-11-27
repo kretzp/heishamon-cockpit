@@ -11,7 +11,7 @@ public sealed partial class SqliteHistoryStore
     private static readonly string[] MeterEnergyKeys = [.. EnergyKeys, "alternativeHeatpumpPower",
         "alternativeHeaterPower", "alternativePowerEnabled", "alternativePowerGeneration"];
 
-    private async Task<EnergyResult> RecordedEnergyAsync(int year, int maxPairSeconds, DateTimeOffset now, CancellationToken token)
+    private async Task<EnergyResult> RecordedEnergyAsync(int year, int maxPairSeconds, DateTimeOffset now, DateTimeOffset rangeFrom, DateTimeOffset rangeTo, CancellationToken token)
     {
         if (year < 1971 || year > TimeZoneInfo.ConvertTime(now, EnergyCalendar.Berlin).Year || maxPairSeconds is < 0 or > 3600)
             throw new HistoryRequestException("invalid_year", "Bitte ein Jahr ab 1971 bis zum aktuellen Jahr wählen.");
@@ -19,9 +19,9 @@ public sealed partial class SqliteHistoryStore
         var last = EnergyCalendar.Midnight(new DateOnly(year + 1, 1, 1));
         var sources = await MeterSourcesAsync(first, last, token);
         if (sources.LastRaw is null && (sources.FirstMarker is null || sources.FirstMarker >= last.ToUnixTimeSeconds()))
-            return await ExtraEnergyAsync(year, maxPairSeconds, now, token);
+            return await ExtraEnergyAsync(year, maxPairSeconds, now, rangeFrom, rangeTo, token);
 
-        var calendar = new MeterEnergyCalendar(year, source, now);
+        var calendar = new MeterEnergyCalendar(year, source, now, rangeFrom, rangeTo);
         await readers.WaitAsync(token);
         try
         {
@@ -125,6 +125,8 @@ public sealed partial class SqliteHistoryStore
             if (p.Values[5] == 1)
             {
                 if (p.Values[6] is not { } generation || !double.IsFinite(generation) || generation < 0) continue;
+                if (p.Values[3].HasValue || p.Values[4].HasValue || current.Values[3].HasValue || current.Values[4].HasValue)
+                    calendar.Sources.Add("alternative-mqtt");
                 bool Fresh(PowerFrame frame, int index) => frame.Values[index] is { } watts && double.IsFinite(watts) && watts >= 0
                     && frame.Received[index] is { } received && received >= 0
                     && received < (frame.Time + Policy.SampleSeconds) * 1000
@@ -134,7 +136,6 @@ public sealed partial class SqliteHistoryStore
                 bool Paired(PowerFrame frame) => frame.Received[3].HasValue && frame.Received[4].HasValue
                     && Math.Abs(frame.Received[3]!.Value - frame.Received[4]!.Value) <= maxPairSeconds * 1000L;
                 var heatpump = Valid(3); var heater = Valid(4);
-                if (heatpump || heater) calendar.Sources.Add("alternative-mqtt");
                 calendar.Add(p.Time * 1000, current.Time * 1000,
                     [p.Values[3] ?? 0, p.Values[4] ?? 0, (p.Values[3] ?? 0) + (p.Values[4] ?? 0)],
                     [heatpump, heater, heatpump && heater && Paired(p) && Paired(current)]);
@@ -162,12 +163,13 @@ public sealed partial class SqliteHistoryStore
         private readonly double[,] energy;
         private readonly double[,] duration;
         public HashSet<string> Sources { get; } = [];
-        public long First => milliseconds[0];
-        public long Last => milliseconds[^1];
+        public long First { get; }
+        public long Last { get; }
 
-        public MeterEnergyCalendar(int year, SourceKind source, DateTimeOffset now)
+        public MeterEnergyCalendar(int year, SourceKind source, DateTimeOffset now, DateTimeOffset rangeFrom, DateTimeOffset rangeTo)
         {
             this.year = year; this.source = source; this.now = now;
+            First = rangeFrom.ToUnixTimeMilliseconds(); Last = rangeTo.ToUnixTimeMilliseconds();
             var first = new DateOnly(year, 1, 1);
             var count = DateTime.IsLeapYear(year) ? 366 : 365;
             bounds = Enumerable.Range(0, count + 1).Select(i => EnergyCalendar.Midnight(first.AddDays(i))).ToArray();
@@ -204,7 +206,7 @@ public sealed partial class SqliteHistoryStore
                     duration[i, 2] > 0 ? energy[i, 2] : null, duration[i, 2], expected, status) {
                     HeatpumpKwh = duration[i, 0] > 0 ? energy[i, 0] : null, HeaterKwh = duration[i, 1] > 0 ? energy[i, 1] : null,
                     HeatpumpValidSeconds = duration[i, 0], HeaterValidSeconds = duration[i, 1] };
-            }).ToArray()) { ElectricalSource = Sources.Count > 1 ? "mixed" : Sources.FirstOrDefault() ?? "alternative-mqtt",
+            }).ToArray()) { ElectricalSource = Sources.Count > 1 ? "mixed" : Sources.FirstOrDefault() ?? "none",
                 MaxGapSeconds = Sources.SetEquals(["shelly-ac"]) ? 20 : sampleSeconds };
         }
     }

@@ -4,7 +4,10 @@ import { lineOptions, stateIntervals, numericScale } from './src/charts/historyO
 import { stateLabel, stateColor, metricColor, metricNumber, chartTime } from './src/charts/chartFormat.ts';
 import { bandSegments } from './src/charts/analysisOptions.ts';
 import { boundedRange, csvAllowed, zoomRange } from './src/charts/historyRange.ts';
-import { copOptions, copDisplayPoints, energyOptions, energySourceLabel } from './src/charts/efficiencyOptions.ts';
+import { copOptions, copDisplayPoints, energyOptions, energySourceLabel, energyDayLabel } from './src/charts/efficiencyOptions.ts';
+import { copCsv } from './src/charts/copCsv.ts';
+import { heatingCurveCsv } from './src/charts/heatingCurveCsv.ts';
+import { calendarColor } from './src/charts/energyCalendarModes.ts';
 import { metricOptions, defaults, parseOptions, readPreferences } from './src/charts/metricChartOptions.ts';
 import { trendPoints } from './src/charts/trendOptions.ts';
 import { readTrendPreference } from './src/charts/useChartPreferences.ts';
@@ -81,6 +84,44 @@ test('daily meter energy labels and tooltip preserve source and individual chann
   const tooltip = option.tooltip.formatter({ value: ['2026-11-01', 8.5] });
   assert.match(tooltip, /Wärmepumpe elektrisch: 8 kWh/);
   assert.match(tooltip, /Heizstab elektrisch: 0,5 kWh/);
+});
+
+test('temperature scale is fixed and split calendar draws consumption above temperature', () => {
+  const day = { date: '2026-01-10', status: 'complete', kwh: 22.06, averageOutdoorTemperatureC: 3.5,
+    validSeconds: 86400, expectedSeconds: 86400 };
+  const result = { year: 2026, days: [day] };
+  const temperature = energyOptions(result, 'temperature');
+  assert.equal(temperature.visualMap.min, -15); assert.equal(temperature.visualMap.max, 30);
+  assert.deepEqual(temperature.series[0].data[0].value, [day.date, 3.5]);
+  const colors = temperature.visualMap.inRange.color;
+  assert.equal(calendarColor(-99, -15, 30, colors), '#102c63');
+  assert.equal(calendarColor(99, -15, 30, colors), '#c62828');
+  const split = energyOptions(result, 'split');
+  assert.equal(split.visualMap.length, 2);
+  const rendered = split.series[0].renderItem({ dataIndex: 0, coordSys: { cellWidth: 80, cellHeight: 44 } }, { coord: () => [100, 100] });
+  const [upper, energyLabel, lower, temperatureLabel] = rendered.children;
+  assert.equal(upper.shape.height, lower.shape.height);
+  assert.ok(upper.shape.y < lower.shape.y);
+  assert.equal(energyLabel.style.text, '22,06 kWh');
+  assert.equal(temperatureLabel.style.text, '3,5°C');
+  assert.notEqual(upper.style.fill, lower.style.fill);
+});
+
+test('COP CSV preserves both modes, missing values and the calculated moving mean', () => {
+  const point = (mode, cop) => ({ time: '2026-01-10T12:00:00Z', mode, cop, average: null, validSeconds: 30, expectedSeconds: 60 });
+  const result = { source: 'simulator', electricalSource: 'mixed', bucketSeconds: 60, windowMinutes: 15,
+    points: [], series: [{ mode: 'heat', points: [point('heat', 4)] }, { mode: 'dhw', points: [point('dhw', 0)] }] };
+  const csv = copCsv(result);
+  assert.match(csv, /timeUtc;mode;cop;average;validSeconds/);
+  assert.ok(csv.includes('"dhw";0;;30;60;"simulator";"mixed";60;15'));
+  assert.ok(csv.includes('"heat";4;;30;60;"simulator";"mixed";60;15'));
+});
+
+test('heating curve CSV includes diagram breakpoints and preview settings', () => {
+  const csv = heatingCurveCsv({ xCold: -10, yCold: 40, xWarm: 15, yWarm: 25, heatingOffTemperature: 18, heatDelta: 5 }, null);
+  assert.ok(csv.includes('-10;40;18;5'));
+  assert.ok(csv.includes('15;25;18;5'));
+  assert.ok(csv.includes('18;25;18;5'));
 });
 
 test('trend smooths without mutating measurements, inventing zeros or crossing gaps', () => {
@@ -163,10 +204,10 @@ test('calendar colors partial days from 20 hours while retaining status and meas
     { date: '2026-01-06', kwh: 200, status: 'current', validSeconds: 21 * 3600 }
   ] });
   assert.deepEqual(options.series[0].data.map(d => d.value), [['2026-01-01', 0], ['2026-01-04', 12], ['2026-01-05', 15]]);
-  assert.equal(options.series[0].data[1].label.formatter, '!');
+  assert.match(options.series[0].data[1].label.formatter, /^! 12,00 kWh/);
   assert.equal(options.series[0].data[1].label.show, true);
   assert.equal(options.visualMap.max, 15);
-  assert.equal(options.series[1].data[0].label.formatter, '!');
+  assert.match(options.series[1].data[0].label.formatter, /^! 100,00 kWh/);
   assert.equal(options.series[1].data[1].label.formatter, '–');
   assert.ok(options.calendar.every(c => c.dayLabel.firstDay === 1));
 });
@@ -325,3 +366,23 @@ test('paired temperature charts retain both labelled series with independent qua
   assert.equal(option.series[1].lineStyle.type, 'dashed');
   assert.equal(option.legend.type, 'scroll');
 });
+
+ test('daily calendar labels show consumption and mean temperature with missing values and status', () => {
+
+   const day = { status: 'complete', kwh: 22.06, averageOutdoorTemperatureC: 3.5 };
+
+   assert.equal(energyDayLabel(day), '22,06 kWh / 3,5°C');
+
+   assert.equal(energyDayLabel({ ...day, kwh: 0, averageOutdoorTemperatureC: 0 }), '0,00 kWh / 0,0°C');
+
+   assert.equal(energyDayLabel({ ...day, status: 'future' }), '');
+
+   assert.equal(energyDayLabel({ ...day, status: 'partial', averageOutdoorTemperatureC: null }), '! 22,06 kWh / —°C');
+
+   const option = energyOptions({ year: 2026, days: [{ ...day, date: '2026-01-10', validSeconds: 86400, expectedSeconds: 86400 }] });
+
+   assert.equal(option.series[0].data[0].label.show, true);
+
+   assert.equal(option.series[0].data[0].label.formatter.replace('\n', ' '), '22,06 kWh / 3,5°C');
+
+ });

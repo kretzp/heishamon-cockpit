@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.0.7 — Daily consumption and outdoor temperature, 2026-11-27
+
+- Store completed days in the history database on first access. Recalculate the current day and average valid outdoor temperature readings.
+- View daily consumption in a separate calendar. Colour tiles by consumption, by temperature from −15 to +30 °C, or split each tile with consumption above and temperature below.
+- Include average outdoor temperature in the daily CSV and export the COP history and heating curve as CSV.
+
 ## 1.0.6 — Saved chart colours and trend preferences, 2026-11-26
 
 - Use red for flow temperature, blue for return temperature and orange for hot water

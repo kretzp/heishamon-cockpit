@@ -9,7 +9,7 @@ export function energyCsv(result: EnergyResult): string {
   const rows = result.days.filter(d => d.status !== 'future').map(d => [
     d.date, d.kwh, d.minOutdoorTemperatureC, d.outdoorTemperatureSamples,
     d.validSeconds, d.expectedSeconds, d.status, result.timeZone, result.source, result.electricalSource,
-    d.heatpumpKwh, d.heaterKwh, d.heatpumpValidSeconds, d.heaterValidSeconds
+    d.heatpumpKwh, d.heaterKwh, d.heatpumpValidSeconds, d.heaterValidSeconds, d.averageOutdoorTemperatureC
   ].map(cell).join(';'));
-  return '\uFEFFdate;consumptionKwh;minOutdoorTemperatureC;outdoorTemperatureSamples;validSeconds;expectedSeconds;status;timeZone;source;electricalSource;heatpumpKwh;heaterKwh;heatpumpValidSeconds;heaterValidSeconds\r\n' + rows.join('\r\n') + '\r\n';
+  return '\uFEFFdate;consumptionKwh;minOutdoorTemperatureC;outdoorTemperatureSamples;validSeconds;expectedSeconds;status;timeZone;source;electricalSource;heatpumpKwh;heaterKwh;heatpumpValidSeconds;heaterValidSeconds;averageOutdoorTemperatureC\r\n' + rows.join('\r\n') + '\r\n';
 }

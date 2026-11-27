@@ -10,6 +10,7 @@ import { HistoryChart } from './charts/HistoryChart';
 import { useHistoryData } from './charts/useHistoryData';
 import { boundedRange, csvAllowed, zoomRange, type TimeRange } from './charts/historyRange';
 import { metricNumber, chartNumber, chartTime } from './charts/chartFormat';
+import { DailyEnergyPanel } from './charts/DailyEnergyPanel';
 import { EfficiencyPanel } from './charts/EfficiencyPanel';
 type Event = {
   id: number;
@@ -145,10 +146,12 @@ export function StorageNotice() {
 type HistoryKind = 'temperature' | 'technical' | 'pressure' | 'power' | 'efficiency' | 'state';
 const stateKeys = ['heatpumpState', 'operatingMode', 'quietMode', 'internalHeaterState', 'defrostState', 'threeWayValveState', 'sterilizationState'];
 export function HistoryPanel({ compact = false }: { compact?: boolean }) {
+  const [energySelection, setEnergySelection] = useState<TimeRange | null>(null);
   if (compact) return <HistorySection compact />;
   return <div className="independent-history">
     <HistorySection />
-    <HistorySection kind="efficiency" />
+    <HistorySection kind="efficiency" selection={energySelection} />
+    <DailyEnergyPanel onSelect={setEnergySelection} />
     <HistorySection kind="technical" />
     <HistorySection kind="pressure" />
     <h2>{t("Beobachtete Betriebszustände")}</h2>
@@ -157,9 +160,9 @@ export function HistoryPanel({ compact = false }: { compact?: boolean }) {
   </div>;
 }
 function HistorySection({
-  compact = false, kind = 'temperature', stateKey = ''
+  compact = false, kind = 'temperature', stateKey = '', selection = null
 }: {
-  compact?: boolean; kind?: HistoryKind; stateKey?: string;
+  compact?: boolean; kind?: HistoryKind; stateKey?: string; selection?: TimeRange | null;
 }) {
   const language = useLanguage();
   const mqttTemperature = useTemperatureSource(kind === 'temperature');
@@ -250,6 +253,15 @@ function HistorySection({
     return () => clearInterval(timer);
   }, [live, range]);
   useEffect(() => () => clearTimeout(zoomTimer.current), []);
+  useEffect(() => {
+    if (!selection) return;
+    clearTimeout(zoomTimer.current);
+    setZoomPending(false);
+    setLive(false);
+    setRange(selection);
+    setDomain(selection);
+    setCustom(true);
+  }, [selection]);
   async function download(selectedKeys = keyString) {
     if (exportDisabled(selectedKeys)) return;
     setExporting(true);
@@ -340,7 +352,7 @@ function HistorySection({
     {!temperature && kind !== 'efficiency' && <Button disabled={exportDisabled(keyString)} onClick={() => void download()}>{t("CSV exportieren")}</Button>}
     {showBand && pairs && <><p className="field-note">{t("Spreizungsband: gleiche Rasterplätze, Empfangsabstand höchstens ")}{localizeText(pairs.maxPairSeconds)}{t(" s. Nur vollständige Paarintervalle; keine gehaltenen Ersatzwerte.")}</p><details><summary>{t("Wertepaare und Abdeckung (letzte 20 Intervalle)")}</summary><div className="history-table-wrap"><table><thead><tr><th>{t("Zeit · Berlin")}</th><th>{t("Vorlauf / Rücklauf")}</th><th>{t("Spreizung")}</th><th>{t("Gültige / erwartete Paare")}</th></tr></thead><tbody>{localizeText(pairs.points.slice(-20).map(p => <tr key={p.time}><td>{localizeText(chartTime(p.time))}</td><td>{p.flow === null || p.return === null ? localizeText('—') : localizeText(`${metricNumber(p.flow, 'flowTemperature')} / ${metricNumber(p.return, 'returnTemperature')} °C`)}</td><td>{p.spread === null ? localizeText('—') : localizeText(`${metricNumber(p.spread, 'temperatureSpread')} K`)}</td><td>{localizeText(p.validPairs)} / {localizeText(p.expectedPairs)}</td></tr>))}</tbody></table></div></details></>}
     {temperature && !compact && markers && <section aria-label={t("Sterilisationsereignisse")}><h3>{t("Beobachteter Sterilisationsstatus")}</h3><p className="field-note">{t("TOP69-Aktivstatus; kein Nachweis eines abgeschlossenen Sterilisationslaufs. Markierungen zeigen beobachtete Wechsel, Flächen bekannte Aktivintervalle.")}</p>{!sterilization.length ? <p>{phases?.resolution === 'bucketed' ? localizeText('Sterilisationswechsel bei dieser Auflösung nicht auswertbar. Zeitraum verkleinern.') : localizeText('Kein gültiges Aktivintervall im Zeitraum aufgezeichnet.')}</p> : <ul>{localizeText(sterilization.map(i => <li key={i.from}>{localizeText(chartTime(i.from))} – {localizeText(chartTime(i.to))} · {i.startObserved ? localizeText('Aktivwechsel beobachtet') : localizeText('Beginn unbekannt oder außerhalb der Auswahl')} · {i.endObserved ? localizeText('Inaktivwechsel beobachtet') : localizeText('Ende unbekannt oder außerhalb der Auswahl')}</li>))}</ul>}</section>}
-    {kind === 'efficiency' && <EfficiencyPanel sync={sync} sampleSeconds={bundle?.sampleSeconds ?? 30} refresh={refresh} onSelect={next => choose(next)} />}
+    {kind === 'efficiency' && <EfficiencyPanel sync={sync} sampleSeconds={bundle?.sampleSeconds ?? 30} refresh={refresh} />}
   </section>;
 }
 export function EventsPanel({

@@ -261,5 +261,5 @@ public sealed partial class SqliteHistoryStore : IHistoryStore, IDisposable
         }
         finally { writer.Release(); }
     }
-    public void Dispose() { lease?.Dispose(); writer.Dispose(); readers.Dispose(); }
+    public void Dispose() { lease?.Dispose(); writer.Dispose(); readers.Dispose(); dailyEnergy.Dispose(); }
 }

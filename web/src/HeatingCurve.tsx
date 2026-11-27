@@ -8,6 +8,8 @@ import { curveValue, curveMarker, curveSlope, type CurveValues } from './heating
 import { Icon } from './Icons';
 import './heatingCurve.css';
 import { HeatingCurveChart } from './charts/HeatingCurveChart';
+import { downloadCsv } from './charts/csvExport';
+import { heatingCurveCsv } from './charts/heatingCurveCsv';
 function CurveNumberInput({
   value,
   label,
@@ -368,6 +370,7 @@ export function HeatingCurvePanel({
         conflict: false
       } : f)}>{t("Eigene Eingaben beibehalten")}</Button><p>{t("Beibehalten verlangt eine neue Prüfung und Bestätigung.")}</p></div>}
     <div className="curve-layout"><section className="panel curve-diagram"><div className="curve-panel-heading"><h3>{dirty ? localizeText('Lokale Vorschau · ungespeichert') : localizeText('Gelesene Heizkurve')}</h3><Icon name="chart" /></div>
+      <Button disabled={!valid} onClick={() => { if (valid) downloadCsv(t('Heizkurve'), heatingCurveCsv(draft, outside)); }}>{t('CSV exportieren')}</Button>
       {valid ? <HeatingCurveChart c={draft} outside={outside} /> : <p className="curve-empty">{draft ? localizeText('Bitte Eingaben korrigieren, um die Kurve darzustellen.') : localizeText('Warte auf vollständige Kurvenwerte.')}</p>}
       <div className="curve-summary"><div><span>{t("Steigung")}</span><strong>{valid ? localizeText(curveSlope(draft).toLocaleString(getLocale(), {
                 minimumFractionDigits: 2,

@@ -178,35 +178,36 @@ public sealed partial class SqliteHistoryStore
             Series = [new("heat", heating), new("dhw", hotWater)] };
     }
 
-    public async Task<EnergyResult> EnergyAsync(int year, int maxPairSeconds, DateTimeOffset now, CancellationToken token)
+    private async Task<EnergyResult> CalculateEnergyAsync(int year, int maxPairSeconds, DateTimeOffset now,
+        DateTimeOffset rangeFrom, DateTimeOffset rangeTo, CancellationToken token)
     {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
-        deadline.CancelAfter(TimeSpan.FromSeconds(30)); token = deadline.Token;
-        var result = await RecordedEnergyAsync(year, maxPairSeconds, now, token);
+        var result = await RecordedEnergyAsync(year, maxPairSeconds, now, rangeFrom, rangeTo, token);
         var minima = new double?[result.Days.Count];
+        var averages = new double[result.Days.Count];
         var counts = new int[result.Days.Count];
         await readers.WaitAsync(token);
         try
         {
-            var from = result.Days[0].From.ToUnixTimeSeconds();
-            var to = Math.Min(result.Days[^1].To.ToUnixTimeSeconds(), now.ToUnixTimeSeconds());
             var day = 0;
-            await foreach (var frame in PowerFrames(["outsideTemperature"], from, to, token))
+            await foreach (var frame in PowerFrames(["outsideTemperature"], rangeFrom.ToUnixTimeSeconds(),
+                Math.Min(rangeTo.ToUnixTimeSeconds() - 1, now.ToUnixTimeSeconds()), token))
             {
                 while (day < result.Days.Count && frame.Time >= result.Days[day].To.ToUnixTimeSeconds()) day++;
                 if (day == result.Days.Count) break;
                 if (frame.Values[0] is not { } value || !double.IsFinite(value)) continue;
                 minima[day] = minima[day] is { } min ? Math.Min(min, value) : value;
                 counts[day]++;
+                averages[day] += (value - averages[day]) / counts[day];
             }
         }
         finally { readers.Release(); }
         return result with { Days = result.Days.Select((d, i) => d with {
-            MinOutdoorTemperatureC = minima[i], OutdoorTemperatureSamples = counts[i]
+            MinOutdoorTemperatureC = minima[i], OutdoorTemperatureSamples = counts[i],
+            AverageOutdoorTemperatureC = counts[i] > 0 ? averages[i] : null
         }).ToArray() };
     }
 
-    private async Task<EnergyResult> ExtraEnergyAsync(int year, int maxPairSeconds, DateTimeOffset now, CancellationToken token)
+    private async Task<EnergyResult> ExtraEnergyAsync(int year, int maxPairSeconds, DateTimeOffset now, DateTimeOffset rangeFrom, DateTimeOffset rangeTo, CancellationToken token)
     {
         if (year < 1971 || year > TimeZoneInfo.ConvertTime(now, EnergyCalendar.Berlin).Year || maxPairSeconds is < 0 or > 3600)
             throw new HistoryRequestException("invalid_year", "Bitte ein Jahr ab 1971 bis zum aktuellen Jahr wählen.");
@@ -217,14 +218,14 @@ public sealed partial class SqliteHistoryStore
         try
         {
             PowerFrame? previous = null; var day = 0;
-            await foreach (var frame in PowerFrames(EnergyKeys, bounds[0].ToUnixTimeSeconds() - Policy.SampleSeconds,
-                Math.Min(bounds[^1].ToUnixTimeSeconds(), now.ToUnixTimeSeconds()), token))
+            await foreach (var frame in PowerFrames(EnergyKeys, rangeFrom.ToUnixTimeSeconds() - Policy.SampleSeconds,
+                Math.Min(rangeTo.ToUnixTimeSeconds(), now.ToUnixTimeSeconds()), token))
             {
                 var mode = previous?.EnergyMode(maxPairSeconds) ?? -1;
                 if (previous is not null && frame.Time - previous.Time == Policy.SampleSeconds && mode >= 0 && mode == frame.EnergyMode(maxPairSeconds))
                 {
-                    var start = Math.Max(previous.Time, bounds[0].ToUnixTimeSeconds());
-                    var end = Math.Min(frame.Time, bounds[^1].ToUnixTimeSeconds());
+                    var start = Math.Max(previous.Time, rangeFrom.ToUnixTimeSeconds());
+                    var end = Math.Min(frame.Time, rangeTo.ToUnixTimeSeconds());
                     var watts = previous.Values.Take(3).Sum(v => v!.Value);
                     while (start < end && day < count)
                     {
@@ -246,6 +247,7 @@ public sealed partial class SqliteHistoryStore
             return new EnergyDay(first.AddDays(i).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), bounds[i], bounds[i + 1],
                 durations[i] > 0 ? energies[i] : null, durations[i], expected, status);
         }).ToArray();
-        return new(year, source, Catalog.KilowattHour, "Europe/Berlin", days);
+        return new(year, source, Catalog.KilowattHour, "Europe/Berlin", days) {
+            ElectricalSource = durations.Any(d => d > 0) ? "heishamon-extra" : "none" };
     }
 }

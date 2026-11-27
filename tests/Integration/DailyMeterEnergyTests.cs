@@ -80,6 +80,18 @@ public sealed class DailyMeterEnergyTests : IDisposable
         Assert.Equal(20, day.ValidSeconds);
     }
 
+    [Fact]
+    public async Task EmptyCurrentDayDoesNotChangeStoredShellySource()
+    {
+        using var store = Open(); await store.InitializeAsync(default);
+        await Raw(Start, [0, 10, 20]);
+        var first = await store.EnergyAsync(2026, 10, Start.AddDays(1), default);
+        var second = await store.EnergyAsync(2026, 10, Start.AddDays(1).AddHours(1), default);
+        Assert.Equal("shelly-ac", first.ElectricalSource);
+        Assert.Equal("shelly-ac", second.ElectricalSource);
+        Assert.Equal(first.MaxGapSeconds, second.MaxGapSeconds);
+    }
+
     [Theory]
     [InlineData("gap")]
     [InlineData("generation")]
